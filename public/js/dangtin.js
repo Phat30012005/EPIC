@@ -195,9 +195,11 @@ async function submitPost(selectedWardValue) {
   };
 
   // Lưu và chuyển hướng
-  const storedPosts = JSON.parse(localStorage.getItem("posts")) || [];
+  // === SỬA LỖI: Đổi "posts" thành "roomsData" ===
+  const storedPosts = JSON.parse(localStorage.getItem("roomsData")) || [];
   storedPosts.push(newPost);
-  localStorage.setItem("posts", JSON.stringify(storedPosts));
+  // === SỬA LỖI: Đổi "posts" thành "roomsData" ===
+  localStorage.setItem("roomsData", JSON.stringify(storedPosts));
 
   showAlert("Tin đã được đăng thành công!");
 

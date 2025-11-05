@@ -3,8 +3,10 @@
 // =============================
 
 // --- Lấy các phần tử DOM ---
-const filterPrice = document.getElementById("price-desktop");
-const filterType = document.getElementById("typeroom-desktop");
+// === SỬA LỖI: Cập nhật đúng ID ===
+const filterPrice = document.getElementById("filterPrice");
+const filterType = document.getElementById("filterType");
+// === KẾT THÚC SỬA LỖI ===
 const filterSize = document.getElementById("roomsize-desktop");
 const filterLocal = document.getElementById("local-desktop");
 const roomList = document.getElementById("roomList");

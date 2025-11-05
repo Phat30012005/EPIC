@@ -1,14 +1,16 @@
 // admin.js
 // Quản lý danh sách bài đăng - xem, xóa, cập nhật tạm thời
 
-import { getRooms, deleteRoom } from "./roomsStorage.js";
+// === SỬA LỖI: Xóa dòng import bị lỗi ===
+// import { getRooms, deleteRoom } from "./roomsStorage.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const listContainer = document.getElementById("adminRoomList");
 
   function renderRooms() {
     listContainer.innerHTML = "";
-    const rooms = getRooms();
+    // === SỬA LỖI: Gọi hàm toàn cục ===
+    const rooms = window.getRooms();
 
     if (rooms.length === 0) {
       listContainer.innerHTML = "<p>Chưa có bài đăng nào.</p>";
@@ -34,7 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
     deleteButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
-        deleteRoom(Number(id));
+        // === SỬA LỖI: Gọi hàm toàn cục ===
+        window.deleteRoom(Number(id));
         renderRooms();
       });
     });

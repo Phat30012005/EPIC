@@ -13,4 +13,14 @@
     rooms.push(room);
     saveRooms(rooms);
   };
+
+  // === THÊM MỚI: Bổ sung hàm deleteRoom bị thiếu ===
+  window.deleteRoom = (roomId) => {
+    let rooms = loadRooms();
+    // Chuyển đổi ID sang Number để đảm bảo so sánh chính xác
+    const idToDelete = Number(roomId);
+    rooms = rooms.filter((room) => Number(room.id) !== idToDelete);
+    saveRooms(rooms);
+  };
+  // === KẾT THÚC THÊM MỚI ===
 })();
