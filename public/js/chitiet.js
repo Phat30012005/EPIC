@@ -1,4 +1,70 @@
 // public/js/chitiet.js (FILE MỚI)
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Trang chi tiết đã tải. Đang lấy dữ liệu...');
+
+    // 1. Lấy 'id' của bài đăng từ thanh URL
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('id'); // Ví dụ: ?id=abc-123-xyz
+
+    if (!postId) {
+        document.getElementById('post-detail-container').innerHTML = 
+            '<h2 class="text-center text-danger">Lỗi: Không tìm thấy ID bài đăng.</h2>';
+        return;
+    }
+
+    // 2. Gọi Supabase để lấy CHI TIẾT 1 bài đăng
+    // .eq('id', postId) nghĩa là "WHERE id == postId"
+    // .single() để lấy 1 object, thay vì 1 mảng [object]
+    const { data: post, error } = await supabase
+        .from('posts')
+        .select('*') // Lấy tất cả các cột
+        .eq('id', postId)
+        .single();
+
+    if (error) {
+        console.error('Lỗi khi tải chi tiết:', error);
+        document.getElementById('post-detail-container').innerHTML = 
+            `<h2 class="text-center text-danger">Lỗi: ${error.message}</h2>`;
+        return;
+    }
+
+    if (post) {
+        console.log('Tải chi tiết thành công:', post);
+
+        // 3. Điền dữ liệu vào HTML
+        // (Bạn cần đảm bảo các ID này tồn tại trong chitiet.html)
+        document.getElementById('detail-title').textContent = post.title;
+        document.getElementById('detail-date').textContent = new Date(post.created_at).toLocaleDateString('vi-VN');
+        document.getElementById('detail-price').textContent = `${post.price.toLocaleString()} đ/tháng`;
+        document.getElementById('detail-area').textContent = `${post.area} m²`;
+        document.getElementById('detail-rooms').textContent = post.rooms;
+        document.getElementById('detail-ward').textContent = post.ward;
+        document.getElementById('detail-address').textContent = post.address;
+        document.getElementById('detail-description').textContent = post.description;
+
+        // Điền ảnh
+        const imageDisplay = document.getElementById('detail-images-display');
+        if (post.image_url) {
+            imageDisplay.innerHTML = `<img src="${post.image_url}" alt="${post.title}" class="w-full h-auto rounded-lg shadow-md">`;
+        }
+
+        // Điền highlights (dạng mảng)
+        const highlightsContainer = document.getElementById('detail-highlights');
+        if (post.highlights && post.highlights.length > 0) {
+            post.highlights.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm';
+                div.textContent = `✓ ${item}`;
+                highlightsContainer.appendChild(div);
+            });
+        } else {
+            highlightsContainer.innerHTML = '<p>Không có tiện ích nổi bật.</p>';
+        }
+
+        // (Phần thông tin liên hệ sẽ lấy từ bảng 'profiles' ở Ngày 5)
+        // Tạm thời ẩn đi hoặc để trống
+    }
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   // Lấy ID bài đăng từ URL (ví dụ: ?id=123456)

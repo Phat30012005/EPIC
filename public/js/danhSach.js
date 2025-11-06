@@ -1,7 +1,41 @@
 // =============================
 // 🏠 Danh sách phòng trọ - CHICKY.STU
 // =============================
+async function loadRoomsFromSupabase() {
+  console.log("Đang tải dữ liệu từ Supabase...");
 
+  // Đây là API của Supabase:
+  // 1. .from('posts'): Chọn bảng 'posts' (mà Team Lead đã tạo)
+  // 2. .select('*'): Lấy tất cả các cột
+  const { data, error } = await supabase.from("posts").select("*");
+
+  if (error) {
+    // Nếu có lỗi (ví dụ: Team Lead quên tắt RLS)
+    console.error("Lỗi khi tải dữ liệu:", error);
+    roomList.innerHTML = `<p class="text-center text-red-500">Lỗi: ${error.message}</p>`;
+    return;
+  }
+
+  if (data) {
+    // Nếu thành công, 'data' là một mảng các tin đăng
+    console.log("Tải dữ liệu thành công:", data);
+
+    // Gọi hàm renderRooms cũ (đã có sẵn) với dữ liệu THẬT
+    renderRooms(data);
+  }
+}
+
+// (Giữ nguyên hàm function renderRooms(rooms) { ... } - Không cần sửa)
+
+// (Giữ nguyên hàm function applyFilters() { ... } - Sẽ sửa sau)
+
+// (Giữ nguyên các sự kiện addEventListener)
+
+// --- Hiển thị lần đầu ---
+// Gọi hàm MỚI của chúng ta khi trang được tải
+document.addEventListener("DOMContentLoaded", () => {
+  loadRoomsFromSupabase();
+});
 // --- Lấy các phần tử DOM ---
 // === SỬA LỖI: Cập nhật đúng ID ===
 const filterPrice = document.getElementById("filterPrice");
@@ -17,9 +51,6 @@ function getRooms() {
     ? window.getRooms()
     : JSON.parse(localStorage.getItem("rooms")) || [];
 }
-
-// --- Biến lưu danh sách hiện tại ---
-let currentRooms = getRooms();
 
 // --- Hàm render danh sách phòng ---
 function renderRooms(rooms) {
@@ -96,5 +127,3 @@ function applyFilters() {
   el?.addEventListener("change", applyFilters);
 });
 
-// --- Hiển thị lần đầu ---
-renderRooms(currentRooms);

@@ -61,7 +61,17 @@
                                     <input type="number" id="rooms" class="form-control" placeholder="Số phòng"
                                         required>
                                 </div>
-
+                                    <div>
+                    <label for="roomType" class="form-label text-gray-600"
+                      >Loại phòng (*)</label
+                    >
+                    <select id="roomType" class="form-select" required>
+                      <option value="">-- Chọn loại phòng --</option>
+                      <option value="Phòng đơn">Phòng đơn</option>
+                      <option value="Phòng ghép">Phòng ghép</option>
+                      <option value="Căn hộ">Căn hộ</option>
+                    </select>
+                  </div>
                                 <div class="relative">
                                     <label for="ward" class="form-label text-gray-600">Phường/Xã (*)</label>
                                     <input type="hidden" id="ward-hidden" name="ward-hidden" required>
