@@ -1,47 +1,69 @@
-// admin.js
-// Quản lý danh sách bài đăng - xem, xóa, cập nhật tạm thời
-
-// === SỬA LỖI: Xóa dòng import bị lỗi ===
-// import { getRooms, deleteRoom } from "./roomsStorage.js";
+// public/js/admin.js (ĐÃ SỬA LỖI)
 
 document.addEventListener("DOMContentLoaded", () => {
-  const listContainer = document.getElementById("adminRoomList");
+  // === SỬA LỖI: Đổi ID từ "adminRoomList" thành "adminTableBody" ===
+  const tableBody = document.getElementById("adminTableBody");
+
+  // Kiểm tra xem phần tử có tồn tại không
+  if (!tableBody) {
+    console.error("Lỗi: Không tìm thấy phần tử #adminTableBody trong admin.html");
+    return;
+  }
 
   function renderRooms() {
-    listContainer.innerHTML = "";
-    // === SỬA LỖI: Gọi hàm toàn cục ===
-    const rooms = window.getRooms();
+    tableBody.innerHTML = ""; // Xóa nội dung cũ
+    const rooms = window.getRooms(); // Lấy dữ liệu từ storage
 
     if (rooms.length === 0) {
-      listContainer.innerHTML = "<p>Chưa có bài đăng nào.</p>";
+      // Hiển thị thông báo nếu không có dữ liệu
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted p-4">
+            Chưa có bài đăng nào.
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    rooms.forEach((room) => {
-      const item = document.createElement("div");
-      item.className = "border rounded p-3 mb-2 bg-white shadow";
-      item.innerHTML = `
-        <h6 class="fw-bold">${room.title}</h6>
-        <p><b>Giá:</b> ${room.price}</p>
-        <p><b>Địa chỉ:</b> ${room.location}</p>
-        <p><b>Loại:</b> ${room.type}</p>
-        <p><b>Diện tích:</b> ${room.size}</p>
-        <button class="btn btn-sm btn-danger" data-id="${room.id}">Xóa</button>
+    // Lặp qua mảng rooms và tạo từng hàng (row)
+    rooms.forEach((room, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="text-center">${index + 1}</td>
+        <td>
+          <a href="/public/chitiet.html?id=${room.id}" class="text-primary fw-bold">
+            ${room.title || "Chưa có tiêu đề"}
+          </a>
+        </td>
+        <td class="text-center">${Number(room.price).toLocaleString()} vnđ</td>
+        <td class="text-center"><span class="badge bg-success">Đã duyệt</span></td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-danger delete-btn" data-id="${room.id}">
+            Xóa
+          </button>
+        </td>
       `;
-      listContainer.appendChild(item);
+      tableBody.appendChild(tr);
     });
 
-    // Xử lý nút xóa
-    const deleteButtons = listContainer.querySelectorAll("button[data-id]");
+    // Gắn sự kiện cho tất cả các nút Xóa
+    const deleteButtons = tableBody.querySelectorAll(".delete-btn");
     deleteButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
-        // === SỬA LỖI: Gọi hàm toàn cục ===
-        window.deleteRoom(Number(id));
-        renderRooms();
+        
+        // Sử dụng hàm confirm từ main.js (nếu có) hoặc confirm mặc định
+        const confirmDelete = window.showConfirm || confirm;
+        
+        confirmDelete("Bạn có chắc chắn muốn xóa tin này?", () => {
+          window.deleteRoom(Number(id)); // Gọi hàm xóa từ storage
+          renderRooms(); // Vẽ lại bảng
+        });
       });
     });
   }
 
+  // Lần chạy đầu tiên
   renderRooms();
 });
