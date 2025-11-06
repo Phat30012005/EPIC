@@ -119,4 +119,57 @@ document.addEventListener("DOMContentLoaded", function () {
   // 4. Gọi setupNavigation lần đầu (nếu header không load từ file ngoài)
   // Nếu header load rất nhanh, gọi lần nữa để đảm bảo trạng thái active
   // setupNavigation();
-});
+
+  // --- BẮT ĐẦU CODE MỚI NGÀY 4 ---
+  // (Thêm vào cuối hàm DOMContentLoaded)
+
+  // Hàm này tự động chạy khi trang tải và khi trạng thái auth thay đổi
+  supabase.auth.onAuthStateChange( async (event, session) => {
+      // Chờ cho header được tải xong (vì loadComponent là bất đồng bộ)
+      // Chúng ta cần tìm nút #login-button sau khi nó được fetch và chèn vào
+      // Đoạn code này đảm bảo chúng ta tìm thấy nút, ngay cả khi nó tải chậm
+      let loginButton = null;
+      while (!loginButton) {
+         loginButton = document.getElementById('login-button');
+          if (loginButton) break;
+          // Chờ 50ms rồi tìm lại
+           await new Promise( resolve => setTimeout(resolve, 50));
+      }
+
+      if (event === "SIGNED_IN" || session) {
+          // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
+          console.log('Người dùng đã đăng nhập:', session.user.email);
+          
+          // Đổi nút "Đăng nhập" thành "Đăng xuất"
+          loginButton.textContent = '🚪 Đăng xuất';
+         loginButton.href = '#'; // Bỏ link đến login.html
+          loginButton.classList.remove('btn-primary'); // Đổi màu
+          loginButton.classList.add('btn-outline-danger');
+
+          // Thêm sự kiện click để Đăng xuất
+          loginButton.onclick = async (e) => {
+             e.preventDefault();
+              const { error } = await supabase.auth.signOut();
+              if (error) {
+                  console.error('Lỗi đăng xuất:', error);
+             } else {
+                  // Đăng xuất thành công, tải lại trang
+                  window.location.reload();
+             }
+         };
+     } else if (event === "SIGNED_OUT") {
+          // 2. Trường hợp: ĐÃ ĐĂNG XUẤT
+          console.log('Người dùng đã đăng xuất.');
+          
+          // Trả nút về trạng thái "Đăng nhập" ban đầu
+          loginButton.textContent = '🔑 Đăng nhập';
+         loginButton.href = '/public/login.html';
+         loginButton.classList.remove('btn-outline-danger');
+         loginButton.classList.add('btn-primary');
+         loginButton.onclick = null; // Xóa sự kiện click đăng xuất
+      }
+      // Trường hợp 'INITIAL_SESSION' (mới tải trang) sẽ tự rơi vào 1 trong 2 TH trên
+  });
+  // --- KẾT THÚC CODE MỚI NGÀY 4 ---
+  
+}); // Dấu } đóng của DOMContentLoaded
