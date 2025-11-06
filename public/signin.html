@@ -5,7 +5,8 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign in</title>
+    <title>Sign in | Chicky.stu</title>
+    <!-- File CSS này đã có sẵn trong repo của bạn -->
     <link rel="stylesheet" href="/public/css/login_style.css" />
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 
@@ -13,33 +14,59 @@
 
 <body>
     <div class="wrapper">
-        <form action="#">
+        <!-- Gán ID "form-signin" cho thẻ form -->
+        <form id="form-signin">
             <h1>Đăng ký</h1>
-            <div class="input-box">
-                <input type="text" placeholder="Tài khoản" required />
-            </div>
-            <div class="input-box">
-                <input type="password" placeholder="Mật khẩu" required />
 
-            </div>
+            <!-- ============================================== -->
+            <!-- CÁC TRƯỜNG BẮT BUỘC TỪ KẾ HOẠCH (ĐÃ THÊM ID) -->
+            <!-- ============================================== -->
+
+            <!-- Gán ID "email" -->
             <div class="input-box">
-                <input type="password" placeholder="Nhập lại mật khẩu" required />
-
+                <input type="email" id="email" placeholder="Email (dùng để đăng nhập)" required />
             </div>
-            <form>
 
-                <div>
-                    <label class="radio">
-                        <input type="radio" name="classify" value="lessor">
-                        <span class="custom-radio"></span> Bạn là người cho thuê
-                    </label>
-                    <br>
-                    <label class="radio">
-                        <input type="radio" name="classify" value="renter">
-                        <span class="custom-radio"></span> Bạn là người thuê
-                    </label>
-                </div>
-            </form>
+            <!-- Gán ID "contactName" (Bổ sung theo kế hoạch) -->
+            <div class="input-box">
+                <input type="text" id="contactName" placeholder="Tên liên hệ của bạn" required />
+            </div>
+
+            <!-- Gán ID "phone" (Bổ sung theo kế hoạch) -->
+            <div class="input-box">
+                <input type="text" id="phone" placeholder="Số điện thoại" required />
+            </div>
+
+            <!-- ============================================== -->
+            <!-- YÊU CẦU MỚI CỦA BẠN (ĐÃ THÊM ID) -->
+            <!-- ============================================== -->
+
+            <!-- Gán ID "password" -->
+            <div class="input-box">
+                <input type="password" id="password" placeholder="Mật khẩu" required />
+            </div>
+
+            <!-- Gán ID "confirm-password" (Yêu cầu mới) -->
+            <div class="input-box">
+                <input type="password" id="confirm-password" placeholder="Nhập lại mật khẩu" required />
+            </div>
+
+            <!-- Phân vai trò (Yêu cầu mới - Đã thêm name/value/required) -->
+            <div>
+                <label class="radio">
+                    <!-- Gán value="LESSOR" (Chủ trọ) -->
+                    <input type="radio" name="role" value="LESSOR" required>
+                    <span class="custom-radio"></span> Bạn là người cho thuê
+                </label>
+                <br>
+                <label class="radio">
+                    <!-- Gán value="RENTER" (Người thuê) -->
+                    <input type="radio" name="role" value="RENTER" required>
+                    <span class="custom-radio"></span> Bạn là người thuê
+                </label>
+            </div>
+            <!-- ============================================== -->
+
             <br>
             <button type="submit" class="btn">Đăng ký</button>
             <div class="register-link">
@@ -47,9 +74,13 @@
             </div>
         </form>
     </div>
-    </div>
+
+    <!-- Đã có sẵn file config -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
+    
+    <!-- Chúng ta sẽ tạo file này ở bước 1.3 -->
+    <script src="/public/js/auth-signin.js"></script>
 </body>
 
 </html>
