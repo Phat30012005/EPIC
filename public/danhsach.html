@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Danh sách phòng trọ | Chicky.stu</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/public/css/style.css" />
@@ -17,24 +18,64 @@
 
     <main class="container my-5 flex-grow">
         <h2 class="text-center mb-4 font-bold">Danh sách phòng trọ</h2>
+        
         <div class="text-center my-4">
-            <a href="/public/Ghep.html" class="btn btn-outline-primary mx-2 px-4 py-2">Phòng ghép</a>
-            <a href="/public/Don.html" class="btn btn-outline-success mx-2 px-4 py-2">Phòng đơn</a>
-            <a href="/public/Canho.html" class="btn btn-outline-warning mx-2 px-4 py-2">Căn hộ</a>
+            <a href="/public/danhsach.html?type=Phòng%20ghép" class="btn btn-outline-primary mx-2 px-4 py-2">Phòng ghép</a>
+            <a href="/public/danhsach.html?type=Phòng%20đơn" class="btn btn-outline-success mx-2 px-4 py-2">Phòng đơn</a>
+            <a href="/public/danhsach.html?type=Căn%20hộ" class="btn btn-outline-warning mx-2 px-4 py-2">Căn hộ</a>
         </div>
+        
+        <form class="d-none d-md-flex gap-2 align-items-center mb-4" id="desktopFilters"
+            onsubmit="event.preventDefault();">
+            <select id="filterPrice" class="form-select">
+                <option value="">Giá phòng</option>
+                <option value="1-2">1 - 2 triệu</option>
+                <option value="3-4">3 - 4 triệu</option>
+                <option value="5-6">5 - 6 triệu</option>
+                <option value="tren6">Trên 6 triệu</option>
+            </select>
+
+            <select id="filterType" class="form-select">
+                <option value="">Loại phòng trọ</option>
+                <option value="Phòng đơn">Phòng đơn</option>
+                <option value="Phòng ghép">Phòng ghép</option>
+                <option value="Căn hộ">Căn hộ</option>
+            </select>
+
+            <select id="roomsize-desktop" class="form-select">
+                <option value="">Diện tích</option>
+                <option value="10-16">10-16m²</option>
+                <option value="17-25">17-25m²</option>
+                <option value="26-35">26-35m²</option>
+                <option value="tren35">Trên 35m²</option>
+            </select>
+
+            <select id="local-desktop" class="form-select">
+                <option value="">Khu vực</option>
+                <option value="Ninh Kiều">Ninh Kiều</option>
+                <option value="Cái Răng">Cái Răng</option>
+                <option value="Bình Thủy">Bình Thủy</option>
+                <option value="Ô Môn">Ô Môn</option>
+                <option value="Thốt Nốt">Thốt Nốt</option>
+                <option value="Phong Điền">Phong Điền</option>
+                <option value="Cờ Đỏ">Cờ Đỏ</option>
+                <option value="Thới Lai">Thới Lai</option>
+            </select>
+        </form>
+        
+        <div id="roomList" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            </div>
     </main>
 
     <div id="footer-placeholder"></div>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     
     <script src="/public/js/danhSach.js"></script>
     <script src="/public/js/chatbox.js"></script>
-    <script src="/public/js/main.js"></script>
-    
+    <script src="/public/js/main.js"></script> 
 
 </body>
-
 </html>
