@@ -1,9 +1,7 @@
 // public/js/main.js
-// LOGIC HIỂN THỊ LINK HỒ SƠ CHO TẤT CẢ USER ĐĂNG NHẬP
+// ĐÃ CẬP NHẬT LOGIC ĐỂ ĐIỀU HƯỚNG HỒ SƠ THEO VAI TRÒ
 
-// ===========================================
-// 🛠️ HÀM TIỆN ÍCH CHUNG (Giữ nguyên)
-// ===========================================
+// ... (Giữ nguyên các hàm tiện ích showAlert, showConfirm, setupNavigation) ...
 window.showAlert = function (message) {
   const modalOverlay = document.createElement("div");
   modalOverlay.className = "modal-overlay";
@@ -16,7 +14,6 @@ window.showAlert = function (message) {
     `;
   document.body.appendChild(modalOverlay);
 };
-
 window.showConfirm = function (message, onConfirm) {
   const modalOverlay = document.createElement("div");
   modalOverlay.className = "modal-overlay";
@@ -30,7 +27,6 @@ window.showConfirm = function (message, onConfirm) {
         </div>
     `;
   document.body.appendChild(modalOverlay);
-
   document.getElementById("confirm-yes").onclick = () => {
     onConfirm();
     modalOverlay.remove();
@@ -39,11 +35,9 @@ window.showConfirm = function (message, onConfirm) {
     modalOverlay.remove();
   };
 };
-
 window.setupNavigation = function () {
   const path = window.location.pathname.split("/").pop() || "index.html";
   const navLinks = document.querySelectorAll(".nav-link");
-
   navLinks.forEach((link) => {
     const linkPath = link.getAttribute("href").split("/").pop() || "index.html";
     link.classList.remove("!text-[#007bff]");
@@ -54,6 +48,7 @@ window.setupNavigation = function () {
     }
   });
 };
+// ===========================================
 
 // ===========================================
 // 🚀 LOGIC KHỞI ĐỘNG CHÍNH
@@ -81,16 +76,18 @@ document.addEventListener("DOMContentLoaded", function () {
     loadComponent("/public/header.html", "header-placeholder", () => {
         // Callback này chạy SAU KHI header.html đã được chèn vào DOM
         
-        // 2.1. Cập nhật link active
         setupNavigation();
 
-        // 2.2. Xử lý trạng thái Đăng nhập/Đăng xuất
         const loginButton = document.getElementById('login-button');
         const adminLink = document.getElementById('admin-link');
-        const profileLink = document.getElementById('profile-link'); // Lấy link hồ sơ
+        
+        // === SỬA ĐỔI: Lấy cả <li> và <a> của link hồ sơ ===
+        const profileLinkLi = document.getElementById('profile-link'); 
+        const profileLinkA = profileLinkLi ? profileLinkLi.querySelector('a') : null; 
+        // === KẾT THÚC SỬA ĐỔI ===
 
-        if (!loginButton || !adminLink || !profileLink) { // Cập nhật kiểm tra
-            console.error('Không tìm thấy #login-button, #admin-link hoặc #profile-link trong header.html');
+        if (!loginButton || !adminLink || !profileLinkA) { 
+            console.error('Không tìm thấy #login-button, #admin-link hoặc #profile-link a');
             return;
         }
 
@@ -106,36 +103,35 @@ document.addEventListener("DOMContentLoaded", function () {
         supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_IN" || session) {
                 // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
-                console.log('Người dùng đã đăng nhập:', session.user.email);
-                
                 loginButton.textContent = '🚪 Đăng xuất';
                 loginButton.href = '#';
                 loginButton.classList.remove('btn-primary');
                 loginButton.classList.add('btn-outline-danger');
-
                 loginButton.onclick = async (e) => {
                     e.preventDefault();
                     await supabase.auth.signOut();
                     window.location.reload();
                 };
 
-                // === HIỂN THỊ LINK HỒ SƠ ===
-                // Vì người dùng đã đăng nhập, hiển thị link "Hồ sơ"
-                profileLink.style.display = 'list-item';
-                // === KẾT THÚC ===
+                // === SỬA ĐỔI: Điều hướng hồ sơ theo vai trò ===
+                const role = session.user.user_metadata.role;
+                if (role === 'LESSOR') {
+                    profileLinkA.href = '/public/profile-lessor.html'; // Trang cho chủ trọ
+                } else { // Mặc định là 'RENTER'
+                    profileLinkA.href = '/public/profile-renter.html'; // Trang cho người thuê
+                }
+                profileLinkLi.style.display = 'list-item'; // Hiển thị <li>
+                // === KẾT THÚC SỬA ĐỔI ===
 
-                // === CHỈ HIỂN THỊ LINK ADMIN CHO ADMIN ===
+                // Logic admin (Giữ nguyên)
                 if (ADMIN_EMAILS.includes(session.user.email)) {
                     adminLink.style.display = 'list-item'; 
                 } else {
                     adminLink.style.display = 'none';
                 }
-                // === KẾT THÚC ===
 
             } else if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session)) {
                 // 2. Trường hợp: ĐÃ ĐĂNG XUẤT
-                console.log('Người dùng đã đăng xuất hoặc chưa đăng nhập.');
-                
                 loginButton.textContent = '🔑 Đăng nhập';
                 loginButton.href = '/public/login.html';
                 loginButton.classList.remove('btn-outline-danger');
@@ -144,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Ẩn cả hai link khi đã đăng xuất
                 adminLink.style.display = 'none';
-                profileLink.style.display = 'none';
+                profileLinkLi.style.display = 'none'; // Ẩn <li>
             }
         });
     });

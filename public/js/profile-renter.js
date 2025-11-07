@@ -1,20 +1,12 @@
-// public/js/profile.js
-// Logic cho trang Hồ sơ cá nhân
+// public/js/profile-renter.js
+// Logic cho trang Hồ sơ Người thuê
 
 document.addEventListener('DOMContentLoaded', async () => {
     const profileForm = document.getElementById('profile-form');
     const loadingDiv = document.getElementById('profile-loading');
     
-    // 1. Lấy thông tin user đang đăng nhập
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-        // Nếu chưa đăng nhập, đá về trang login
-        console.error('Chưa đăng nhập, đang chuyển hướng...');
-        alert('Vui lòng đăng nhập để xem hồ sơ.');
-        window.location.href = '/public/login.html';
-        return;
-    }
+    // 1. Lấy thông tin user (đã được auth-guard.js kiểm tra)
+    const { data: { user } } = await supabase.auth.getUser();
 
     // 2. Lấy các trường input
     const emailInput = document.getElementById('profile-email');
@@ -24,15 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updateButton = document.getElementById('update-profile-btn');
 
     // 3. Điền thông tin vào form
-    // Thông tin này được lấy từ lúc đăng ký (lưu trong user_metadata)
     emailInput.value = user.email;
     nameInput.value = user.user_metadata.contactName || '';
     phoneInput.value = user.user_metadata.phone || '';
     
-    // Hiển thị vai trò (Role)
-    if (user.user_metadata.role === 'LESSOR') {
-        roleInput.value = 'Người cho thuê';
-    } else if (user.user_metadata.role === 'RENTER') {
+    if (user.user_metadata.role === 'RENTER') {
         roleInput.value = 'Người thuê';
     } else {
         roleInput.value = 'Chưa xác định';
@@ -65,7 +53,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Lỗi cập nhật:', error);
         } else {
             alert('Cập nhật hồ sơ thành công!');
-            console.log('Cập nhật thành công:', data.user);
         }
         
         updateButton.disabled = false;
