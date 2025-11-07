@@ -1,83 +1,85 @@
-// public/js/admin.js
-// ĐÃ VIẾT LẠI HOÀN TOÀN ĐỂ DÙNG SUPABASE
+// public/js/admin.js (CODE MỚI HOÀN TOÀN TỪ KẾ HOẠCH NGÀY 5)
 
-document.addEventListener("DOMContentLoaded", () => {
-    const tableBody = document.getElementById("adminTableBody");
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Lấy tbody của bảng từ admin.html
+    const tableBody = document.getElementById('adminTableBody');
 
-    if (!tableBody) {
-        console.error("Lỗi: Không tìm thấy phần tử #adminTableBody");
-        return;
-    }
+    // 2. Định nghĩa hàm tải tất cả tin đăng
+    async function loadAdminPosts() {
+        // Xóa bảng cũ để chuẩn bị tải dữ liệu mới
+        tableBody.innerHTML = '<tr><td colspan="5">Đang tải...</td></tr>';
 
-    async function renderRooms() {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Đang tải...</td></tr>`;
-
-        // 1. Lấy dữ liệu từ Supabase
-        const { data: rooms, error } = await supabase
+        // 3. Lấy TẤT CẢ tin đăng
+        // .order() để sắp xếp tin mới nhất lên đầu
+        const { data: posts, error } = await supabase
             .from('posts')
-            .select('*');
+            .select('*')
+            .order('created_at', { ascending: false });
 
         if (error) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Lỗi: ${error.message}</td></tr>`;
+            console.error('Lỗi tải admin posts:', error);
+            tableBody.innerHTML = `<tr><td colspan="5" class="text-danger">Lỗi: ${error.message}</td></tr>`;
             return;
         }
 
-        if (rooms.length === 0) {
-            tableBody.innerHTML = `
-                <tr>
-                  <td colspan="5" class="text-center text-muted p-4">
-                    Chưa có bài đăng nào.
-                  </td>
-                </tr>`;
+        if (posts.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5">Chưa có tin đăng nào.</td></tr>';
             return;
         }
-        
-        tableBody.innerHTML = ""; // Xóa nội dung
-        
-        // 2. Lặp và render
-        rooms.forEach((room, index) => {
-            const tr = document.createElement("tr");
+
+        // 4. Xóa bảng lần nữa và vẽ lại với dữ liệu thật
+        tableBody.innerHTML = '';
+        posts.forEach((post, index) => {
+            const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-center">${index + 1}</td>
                 <td>
-                  <a href="/public/chitiet.html?id=${room.id}" class="text-primary fw-bold">
-                    ${room.title || "Chưa có tiêu đề"}
-                  </a>
+                    <a href="/public/chitiet.html?id=${post.id}" target="_blank">
+                        ${post.title}
+                    </a>
                 </td>
-                <td class="text-center">${Number(room.price).toLocaleString()} vnđ</td>
-                <td class="text-center"><span class="badge bg-success">Đã duyệt</span></td>
+                <td class="text-center">${post.price.toLocaleString()} đ</td>
+                <td class="text-center"><span class="badge bg-success">Đang hiển thị</span></td>
                 <td class="text-center">
-                  <button class="btn btn-sm btn-danger delete-btn" data-id="${room.id}">
-                    Xóa
-                  </button>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${post.id}">
+                        Xóa
+                    </button>
                 </td>
             `;
             tableBody.appendChild(tr);
         });
 
-        // 3. Gắn sự kiện cho các nút Xóa
-        tableBody.querySelectorAll(".delete-btn").forEach((btn) => {
-            btn.addEventListener("click", async () => {
-                const id = btn.getAttribute("data-id");
+        // 5. Thêm sự kiện click cho TẤT CẢ các nút Xóa
+        addDeleteListeners();
+    }
+
+    // 6. Định nghĩa hàm gán sự kiện Xóa
+    function addDeleteListeners() {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const postId = button.dataset.id;
                 
-                if (confirm("Bạn có chắc chắn muốn xóa tin này?")) {
-                    // Gọi hàm xóa của Supabase
+                // Xác nhận trước khi xóa (Theo kế hoạch Ngày 5)
+                if (confirm('Bạn có chắc chắn muốn xóa tin này không?')) {
+                    // Gọi Supabase để xóa
                     const { error: deleteError } = await supabase
                         .from('posts')
                         .delete()
-                        .eq('id', id);
+                        .eq('id', postId); // Xóa hàng có id khớp
 
                     if (deleteError) {
-                        alert('Xóa thất bại: ' + deleteError.message);
+                        console.error('Lỗi khi xóa:', deleteError);
+                        alert('Lỗi: ' + deleteError.message);
                     } else {
-                        alert('Xóa thành công!');
-                        renderRooms(); // Tải lại bảng
+                        alert('Xóa tin thành công!');
+                        loadAdminPosts(); // Tải lại bảng
                     }
                 }
             });
         });
     }
 
-    // Lần chạy đầu tiên
-    renderRooms();
+    // 7. Chạy hàm lần đầu tiên khi trang tải
+    loadAdminPosts();
 });
