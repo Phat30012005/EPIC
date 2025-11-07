@@ -153,6 +153,28 @@ h5 {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
+/* Định dạng cho ảnh NẰM TRONG card (ảnh thumbnail ở trang danh sách) */
+.room-card img:first-child {
+/* 1. Đảm bảo ảnh luôn rộng 100% card */
+width: 100%;
+display: block;
+
+/* 2. (QUAN TRỌNG) Khóa tỷ lệ khung hình 16:9 */
+/* Bạn có thể đổi thành "4 / 3" nếu muốn ảnh cao hơn (hơi vuông) */
+aspect-ratio: 16 / 9;
+
+/* 3. (QUAN TRỌNG NHẤT) Cách ảnh lấp đầy khung */
+/* 'cover' sẽ lấp đầy khung 16:9, chấp nhận cắt xén, không bị méo ảnh */
+object-fit: cover;
+
+/* 4. (Bonus) Thêm hiệu ứng zoom khi hover */
+transition: transform 0.3s ease;
+}
+
+/* Khi di chuột vào card, ảnh bên trong sẽ zoom nhẹ */
+.room-card:hover img:first-child {
+transform: scale(1.05);
+}
 
 /* =========================================================
    🔹 FORM CONTROLS (INPUTS, SELECTS, TEXTAREAS)
