@@ -37,8 +37,13 @@
     <script>
         // Tự động chuyển hướng về trang chủ sau 3 giây
         setTimeout(() => {
-            // Đảm bảo chuyển về đúng đường dẫn
-            window.location.href = '/public/index.html';
+            // SỬA LỖI: Lỗi "not a valid URL" xảy ra do trình duyệt
+            // bối rối về URL cơ sở (base URL) sau khi xác thực.
+            // Giải pháp: Tự xây dựng URL tuyệt đối (absolute URL)
+            // bằng cách lấy 'origin' (ví dụ: http://192.168.1.10:5500)
+            // và nối với đường dẫn '/public/index.html'.
+            const baseUrl = window.location.origin;
+            window.location.href = baseUrl + '/public/index.html';
         }, 3000); // 3000ms = 3 giây
     </script>
 </body>
