@@ -1,27 +1,32 @@
-// public/js/dangtin.js
-// ĐÃ NÂNG CẤP ĐỂ TẢI LÊN NHIỀU ẢNH (GALLERY)
-// ĐÃ XÓA BỎ LƯU THÔNG TIN LIÊN HỆ (ĐỂ TỐI ƯU JOIN)
+/* =======================================
+   --- FILE: js/dangtin.js ---
+   (ĐÃ SỬA LỖI UPLOAD NHIỀU ẢNH)
+   ======================================= */
 
+// Dữ liệu Phường/Xã Cần Thơ (Giữ nguyên)
 const CAN_THO_WARDS = [
-  "An Cư (Ninh Kiều)", "An Hòa (Ninh Kiều)", "An Khánh (Ninh Kiều)",
-  "An Lạc (Ninh Kiều)", "An Nghiệp (Ninh Kiều)", "An Phú (Ninh Kiều)",
-  "Cái Khế (Ninh Kiều)", "Hưng Lợi (Ninh Kiều)", "Tân An (Ninh Kiều)",
-  "Thới Bình (Ninh Kiều)", "Xuân Khánh (Ninh Kiều)", "An Thới (Bình Thủy)",
-  "Bình Thủy (Bình Thủy)", "Bùi Hữu Nghĩa (Bình Thủy)", "Long Hòa (Bình Thủy)",
-  "Long Tuyền (Bình Thủy)", "Phú Thứ (Cái Răng)", "Hưng Phú (Cái Răng)",
-  "Hưng Thạnh (Cái Răng)", "Lê Bình (Cái Răng)", "Thường Thạnh (Cái Răng)",
-  "Tân Phú (Cái Răng)", "Ba Láng (Cái Răng)", "Thốt Nốt (Thốt Nốt)",
-  "Thới Thuận (Thốt Nốt)", "Trung Kiên (Thốt Nốt)", "Thuận An (Thốt Nốt)",
-  "Thạnh An (Thốt Nốt)", "Trà Nóc (Ô Môn)", "Phước Thới (Ô Môn)",
-  "Thới An (Ô Môn)", "Thới Long (Ô Môn)", "Long Hưng (Ô Môn)",
-  "Đông Thuận (Ô Môn)", "Tân Hưng (Ô Môn)", "Trung Hưng (Cờ Đỏ)",
-  "Đông Thắng (Cờ Đỏ)", "Thạnh Phú (Cờ Đỏ)", "Thới Hưng (Cờ Đỏ)",
-  "Thới Xuân (Cờ Đỏ)", "Thới Lai (Thới Lai)", "Xuân Thắng (Thới Lai)",
-  "Tân Thạnh (Thới Lai)", "Định Môn (Thới Lai)", "Trường Lạc (Thới Lai)",
-  "Phong Điền (Phong Điền)", "Giai Xuân (Phong Điền)", "Mỹ Khánh (Phong Điền)",
-  "Nhơn Ái (Phong Điền)", "Nhơn Nghĩa (Phong Điền)", "Trường Thành (Thới Lai)",
+  "An Cư (Ninh Kiều)", "An Hòa (Ninh Kiều)", "An Khánh (Ninh Kiều)",
+  "An Lạc (Ninh Kiều)", "An Nghiệp (Ninh Kiều)", "An Phú (Ninh Kiều)",
+  "Cái Khế (Ninh Kiều)", "Hưng Lợi (Ninh Kiều)", "Tân An (Ninh Kiều)",
+  "Thới Bình (Ninh Kiều)", "Xuân Khánh (Ninh Kiều)", "An Thới (Bình Thủy)",
+  "Bình Thủy (Bình Thủy)", "Bùi Hữu Nghĩa (Bình Thủy)", "Long Hòa (Bình Thủy)",
+  "Long Tuyền (Bình Thủy)", "Phú Thứ (Cái Răng)", "Hưng Phú (Cái Răng)",
+  "Hưng Thạnh (Cái Răng)", "Lê Bình (Cái Răng)", "Thường Thạnh (Cái Răng)",
+  "Tân Phú (Cái Răng)", "Ba Láng (Cái Răng)", "Thốt Nốt (Thốt Nốt)",
+  "Thới Thuận (Thốt Nốt)", "Trung Kiên (Thốt Nốt)", "Thuận An (Thốt Nốt)",
+  "Thạnh An (Thốt Nốt)", "Trà Nóc (Ô Môn)", "Phước Thới (Ô Môn)",
+  "Thới An (Ô Môn)", "Thới Long (Ô Môn)", "Long Hưng (Ô Môn)",
+  "Đông Thuận (Ô Môn)", "Tân Hưng (Ô Môn)", "Trung Hưng (Cờ Đỏ)",
+  "Đông Thắng (Cờ Đỏ)", "Thạnh Phú (Cờ Đỏ)", "Thới Hưng (Cờ Đỏ)",
+  "Thới Xuân (Cờ Đỏ)", "Thới Lai (Thới Lai)", "Xuân Thắng (Thới Lai)",
+  "Tân Thạnh (Thới Lai)", "Định Môn (Thới Lai)", "Trường Lạc (Thới Lai)",
+  "Phong Điền (Phong Điền)", "Giai Xuân (Phong Điền)", "Mỹ Khánh (Phong Điền)",
+  "Nhơn Ái (Phong Điền)", "Nhơn Nghĩa (Phong Điền)", "Trường Thành (Thới Lai)",
 ];
 
+/**
+ * Thiết lập logic chính cho trang Đăng Tin
+ */
 function setupDangTinPage() {
     const postForm = document.getElementById("postForm");
     const imageInput = document.getElementById("images");
@@ -31,10 +36,12 @@ function setupDangTinPage() {
     const customDropdown = document.getElementById("ward-dropdown");
 
     if (!postForm || !imageInput || !imagePreviewContainer || !wardHiddenInput || !customSelectTrigger || !customDropdown) {
+        // Thêm kiểm tra null an toàn
+        console.warn("Một số thành phần DOM của trang dangtin.html không tìm thấy.");
         return;
     }
 
-    // 1. Load Wards (Giữ nguyên)
+    // 1. Load Wards vào Dropdown (Giữ nguyên)
     CAN_THO_WARDS.forEach((ward) => {
         const li = document.createElement("li");
         li.textContent = ward;
@@ -49,55 +56,59 @@ function setupDangTinPage() {
 
     // 2. Mở/đóng Dropdown (Giữ nguyên)
     customSelectTrigger.addEventListener("click", () => customDropdown.classList.toggle("hidden"));
+
+    // 3. Đóng khi click ra ngoài (Giữ nguyên)
     document.addEventListener("click", (e) => {
         if (!customSelectTrigger.contains(e.target) && !customDropdown.contains(e.target)) {
             customDropdown.classList.add("hidden");
         }
     });
 
-    // 4. === SỬA: Xem trước NHIỀU ảnh ===
+    // 4. Xem trước ảnh (ĐÃ SỬA để hiển thị nhiều ảnh)
     imageInput.addEventListener("change", () => {
-        imagePreviewContainer.innerHTML = ""; // Xóa ảnh cũ
-        
+        imagePreviewContainer.innerHTML = ""; // Xóa các ảnh cũ
+
         if (imageInput.files.length > 10) {
             alert("Bạn chỉ được đăng tối đa 10 ảnh.");
-            imageInput.value = ""; // Xóa file đã chọn
+            imageInput.value = ""; // Xóa file
             return;
         }
 
-        Array.from(imageInput.files).forEach(file => {
-             if (file.size > 5 * 1024 * 1024) { // 5MB
-                alert(`File ${file.name} quá lớn (tối đa 5MB). File này sẽ bị bỏ qua.`);
-                return; // Bỏ qua file này
+        for (const file of imageInput.files) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB
+                alert(`File ${file.name} quá lớn (tối đa 5MB).`);
+                continue; // Bỏ qua file này
             }
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = document.createElement("img");
                 img.src = e.target.result;
-                img.className = "w-24 h-24 object-cover rounded-md shadow-md"; // CSS cho ảnh preview nhỏ
+                img.className = "w-24 h-24 object-cover rounded-md shadow-md"; 
                 imagePreviewContainer.appendChild(img);
             };
             reader.readAsDataURL(file);
-        });
+        }
     });
 
-    // 5. Gán sự kiện submit (Giữ nguyên)
+    // 5. Gán sự kiện submit
     postForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const submitButton = postForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = "ĐANG XỬ LÝ...";
         
-        // Truyền file list vào
-        await submitPost(wardHiddenInput.value, imageInput.files); 
+        await submitPost(wardHiddenInput.value); // Gọi hàm submit mới
         
         submitButton.disabled = false;
         submitButton.textContent = "ĐĂNG TIN";
     });
 }
 
-async function submitPost(selectedWardValue, files) {
-    // 1. Kiểm tra đăng nhập (Giữ nguyên)
+/**
+ * Xử lý logic submit (ĐÃ SỬA ĐỂ UPLOAD NHIỀU ẢNH)
+ */
+async function submitPost(selectedWardValue) {
+    // 1. Kiểm tra đăng nhập
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         alert("Bạn phải đăng nhập trước khi đăng tin!");
@@ -105,47 +116,59 @@ async function submitPost(selectedWardValue, files) {
         return;
     }
 
-    // 2. === SỬA: Kiểm tra file ===
-    if (files.length === 0) {
+    // 2. Lấy file ảnh
+    const imageInput = document.getElementById("images");
+    if (imageInput.files.length === 0) {
         alert("Vui lòng chọn ít nhất một ảnh.");
         return;
     }
-    if (files.length > 10) {
+    if (imageInput.files.length > 10) {
         alert("Bạn chỉ được đăng tối đa 10 ảnh.");
         return;
     }
 
-    // 3. === SỬA: Tải NHIỀU ảnh lên Storage ===
-    console.log(`Bắt đầu tải lên ${files.length} ảnh...`);
+    const files = Array.from(imageInput.files); // Chuyển sang mảng
     
-    const uploadPromises = Array.from(files).map(file => {
-        if (file.size > 5 * 1024 * 1024) return Promise.resolve(null); // Bỏ qua file quá lớn
-        
+    console.log(`Bắt đầu tải lên ${files.length} ảnh...`);
+
+    // 3. Tải TẤT CẢ ảnh lên Storage (dùng Promise.all để chạy song song)
+    const uploadPromises = files.map(file => {
+        if (file.size > 5 * 1024 * 1024) {
+            console.warn(`Bỏ qua file ${file.name} vì quá lớn.`);
+            return Promise.resolve(null); // Trả về null nếu file lỗi
+        }
         const filePath = `public/${user.id}/${Date.now()}_${file.name}`;
+        
         return supabase.storage
             .from("post-images") 
-            .upload(filePath, file);
+            .upload(filePath, file)
+            .then(({ data: uploadData, error: uploadError }) => {
+                if (uploadError) {
+                    console.error("Lỗi upload ảnh:", uploadError);
+                    return null; // Trả về null nếu upload lỗi
+                }
+                
+                // 4. Lấy URL công khai
+                const { data: urlData } = supabase.storage
+                    .from("post-images")
+                    .getPublicUrl(filePath);
+                
+                console.log("Upload thành công:", urlData.publicUrl);
+                return urlData.publicUrl; // Trả về URL
+            });
     });
 
-    const uploadResults = await Promise.all(uploadPromises);
-    
-    // 4. === SỬA: Lấy TẤT CẢ URL công khai ===
-    const publicImageUrls = [];
-    for (const result of uploadResults) {
-        if (result && result.data) {
-            const { data: urlData } = supabase.storage
-                .from("post-images")
-                .getPublicUrl(result.data.path);
-            publicImageUrls.push(urlData.publicUrl);
-        }
-    }
+    // Chờ tất cả các promise upload hoàn thành
+    const settledUploads = await Promise.all(uploadPromises);
+    // Lọc ra các URL thành công (bỏ qua các giá trị null)
+    const successfulUrls = settledUploads.filter(url => url !== null);
 
-    if (publicImageUrls.length === 0) {
-        alert("Tất cả ảnh đều tải lên thất bại (có thể do quá lớn > 5MB). Vui lòng thử lại.");
+    if (successfulUrls.length === 0) {
+        alert("Không thể upload bất kỳ ảnh nào. Vui lòng thử lại.");
         return;
     }
      
-    console.log("Các URL ảnh đã tải lên:", publicImageUrls);
+    console.log("Tất cả các URL ảnh:", successfulUrls);
 
     // 5. Thu thập dữ liệu form
     const newPostData = {
@@ -160,15 +183,18 @@ async function submitPost(selectedWardValue, files) {
         highlights: Array.from(document.querySelectorAll('input[name="highlight"]:checked')).map((el) => el.value),
         room_type: document.getElementById("roomType").value,
         
-        // === SỬA: GÁN MẢNG URL VÀO CỘT 'image_urls' ===
-        image_urls: publicImageUrls, 
+        // GÁN MẢNG URL VÀO CỘT 'image_url' (đã có kiểu text[])
+        //
+        // !!! LƯU Ý QUAN TRỌNG !!!
+        // Tên cột phải là 'image_url' (số ít, không có 's').
+        // Lỗi trong ảnh chụp màn hình của bạn là do tên cột bị gõ sai thành 'image_urls' (số nhiều).
+        // Dòng code dưới đây là phiên bản ĐÚNG.
+        image_url: successfulUrls, 
         
         user_id: user.id, 
-        
-        // === XÓA BỎ: Không lưu thông tin liên hệ ở đây nữa ===
-        // contactName: ...,
-        // phone: ...,
-        // email: ...,
+        contactName: document.getElementById("contactName").value,
+        phone: document.getElementById("phone").value,
+        email: document.getElementById("email").value,
     };
 
     // 6. Lưu vào CSDL
