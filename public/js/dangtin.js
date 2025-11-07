@@ -1,7 +1,7 @@
 // public/js/dangtin.js
 // ĐÃ DỌN DẸP, CHỈ GIỮ LOGIC SUPABASE
 
-// Dữ liệu Phường/Xã Cần Thơ (Giữ nguyên)
+// Dữ liệu Phường/Xã Cần Thơ
 const CAN_THO_WARDS = [
   "An Cư (Ninh Kiều)",
   "An Hòa (Ninh Kiều)",

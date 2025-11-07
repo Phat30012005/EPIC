@@ -1,5 +1,5 @@
 // public/js/main.js
-// ĐÃ VIẾT LẠI ĐỂ SỬA LỖI RACE CONDITION
+// ĐÃ CẬP NHẬT LOGIC ĐỂ KIỂM TRA NHIỀU EMAIL ADMIN
 
 // ===========================================
 // 🛠️ HÀM TIỆN ÍCH CHUNG (Giữ nguyên)
@@ -86,10 +86,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // 2.2. Xử lý trạng thái Đăng nhập/Đăng xuất
         const loginButton = document.getElementById('login-button');
-        if (!loginButton) {
-            console.error('Không tìm thấy #login-button trong header.html');
+        const adminLink = document.getElementById('admin-link');
+
+        if (!loginButton || !adminLink) { // Cập nhật kiểm tra
+            console.error('Không tìm thấy #login-button hoặc #admin-link trong header.html');
             return;
         }
+
+        // === DANH SÁCH ADMIN EMAILS ===
+        // Thêm tất cả các email admin của bạn vào mảng (array) này
+        const ADMIN_EMAILS = [
+            "phat30012005@gmail.com",
+            "lethanhvy102005@gmail.com",
+            "maib2308257@student.ctu.edu.vn",
+            "ngab2308259@student.ctu.edu.vn",
+            "tamb2308270@student.ctu.edu.vn"
+        ];
+        // === KẾT THÚC DANH SÁCH ===
 
         supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_IN" || session) {
@@ -112,6 +125,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.location.reload();
                     }
                 };
+
+                // === Kiểm tra email có nằm TRONG DANH SÁCH admin không ===
+                if (ADMIN_EMAILS.includes(session.user.email)) {
+                    // Nếu ĐÚNG là admin, hiện nút
+                    adminLink.style.display = 'list-item'; 
+                } else {
+                    // Nếu KHÔNG phải admin, ẩn nút
+                    adminLink.style.display = 'none';
+                }
+                // === KẾT THÚC KIỂM TRA ===
+
             } else if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session)) {
                 // 2. Trường hợp: ĐÃ ĐĂNG XUẤT (hoặc chưa từng đăng nhập)
                 console.log('Người dùng đã đăng xuất hoặc chưa đăng nhập.');
@@ -121,6 +145,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 loginButton.classList.remove('btn-outline-danger');
                 loginButton.classList.add('btn-primary');
                 loginButton.onclick = null; // Xóa sự kiện click đăng xuất
+
+                // Ẩn nút Admin khi đăng xuất
+                adminLink.style.display = 'none';
             }
         });
     });
