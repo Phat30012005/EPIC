@@ -1,0 +1,25 @@
+# Thư mục Node.js - Rất lớn và không cần thiết
+# Sẽ được tạo ra khi chạy "npm install"
+node_modules/
+
+# BẢO MẬT SUPABASE - CỰC KỲ QUAN TRỌNG
+# File này chứa service_role_key (quyền admin)
+# KHÔNG BAO GIỜ commit file này lên Git.
+supabase/config.edge.json
+
+# Tệp môi trường (Environment files)
+# Thường chứa các khóa API, mật khẩu...
+.env
+.env.local
+
+# Tệp log (Ghi lại lỗi)
+# Không cần thiết cho các thành viên khác
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tệp hệ thống của HĐH (macOS, Windows)
+# Tự động tạo ra bởi hệ điều hành, gây "rác" kho code
+.DS_Store
+Thumbs.db
