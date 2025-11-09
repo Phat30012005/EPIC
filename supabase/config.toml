@@ -1,11 +1,29 @@
-
 [functions.hello-world]
 enabled = true
+# verify_jwt = true là chính xác,
+# vì bạn đã test "hello-world" và hoàn tác lại.
 verify_jwt = true
 import_map = "./functions/hello-world/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/hello-world/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/hello-world/*.html" ]
+
+
+# CẤU HÌNH CHO FUNCTION ĐĂNG KÝ MỚI
+[functions.user-signup]
+enabled = true
+verify_jwt = false # Đặt 'false' vì người dùng chưa đăng nhập
+import_map = "./functions/hello-world/deno.json" # Tái sử dụng import map
+entrypoint = "./functions/user-signup/index.ts"
+
+# CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP MỚI
+[functions.user-login]
+enabled = true
+verify_jwt = false # Đặt 'false' vì người dùng chưa đăng nhập
+import_map = "./functions/hello-world/deno.json" # Tái sử dụng import map
+entrypoint = "./functions/user-login/index.ts"
+
+# CẤU HÌNH CHO FUNCTION LẤY CHI TIẾT BÀI ĐĂNG
+[functions.get-post-detail]
+enabled = true
+verify_jwt = false # Cho phép xem chi tiết mà không cần đăng nhập
+import_map = "./functions/hello-world/deno.json" # Tái sử dụng import map
+entrypoint = "./functions/get-post-detail/index.ts"

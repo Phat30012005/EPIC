@@ -8,9 +8,10 @@ Giai đoạn 1: Ngày 2
 
 1.1. Đăng ký
 
-Mục đích: Thay thế logic trong auth-signup.js.
+[cite_start]Mục đích: Thay thế logic trong auth-signup.js. [cite: 49, 57]
 
 Endpoint: POST /functions/v1/user-signup
+Xác thực: KHÔNG (verify_jwt = false)
 
 Body (Gửi đi - JSON):
 
@@ -22,15 +23,16 @@ Body (Gửi đi - JSON):
 "role": "LESSOR"
 }
 
-Response (Nhận về - Thành công): { "data": { ...user } }
+Response (Nhận về - Thành công 200): { "data": { ...user } }
 
-Response (Nhận về - Thất bại): { "error": "..." }
+Response (Nhận về - Thất bại 400/500): { "error": "..." }
 
 1.2. Đăng nhập
 
-Mục đích: Thay thế logic trong auth-login.js.
+[cite_start]Mục đích: Thay thế logic trong auth-login.js. [cite: 50, 57]
 
 Endpoint: POST /functions/v1/user-login
+Xác thực: KHÔNG (verify_jwt = false)
 
 Body (Gửi đi - JSON):
 
@@ -39,15 +41,15 @@ Body (Gửi đi - JSON):
 "password": "somepassword"
 }
 
-Response (Nhận về - Thành công): { "data": { ...session } }
+Response (Nhận về - Thành công 200): { "data": { ...session } }
 
-Response (Nhận về - Thất bại): { "error": "..." }
+Response (Nhận về - Thất bại 400/500): { "error": "..." }
 
 2. Bài đăng (Posts)
 
 2.1. Lấy chi tiết bài đăng
 
-Mục đích: Thay thế logic trong chitiet.js.
+[cite_start]Mục đích: Thay thế logic trong chitiet.js. [cite: 53, 60]
 
 Endpoint: GET /functions/v1/get-post-detail?id=POST_ID_TRUYEN_VAO
 
