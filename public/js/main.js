@@ -1,7 +1,8 @@
 // public/js/main.js
 // ĐÃ CẬP NHẬT LOGIC ĐỂ ĐIỀU HƯỚNG HỒ SƠ THEO VAI TRÒ
+// === ĐÃ SỬA LỖI "Cannot read properties of null (reading 'split')" ===
 
-// ... (Giữ nguyên các hàm tiện ích showAlert, showConfirm, setupNavigation) ...
+// ... (Giữ nguyên các hàm tiện ích showAlert, showConfirm) ...
 window.showAlert = function (message) {
   const modalOverlay = document.createElement("div");
   modalOverlay.className = "modal-overlay";
@@ -35,126 +36,156 @@ window.showConfirm = function (message, onConfirm) {
     modalOverlay.remove();
   };
 };
+
+// === PHẦN SỬA LỖI (Lỗi 'split' của main.js:72) ===
 window.setupNavigation = function () {
   const path = window.location.pathname.split("/").pop() || "index.html";
   const navLinks = document.querySelectorAll(".nav-link");
+
   navLinks.forEach((link) => {
-    const linkPath = link.getAttribute("href").split("/").pop() || "index.html";
-    link.classList.remove("!text-[#007bff]");
+    // 1. Thêm kiểm tra 'href' an toàn
+    const href = link.getAttribute("href");
+
+    // 2. Nếu link không có href (như link 'Hồ sơ' lúc chưa auth)
+    //    hoặc href là '#' thì bỏ qua, không xử lý
+    if (!href || href === "#") {
+      return;
+    }
+
+    // 3. Chỉ xử lý các link có href hợp lệ
+    const linkPath = href.split("/").pop() || "index.html";
+    link.classList.remove("!text-[#007bff]"); // (Loại bỏ class lạ nếu có)
+
     if (linkPath === path) {
-      link.classList.add("text-primary");
+      link.classList.add("text-primary"); // Đặt class active
     } else {
-      link.classList.remove("text-primary");
+      link.classList.remove("text-primary"); // Xóa class active
     }
   });
 };
+// === KẾT THÚC SỬA LỖI ===
+
 // ===========================================
 
 // ===========================================
 // 🚀 LOGIC KHỞI ĐỘNG CHÍNH
 // ===========================================
 document.addEventListener("DOMContentLoaded", function () {
-    
-    // 1. Hàm tải component (Giữ nguyên)
-    const loadComponent = (url, placeholderId, callback) => {
-        fetch(url)
-            .then((response) => {
-                if (!response.ok) throw new Error(`Không thể tải ${url}`);
-                return response.text();
-            })
-            .then((data) => {
-                const placeholder = document.getElementById(placeholderId);
-                if (placeholder) {
-                    placeholder.outerHTML = data; 
-                    if (callback) callback(); 
-                }
-            })
-            .catch((error) => console.error(`Lỗi tải component: ${error}`));
-    };
-
-    // 2. Tải Header VÀ CHẠY LOGIC AUTH
-    loadComponent("/public/header.html", "header-placeholder", () => {
-        // Callback này chạy SAU KHI header.html đã được chèn vào DOM
-        
-        setupNavigation();
-
-        const loginButton = document.getElementById('login-button');
-        const adminLink = document.getElementById('admin-link');
-        
-        // === SỬA ĐỔI: Lấy cả <li> và <a> của link hồ sơ ===
-        const profileLinkLi = document.getElementById('profile-link'); 
-        const profileLinkA = profileLinkLi ? profileLinkLi.querySelector('a') : null; 
-        // === KẾT THÚC SỬA ĐỔI ===
-
-        if (!loginButton || !adminLink || !profileLinkA) { 
-            console.error('Không tìm thấy #login-button, #admin-link hoặc #profile-link a');
-            return;
+  // 1. Hàm tải component (Giữ nguyên)
+  const loadComponent = (url, placeholderId, callback) => {
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Không thể tải ${url}`);
+        return response.text();
+      })
+      .then((data) => {
+        const placeholder = document.getElementById(placeholderId);
+        if (placeholder) {
+          placeholder.outerHTML = data;
+          if (callback) callback();
         }
+      })
+      .catch((error) => console.error(`Lỗi tải component: ${error}`));
+  };
 
-        // Danh sách email admin (Giữ nguyên)
-        const ADMIN_EMAILS = [
-            "phat30012005@gmail.com",
-            "lethanhvy102005@gmail.com",
-            "maib2308257@student.ctu.edu.vn",
-            "ngab2308259@student.ctu.edu.vn",
-            "tamb2308270@student.ctu.edu.vn"
-        ];
+  // 2. Tải Header VÀ CHẠY LOGIC AUTH
+  loadComponent("/public/header.html", "header-placeholder", () => {
+    // Callback này chạy SAU KHI header.html đã được chèn vào DOM
 
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === "SIGNED_IN" || session) {
-                // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
-                loginButton.textContent = '🚪 Đăng xuất';
-                loginButton.href = '#';
-                loginButton.classList.remove('btn-primary');
-                loginButton.classList.add('btn-outline-danger');
-                loginButton.onclick = async (e) => {
-                    e.preventDefault();
-                    await supabase.auth.signOut();
-                    window.location.reload();
-                };
+    // Chạy setupNavigation NGAY LẬP TỨC
+    // (Bây giờ nó đã an toàn vì đã được sửa lỗi)
+    setupNavigation();
 
-                // === SỬA ĐỔI: Điều hướng hồ sơ theo vai trò ===
-                const role = session.user.user_metadata.role;
-                if (role === 'LESSOR') {
-                    profileLinkA.href = '/public/profile-lessor.html'; // Trang cho chủ trọ
-                } else { // Mặc định là 'RENTER'
-                    profileLinkA.href = '/public/profile-renter.html'; // Trang cho người thuê
-                }
-                profileLinkLi.style.display = 'list-item'; // Hiển thị <li>
-                // === KẾT THÚC SỬA ĐỔI ===
+    const loginButton = document.getElementById("login-button");
+    const adminLink = document.getElementById("admin-link");
 
-                // Logic admin (Giữ nguyên)
-                if (ADMIN_EMAILS.includes(session.user.email)) {
-                    adminLink.style.display = 'list-item'; 
-                } else {
-                    adminLink.style.display = 'none';
-                }
+    const profileLinkLi = document.getElementById("profile-link");
+    const profileLinkA = profileLinkLi
+      ? profileLinkLi.querySelector("a")
+      : null;
 
-            } else if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session)) {
-                // 2. Trường hợp: ĐÃ ĐĂNG XUẤT
-                loginButton.textContent = '🔑 Đăng nhập';
-                loginButton.href = '/public/login.html';
-                loginButton.classList.remove('btn-outline-danger');
-                loginButton.classList.add('btn-primary');
-                loginButton.onclick = null; 
+    if (!loginButton || !adminLink || !profileLinkA) {
+      console.error(
+        "Không tìm thấy #login-button, #admin-link hoặc #profile-link a"
+      );
+      return;
+    }
 
-                // Ẩn cả hai link khi đã đăng xuất
-                adminLink.style.display = 'none';
-                profileLinkLi.style.display = 'none'; // Ẩn <li>
-            }
-        });
+    // Danh sách email admin (Giữ nguyên)
+    const ADMIN_EMAILS = [
+      "phat30012005@gmail.com",
+      "lethanhvy102005@gmail.com",
+      "maib2308257@student.ctu.edu.vn",
+      "ngab2308259@student.ctu.edu.vn",
+      "tamb2308270@student.ctu.edu.vn",
+    ];
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || session) {
+        // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
+        loginButton.textContent = "🚪 Đăng xuất";
+        loginButton.href = "#";
+        loginButton.classList.remove("btn-primary");
+        loginButton.classList.add("btn-outline-danger");
+        loginButton.onclick = async (e) => {
+          e.preventDefault();
+          await supabase.auth.signOut();
+          window.location.reload();
+        };
+
+        // === SỬA ĐỔI: Điều hướng hồ sơ theo vai trò ===
+        const role = session.user.user_metadata.role;
+        if (role === "LESSOR") {
+          profileLinkA.href = "/public/profile-lessor.html"; // Trang cho chủ trọ
+        } else {
+          // Mặc định là 'RENTER'
+          profileLinkA.href = "/public/profile-renter.html"; // Trang cho người thuê
+        }
+        profileLinkLi.style.display = "list-item"; // Hiển thị <li>
+
+        // === BỔ SUNG: Chạy lại setupNavigation SAU KHI gán href
+        // để đảm bảo link 'Hồ sơ' được highlight đúng nếu đang ở trang hồ sơ
+        setupNavigation();
+        // === KẾT THÚC BỔ SUNG ===
+
+        // Logic admin (Giữ nguyên)
+        if (ADMIN_EMAILS.includes(session.user.email)) {
+          adminLink.style.display = "list-item";
+        } else {
+          adminLink.style.display = "none";
+        }
+      } else if (
+        event === "SIGNED_OUT" ||
+        (event === "INITIAL_SESSION" && !session)
+      ) {
+        // 2. Trường hợp: ĐÃ ĐĂNG XUẤT
+        loginButton.textContent = "🔑 Đăng nhập";
+        loginButton.href = "/public/login.html";
+        loginButton.classList.remove("btn-outline-danger");
+        loginButton.classList.add("btn-primary");
+        loginButton.onclick = null;
+
+        // Ẩn cả hai link khi đã đăng xuất
+        adminLink.style.display = "none";
+        profileLinkLi.style.display = "none"; // Ẩn <li>
+
+        // === BỔ SUNG: Chạy lại setupNavigation
+        setupNavigation();
+        // === KẾT THÚC BỔ SUNG ===
+      }
     });
+  });
 
-    // 3. Tải Footer (Giữ nguyên)
-    loadComponent("/public/footer.html", "footer-placeholder");
+  // 3. Tải Footer (Giữ nguyên)
+  loadComponent("/public/footer.html", "footer-placeholder");
 
-    // 4. Tải và kích hoạt Chatbox (Giữ nguyên)
-    fetch("/public/chatbox.html")
-        .then((res) => res.text())
-        .then((html) => {
-            document.body.insertAdjacentHTML("beforeend", html);
-            if (typeof initializeChatbox === "function") {
-                initializeChatbox();
-            }
-        });
+  // 4. Tải và kích hoạt Chatbox (Giữ nguyên)
+  fetch("/public/chatbox.html")
+    .then((res) => res.text())
+    .then((html) => {
+      document.body.insertAdjacentHTML("beforeend", html);
+      if (typeof initializeChatbox === "function") {
+        initializeChatbox();
+      }
+    });
 });

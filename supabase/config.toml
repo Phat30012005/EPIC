@@ -1,7 +1,5 @@
 [functions.hello-world]
 enabled = true
-# verify_jwt = true là chính xác,
-# vì bạn đã test "hello-world" và hoàn tác lại.
 verify_jwt = true
 import_map = "./functions/hello-world/deno.json"
 entrypoint = "./functions/hello-world/index.ts"
@@ -10,20 +8,23 @@ entrypoint = "./functions/hello-world/index.ts"
 # CẤU HÌNH CHO FUNCTION ĐĂNG KÝ MỚI
 [functions.user-signup]
 enabled = true
-verify_jwt = false # Đặt 'false' vì người dùng chưa đăng nhập
-import_map = "./functions/hello-world/deno.json" # Tái sử dụng import map
+verify_jwt = false
+# SỬA LẠI ĐƯỜNG DẪN NÀY
+import_map = "./functions/user-signup/deno.json" # <--- SỬA LẠI
 entrypoint = "./functions/user-signup/index.ts"
 
 # CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP MỚI
 [functions.user-login]
 enabled = true
-verify_jwt = false # Đặt 'false' vì người dùng chưa đăng nhập
-import_map = "./functions/hello-world/deno.json" # Tái sử dụng import map
+verify_jwt = false
+# SỬA LẠI ĐƯỜNG DẪN NÀY
+import_map = "./functions/user-login/deno.json" # <--- SỬA LẠI
 entrypoint = "./functions/user-login/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY CHI TIẾT BÀI ĐĂNG
 [functions.get-post-detail]
 enabled = true
-verify_jwt = false # Cho phép xem chi tiết mà không cần đăng nhập
-import_map = "./functions/hello-world/deno.json" # Tái sử dụng import map
+verify_jwt = false
+# SỬA LẠI ĐƯỜNG DẪN NÀY
+import_map = "./functions/get-post-detail/deno.json" # <--- SỬA LẠI
 entrypoint = "./functions/get-post-detail/index.ts"

@@ -2,9 +2,7 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-// Import Supabase client
-// === DÒNG QUAN TRỌNG ĐÃ SỬA LỖI (Không còn Markdown) ===
-// DÒNG 7 (ĐÚNG ✅)
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
