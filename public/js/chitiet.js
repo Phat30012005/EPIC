@@ -1,6 +1,7 @@
 /* =======================================
    --- FILE: /public/js/chitiet.js ---
    (ĐÃ NÂNG CẤP THEO KẾ HOẠCH NGÀY 5 - JOIN 2 BẢNG)
+   === ĐÃ REFACTOR ĐỂ GỌI EDGE FUNCTION (NGÀY 2) ===
    ======================================= */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -13,29 +14,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("post-detail-container").innerHTML =
       '<h2 class="text-center text-danger">Lỗi: Không tìm thấy ID bài đăng. Vui lòng quay lại trang danh sách.</h2>';
     return;
-  } // === THAY ĐỔI SỐ 1 (THEO KẾ HOẠCH NGÀY 5) ===
+  }
 
-  // ===========================================
-  // .select('*') được đổi thành .select('*, profiles(*)')
-  // profiles(*) sẽ tự động JOIN bảng 'profiles'
-  // nơi mà 'profiles.id' khớp với 'posts.user_id'
-  // ===========================================
-  const { data: post, error } = await supabase
-    .from("posts")
-    .select("*, profiles(*)")
-    .eq("id", postId)
-    .single();
+  // === REFACTOR: Gọi Edge Function "get-post-detail" ===
+  let post; // Khai báo biến post ở ngoài
 
-  if (error) {
-    console.error("Lỗi khi tải chi tiết:", error);
+  try {
+    const functionUrl =
+      supabase.functions.url + "/get-post-detail?id=" + postId;
+
+    const response = await fetch(functionUrl, {
+      method: "GET", // Method GET (theo thiết kế của function)
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      // Lỗi từ Edge Function (vd: 404, 500)
+      throw new Error(responseData.error || "Lỗi máy chủ khi tải dữ liệu");
+    }
+
+    // Gán dữ liệu post (Function trả về { data: ... })
+    post = responseData.data;
+
+    if (!post) {
+      // Trường hợp function chạy OK nhưng không tìm thấy data
+      throw new Error("Không tìm thấy bài đăng.");
+    }
+  } catch (error) {
+    // Bắt lỗi từ fetch hoặc throw
+    console.error("Lỗi khi tải chi tiết (qua Edge Function):", error);
     document.getElementById(
       "post-detail-container"
     ).innerHTML = `<h2 class="text-center text-danger">Lỗi: ${error.message}</h2>`;
     return;
   }
+  // === KẾT THÚC REFACTOR ===
+
+  // === PHẦN RENDER DỮ LIỆU (Giữ nguyên) ===
+  // Code từ đây trở xuống không cần thay đổi
+  // vì nó chỉ cần biến 'post' đã có dữ liệu.
 
   if (post) {
-    console.log("Tải chi tiết thành công (đã JOIN):", post); // Điền dữ liệu TEXT (như cũ)
+    console.log("Tải chi tiết thành công (đã JOIN):", post);
 
     document.title = `${post.title || "Chi tiết"} | Chicky.stu`;
     setTextContent("detail-title", post.title);
@@ -62,12 +83,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (descriptionEl) {
       descriptionEl.textContent =
         post.description || "Không có mô tả chi tiết.";
-    } // === THAY ĐỔI SỐ 2 (THEO KẾ HOẠCH NGÀY 5) ===
+    }
 
-    // ===========================================
-    // Lấy thông tin từ 'post.profiles' thay vì 'post'
-    // (Yêu cầu Trưởng nhóm đã sửa Trigger)
-    // ===========================================
+    // Lấy thông tin từ 'post.profiles'
     if (post.profiles) {
       setTextContent(
         "detail-contact-name",
@@ -82,7 +100,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       setTextContent("detail-contact-name", "Không rõ");
       setTextContent("detail-phone", "Không rõ");
       setTextContent("detail-email", "Không rõ");
-    } // Điền highlights (như cũ)
+    }
+
+    // Điền highlights
     const highlightsContainer = document.getElementById("detail-highlights");
     if (post.highlights && post.highlights.length > 0) {
       highlightsContainer.innerHTML = "";
@@ -94,8 +114,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     } else {
       highlightsContainer.innerHTML = "<p>Không có tiện ích nổi bật.</p>";
-    } // Điền ảnh (như cũ)
+    }
 
+    // Điền ảnh
     const imagesDisplay = document.getElementById("detail-images-display");
     const thumbnailsContainer = document.getElementById("detail-thumbnails");
     const prevBtn = document.getElementById("prev-btn");
