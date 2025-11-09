@@ -49,11 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(responseData.error || "Lỗi đăng nhập");
       }
 
-      // === BƯỚC CỰC KỲ QUAN TRỌNG (THEO PHÂN TÍCH) ===
-      // Sau khi backend xác thực, ta phải báo cho Supabase client (trình duyệt)
-      // lưu lại session này vào localStorage.
+      // === SỬA LỖI (Auth session missing): ===
+      // Backend trả về { data: { user, session } }
+      // Chúng ta cần truyền responseData.data.session vào hàm setSession
       const { data, error: sessionError } = await supabase.auth.setSession(
-        responseData.data
+        responseData.data.session
       );
 
       if (sessionError) {

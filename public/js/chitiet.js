@@ -53,7 +53,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // === PHẦN RENDER DỮ LIỆU (Giữ nguyên) ===
   // Code từ đây trở xuống không cần thay đổi
-  // vì nó chỉ cần biến 'post' đã có dữ liệu.
 
   if (post) {
     console.log("Tải chi tiết thành công (đã JOIN):", post);
