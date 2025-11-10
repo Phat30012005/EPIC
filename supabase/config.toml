@@ -9,50 +9,41 @@ entrypoint = "./functions/hello-world/index.ts"
 [functions.user-signup]
 enabled = true
 verify_jwt = false
-# SỬA LẠI ĐƯỜNG DẪN NÀY
-import_map = "./functions/user-signup/deno.json" # <--- SỬA LẠI
+import_map = "./functions/user-signup/deno.json"
 entrypoint = "./functions/user-signup/index.ts"
 
 # CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP MỚI
 [functions.user-login]
 enabled = true
 verify_jwt = false
-# SỬA LẠI ĐƯỜNG DẪN NÀY
-import_map = "./functions/user-login/deno.json" # <--- SỬA LẠI
+import_map = "./functions/user-login/deno.json"
 entrypoint = "./functions/user-login/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY CHI TIẾT BÀI ĐĂNG
 [functions.get-post-detail]
 enabled = true
 verify_jwt = false
-# SỬA LẠI ĐƯỜNG DẪN NÀY
-import_map = "./functions/get-post-detail/deno.json" # <--- SỬA LẠI
+import_map = "./functions/get-post-detail/deno.json"
 entrypoint = "./functions/get-post-detail/index.ts"
 
-# === PHẦN MỚI CỦA NGÀY 3 ===
-
-# 1. Function tạo bài đăng MỚI (Logic của Vy)
-# YÊU CẦU XÁC THỰC (rất quan trọng)
+# CẤU HÌNH CHO FUNCTION ĐĂNG TIN
 [functions.create-post]
 enabled = true
-verify_jwt = true # BẮT BUỘC, chỉ người đã đăng nhập mới được đăng tin
+verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/create-post/deno.json"
 entrypoint = "./functions/create-post/index.ts"
 
-# 2. Function lấy danh sách bài đăng (Logic của Mai)
-# KHÔNG yêu cầu xác thực, vì ai cũng xem được danh sách
+# CẤU HINH CHO FUNCTION LẤY DANH SÁCH TIN
 [functions.get-posts-list]
 enabled = true
-verify_jwt = false # Ai cũng có thể gọi
+verify_jwt = false # <<< Ai cũng có thể xem
 import_map = "./functions/get-posts-list/deno.json"
 entrypoint = "./functions/get-posts-list/index.ts"
+
+# === CÔNG VIỆC MỚI (NGÀY 4) ===
+# FUNCTION LẤY THÔNG TIN USER
 [functions.get-user-profile]
 enabled = true
-verify_jwt = true
+verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/get-user-profile/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/get-user-profile/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/get-user-profile/*.html" ]
