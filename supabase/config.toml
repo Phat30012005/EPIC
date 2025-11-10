@@ -54,10 +54,17 @@ verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/update-user-profile/deno.json"
 entrypoint = "./functions/update-user-profile/index.ts"
 
-# === CÔNG VIỆC MỚI (TASK 3 - NGÀY 4) ===
 # FUNCTION LẤY TIN ĐĂNG CỦA CHỦ TRỌ
 [functions.get-lessor-posts]
 enabled = true
 verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/get-lessor-posts/deno.json"
 entrypoint = "./functions/get-lessor-posts/index.ts"
+
+# === CÔNG VIỆC MỚI (TASK 4 - NGÀY 4) ===
+# FUNCTION XÓA BÀI ĐĂNG
+[functions.delete-post]
+enabled = true
+verify_jwt = true # <<< Bắt buộc đăng nhập
+import_map = "./functions/delete-post/deno.json"
+entrypoint = "./functions/delete-post/index.ts"
