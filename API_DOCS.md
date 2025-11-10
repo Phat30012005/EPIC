@@ -2,59 +2,50 @@ Tài liệu API (Nội bộ) CHICKY.STU
 
 Tài liệu này dùng để team Frontend biết cách gọi các Edge Function mà team Backend xây dựng.
 
-Giai đoạn 1: Ngày 2
+Giai đoạn 1: Ngày 2 (Đã xong)
 
 1. Xác thực (Auth)
 
 1.1. Đăng ký
-
-[cite_start]Mục đích: Thay thế logic trong auth-signup.js. [cite: 49, 57]
-
-Endpoint: POST /functions/v1/user-signup
-Xác thực: KHÔNG (verify_jwt = false)
-
-Body (Gửi đi - JSON):
-
-{
-"email": "user@example.com",
-"password": "somepassword",
-"contactName": "Tên Liên Hệ",
-"phone": "0909123456",
-"role": "LESSOR"
-}
-
-Response (Nhận về - Thành công 200): { "data": { ...user } }
-
-Response (Nhận về - Thất bại 400/500): { "error": "..." }
+POST /functions/v1/user-signup (verify_jwt = false)
+Body: { "email", "password", "contactName", "phone", "role" }
 
 1.2. Đăng nhập
-
-[cite_start]Mục đích: Thay thế logic trong auth-login.js. [cite: 50, 57]
-
-Endpoint: POST /functions/v1/user-login
-Xác thực: KHÔNG (verify_jwt = false)
-
-Body (Gửi đi - JSON):
-
-{
-"email": "user@example.com",
-"password": "somepassword"
-}
-
-Response (Nhận về - Thành công 200): { "data": { ...session } }
-
-Response (Nhận về - Thất bại 400/500): { "error": "..." }
+POST /functions/v1/user-login (verify_jwt = false)
+Body: { "email", "password" }
 
 2. Bài đăng (Posts)
 
 2.1. Lấy chi tiết bài đăng
+GET /functions/v1/get-post-detail?id=POST_ID (verify_jwt = false)
 
-[cite_start]Mục đích: Thay thế logic trong chitiet.js. [cite: 53, 60]
+Giai đoạn 2: Ngày 3 (Đang thực hiện)
 
-Endpoint: GET /functions/v1/get-post-detail?id=POST_ID_TRUYEN_VAO
+3. Bài đăng (Tiếp theo)
 
-Response (Nhận về - Thành công): { "data": { ...post, profiles: {...} } }
+3.1. Tạo bài đăng mới (Đăng tin)
 
-Response (Nhận về - Thất bại): { "error": "..." }
+Mục đích: Thay thế logic trong dangtin.js.
 
-(Sẽ cập nhật thêm cho Ngày 3, 4...)
+Endpoint: POST /functions/v1/create-post
+Xác thực: BẮT BUỘC (verify_jwt = true)
+Gửi Authorization: Bearer <access_token> trong header.
+
+Body (Gửi đi): FormData (Không phải JSON!)
+
+Chứa các cặp key-value cho tất cả các trường (ví dụ: title, price, ward...)
+
+Chứa các file ảnh (ví dụ: images: [file1, file2])
+
+3.2. Lấy danh sách bài đăng (Lọc)
+
+Mục đích: Thay thế logic trong danhSach.js.
+
+Endpoint: GET /functions/v1/get-posts-list
+Xác thực: KHÔNG (verify_jwt = false)
+
+Query Params (Ví dụ):
+
+/functions/v1/get-posts-list (lấy tất cả)
+
+/functions/v1/get-posts-list?type=Phòng%20đơn&price=1-2&ward=Ninh%20Kiều

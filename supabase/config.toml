@@ -28,3 +28,21 @@ verify_jwt = false
 # SỬA LẠI ĐƯỜNG DẪN NÀY
 import_map = "./functions/get-post-detail/deno.json" # <--- SỬA LẠI
 entrypoint = "./functions/get-post-detail/index.ts"
+
+# === PHẦN MỚI CỦA NGÀY 3 ===
+
+# 1. Function tạo bài đăng MỚI (Logic của Vy)
+# YÊU CẦU XÁC THỰC (rất quan trọng)
+[functions.create-post]
+enabled = true
+verify_jwt = true # BẮT BUỘC, chỉ người đã đăng nhập mới được đăng tin
+import_map = "./functions/create-post/deno.json"
+entrypoint = "./functions/create-post/index.ts"
+
+# 2. Function lấy danh sách bài đăng (Logic của Mai)
+# KHÔNG yêu cầu xác thực, vì ai cũng xem được danh sách
+[functions.get-posts-list]
+enabled = true
+verify_jwt = false # Ai cũng có thể gọi
+import_map = "./functions/get-posts-list/deno.json"
+entrypoint = "./functions/get-posts-list/index.ts"
