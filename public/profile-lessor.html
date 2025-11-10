@@ -1,74 +1,127 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hồ sơ Chủ trọ | Chicky.stu</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/public/css/style.css" />
-    <link rel="stylesheet" href="/public/css/chatbox.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
+    <link rel="stylesheet" href="/public/css/chatbox.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+  </head>
 
-<body class="bg-gray-100 flex flex-col min-h-screen">
-
+  <body class="bg-gray-100 flex flex-col min-h-screen">
     <div id="header-placeholder"></div>
 
     <main class="container my-5 flex-grow">
-        <div class="max-w-screen-md mx-auto">
-            
-            <div class="bg-white p-4 p-md-5 rounded shadow-sm app-card">
-                <h1 class="text-center mb-5 font-bold text-2xl">Hồ Sơ Của Bạn (Chủ trọ)</h1>
-                <div id="profile-loading" class="text-center">
-                    <p>Đang tải thông tin...</p>
-                </div>
-                <form id="profile-form" class="space-y-4" style="display: none;">
-                    <div>
-                        <label for="profile-email" class="form-label text-gray-600">Email (Tài khoản)</label>
-                        <input type="email" id="profile-email" class="form-control" disabled />
-                    </div>
-                    <div>
-                        <label for="profile-name" class="form-label text-gray-600">Tên liên hệ</label>
-                        <input type="text" id="profile-name" class="form-control" placeholder="Chưa cập nhật..." />
-                    </div>
-                    <div>
-                        <label for="profile-phone" class="form-label text-gray-600">Số điện thoại</label>
-                        <input type="text" id="profile-phone" class="form-control" placeholder="Chưa cập nhật..." />
-                    </div>
-                     <div>
-                        <label for="profile-role" class="form-label text-gray-600">Vai trò</label>
-                        <input type="text" id="profile-role" class="form-control" disabled />
-                    </div>
-                    <div class="pt-3 text-end">
-                        <button type="submit" id="update-profile-btn" class="btn btn-primary px-5">
-                            Lưu thay đổi
-                        </button>
-                    </div>
-                </form>
+      <div class="max-w-screen-md mx-auto">
+        <div class="bg-white p-4 p-md-5 rounded shadow-sm app-card">
+          <h1 class="text-center mb-5 font-bold text-2xl">
+            Hồ Sơ Của Bạn (Chủ trọ)
+          </h1>
+          <div id="profile-loading" class="text-center">
+            <p>Đang tải thông tin...</p>
+          </div>
+          <form id="profile-form" class="space-y-4" style="display: none">
+            <div>
+              <label for="profile-email" class="form-label text-gray-600"
+                >Email (Tài khoản)</label
+              >
+              <input
+                type="email"
+                id="profile-email"
+                class="form-control"
+                disabled
+              />
             </div>
-            
-            <div class="bg-white p-4 p-md-5 rounded shadow-sm app-card mt-4">
-                <h2 class="text-xl font-semibold mb-4">Quản lý tin đăng của bạn</h2>
-                <div id="my-posts-loading" class="text-center">
-                    <p>Đang tải tin đăng...</p>
-                </div>
-                <div id="my-posts-list" class="space-y-3">
-                </div>
+            <div>
+              <label for="profile-name" class="form-label text-gray-600"
+                >Tên liên hệ</label
+              >
+              <input
+                type="text"
+                id="profile-name"
+                class="form-control"
+                placeholder="Chưa cập nhật..."
+              />
             </div>
+            <div>
+              <label for="profile-phone" class="form-label text-gray-600"
+                >Số điện thoại</label
+              >
+              <input
+                type="text"
+                id="profile-phone"
+                class="form-control"
+                placeholder="Chưa cập nhật..."
+              />
             </div>
+            <div>
+              <label for="profile-role" class="form-label text-gray-600"
+                >Vai trò</label
+              >
+              <input
+                type="text"
+                id="profile-role"
+                class="form-control"
+                disabled
+              />
+            </div>
+            <div class="pt-3 text-end">
+              <button
+                type="submit"
+                id="update-profile-btn"
+                class="btn btn-primary px-5"
+              >
+                Lưu thay đổi
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- === PHẦN MỚI (NGÀY 6): TIN ĐÃ LƯU === -->
+        <div class="bg-white p-4 p-md-5 rounded shadow-sm app-card mt-4">
+          <h2 class="text-xl font-semibold mb-4">Tin đã lưu của bạn</h2>
+          <div id="saved-posts-loading" class="text-center">
+            <p>Đang tải tin đã lưu...</p>
+          </div>
+          <div id="saved-posts-list" class="space-y-3">
+            <!-- Mục đã lưu sẽ được render bởi JS -->
+          </div>
+        </div>
+        <!-- === KẾT THÚC PHẦN MỚI === -->
+
+        <div class="bg-white p-4 p-md-5 rounded shadow-sm app-card mt-4">
+          <h2 class="text-xl font-semibold mb-4">Quản lý tin đăng của bạn</h2>
+          <div id="my-posts-loading" class="text-center">
+            <p>Đang tải tin đăng...</p>
+          </div>
+          <div id="my-posts-list" class="space-y-3"></div>
+        </div>
+      </div>
     </main>
 
     <div id="footer-placeholder"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
-    <script src="/public/js/auth-guard.js"></script> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="/public/js/auth-guard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- api-client.js phải được tải TRƯỚC các script logic -->
+    <script src="/public/js/api-client.js"></script>
+
     <script src="/public/js/chatbox.js"></script>
-    <script src="/public/js/main.js"></script> 
-    
+    <script src="/public/js/main.js"></script>
+
     <script src="/public/js/profile-lessor.js"></script>
-</body>
+  </body>
 </html>

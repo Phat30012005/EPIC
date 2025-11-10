@@ -1,15 +1,12 @@
 // public/js/profile-lessor.js
-// === ĐÃ REFACTOR (VAI TRÒ NGA - NGÀY 4) ===
+// === ĐÃ CẬP NHẬT (NGÀY 6) ĐỂ THÊM LOGIC "TIN ĐÃ LƯU" ===
 
 // ===========================================
-// PHẦN XỬ LÝ HỒ SƠ (Giống profile-renter.js)
+// PHẦN XỬ LÝ HỒ SƠ (Giữ nguyên)
 // ===========================================
 
-/**
- * Hàm điền dữ liệu profile vào form
- */
 function populateProfileForm(profile) {
-  // 1. Lấy các trường input
+  // ... (Giữ nguyên code)
   const emailInput = document.getElementById("profile-email");
   const nameInput = document.getElementById("profile-name");
   const phoneInput = document.getElementById("profile-phone");
@@ -17,7 +14,6 @@ function populateProfileForm(profile) {
   const loadingDiv = document.getElementById("profile-loading");
   const profileForm = document.getElementById("profile-form");
 
-  // 2. Điền thông tin vào form
   emailInput.value = profile.email || "Đang tải...";
   nameInput.value = profile.contactName || "";
   phoneInput.value = profile.phone || "";
@@ -28,17 +24,13 @@ function populateProfileForm(profile) {
     roleInput.value = "Chưa xác định";
   }
 
-  // 3. Hiển thị form và ẩn loading
   loadingDiv.style.display = "none";
   profileForm.style.display = "block";
 }
 
-/**
- * Hàm xử lý khi submit form
- */
 async function handleProfileUpdate(e) {
   e.preventDefault();
-
+  // ... (Giữ nguyên code)
   const nameInput = document.getElementById("profile-name");
   const phoneInput = document.getElementById("profile-phone");
   const updateButton = document.getElementById("update-profile-btn");
@@ -49,7 +41,6 @@ async function handleProfileUpdate(e) {
   const newName = nameInput.value;
   const newPhone = phoneInput.value;
 
-  // 2. === REFACTOR: Gọi Edge Function "update-user-profile" ===
   const { data, error } = await callEdgeFunction("update-user-profile", {
     method: "POST",
     body: {
@@ -57,7 +48,6 @@ async function handleProfileUpdate(e) {
       phone: newPhone,
     },
   });
-  // === KẾT THÚC REFACTOR ===
 
   if (error) {
     alert("Cập nhật thất bại: " + error.message);
@@ -71,24 +61,22 @@ async function handleProfileUpdate(e) {
 }
 
 // ===========================================
-// PHẦN XỬ LÝ TIN ĐĂNG (Dành riêng cho chủ trọ)
+// PHẦN XỬ LÝ TIN ĐĂNG (Giữ nguyên)
 // ===========================================
 
-/**
- * Hàm render danh sách tin đăng của chủ trọ
- */
 function renderMyPosts(posts) {
+  // ... (Giữ nguyên code)
   const postsList = document.getElementById("my-posts-list");
   const loadingDiv = document.getElementById("my-posts-loading");
 
-  postsList.innerHTML = ""; // Xóa
+  postsList.innerHTML = "";
 
   if (!posts || posts.length === 0) {
     loadingDiv.textContent = "Bạn chưa đăng tin nào.";
     return;
   }
 
-  loadingDiv.style.display = "none"; // Ẩn loading
+  loadingDiv.style.display = "none";
 
   posts.forEach((post) => {
     const postDiv = document.createElement("div");
@@ -106,7 +94,7 @@ function renderMyPosts(posts) {
     }</p>
             </div>
             <div>
-                <button class"btn btn-sm btn-danger delete-post-btn" data-id="${
+                <button class="btn btn-sm btn-danger delete-post-btn" data-id="${
                   post.id
                 }">Xóa</button>
             </div>
@@ -114,35 +102,27 @@ function renderMyPosts(posts) {
     postsList.appendChild(postDiv);
   });
 
-  // Thêm sự kiện cho tất cả các nút xóa
   addDeleteListeners();
 }
 
-/**
- * Hàm gán sự kiện cho các nút xóa
- */
 function addDeleteListeners() {
+  // ... (Giữ nguyên code)
   const postsList = document.getElementById("my-posts-list");
 
   postsList.querySelectorAll(".delete-post-btn").forEach((button) => {
     button.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
 
-      // Sử dụng hàm confirm tùy chỉnh (từ main.js)
       showConfirm("Bạn có chắc muốn xóa tin này?", async () => {
-        // === REFACTOR: Gọi Edge Function "delete-post" ===
-        // Thay thế cho 'supabase.from('posts').delete()'
         const { data, error } = await callEdgeFunction("delete-post", {
-          method: "DELETE", // Method là DELETE (theo API_DOCS)
-          params: { id: id }, // Gửi ID qua query param (theo API_DOCS)
+          method: "DELETE",
+          params: { id: id },
         });
-        // === KẾT THÚC REFACTOR ===
 
         if (error) {
           alert("Lỗi khi xóa: " + error.message);
         } else {
           alert("Xóa thành công!");
-          // Xóa phần tử khỏi UI mà không cần tải lại trang
           e.target.closest(".d-flex").remove();
         }
       });
@@ -150,36 +130,113 @@ function addDeleteListeners() {
   });
 }
 
-/**
- * Hàm tải tin đăng của người dùng
- */
 async function loadMyPosts() {
-  // === REFACTOR: Gọi Edge Function "get-lessor-posts" ===
-  // Thay thế cho 'supabase.from('posts').select().eq('user_id', ...)'
+  // ... (Giữ nguyên code)
   const { data, error } = await callEdgeFunction("get-lessor-posts", {
     method: "GET",
   });
-  // === KẾT THÚC REFACTOR ===
 
   if (error) {
     console.error("Lỗi tải tin đăng:", error);
     document.getElementById("my-posts-loading").textContent =
       "Lỗi khi tải tin đăng.";
   } else {
-    // data.data là mảng bài đăng
     renderMyPosts(data.data);
   }
 }
 
 // ===========================================
-// HÀM CHẠY CHÍNH
+// PHẦN MỚI (NGÀY 6): XỬ LÝ TIN ĐÃ LƯU
+// (Code y hệt như 'profile-renter.js')
+// ===========================================
+
+function renderSavedPosts(bookmarks) {
+  const postsList = document.getElementById("saved-posts-list");
+  const loadingDiv = document.getElementById("saved-posts-loading");
+
+  postsList.innerHTML = "";
+  if (!bookmarks || bookmarks.length === 0) {
+    loadingDiv.textContent = "Bạn chưa lưu tin nào.";
+    return;
+  }
+  loadingDiv.style.display = "none";
+
+  bookmarks.forEach((bookmark) => {
+    const post = bookmark.posts;
+    if (!post) {
+      postsList.innerHTML += `<p class="text-muted">Một tin đã lưu không còn tồn tại (có thể đã bị xóa).</p>`;
+      return;
+    }
+    const postDiv = document.createElement("div");
+    postDiv.className =
+      "d-flex justify-content-between align-items-center p-3 border rounded";
+    postDiv.innerHTML = `
+      <div>
+        <a href="/public/chitiet.html?id=${
+          post.id
+        }" class="fw-bold text-primary" target="_blank">${post.title}</a>
+        <p class="mb-0 text-muted">${post.price.toLocaleString()} đ/tháng - ${
+      post.ward
+    }</p>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-outline-danger unsave-post-btn" data-id="${
+          post.id
+        }">
+          Bỏ lưu
+        </button>
+      </div>
+    `;
+    postsList.appendChild(postDiv);
+  });
+
+  addUnsaveListeners();
+}
+
+function addUnsaveListeners() {
+  const postsList = document.getElementById("saved-posts-list");
+
+  postsList.querySelectorAll(".unsave-post-btn").forEach((button) => {
+    button.addEventListener("click", async (e) => {
+      const postId = e.target.dataset.id;
+      showConfirm("Bạn có chắc muốn bỏ lưu tin này?", async () => {
+        const { data, error } = await callEdgeFunction("remove-bookmark", {
+          method: "DELETE",
+          params: { post_id: postId },
+        });
+        if (error) {
+          alert("Lỗi khi bỏ lưu: " + error.message);
+        } else {
+          alert("Bỏ lưu thành công!");
+          e.target.closest(".d-flex").remove();
+        }
+      });
+    });
+  });
+}
+
+async function loadSavedPosts() {
+  const { data, error } = await callEdgeFunction("get-user-bookmarks", {
+    method: "GET",
+  });
+
+  if (error) {
+    console.error("Lỗi tải tin đã lưu:", error);
+    document.getElementById("saved-posts-loading").textContent =
+      "Lỗi khi tải tin đã lưu.";
+  } else {
+    renderSavedPosts(data.data);
+  }
+}
+
+// ===========================================
+// HÀM CHẠY CHÍNH (ĐÃ CẬP NHẬT)
 // ===========================================
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. === REFACTOR: Gọi Edge Function "get-user-profile" ===
+  // 1. Tải Profile (Giữ nguyên)
   const { data, error } = await callEdgeFunction("get-user-profile", {
     method: "GET",
   });
-  // === KẾT THÚC REFACTOR ===
 
   if (error) {
     console.error("Lỗi tải profile:", error);
@@ -188,16 +245,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Lấy dữ liệu profile từ { data: { ...profile } }
   const userProfile = data.data;
   if (userProfile) {
     populateProfileForm(userProfile);
   }
 
-  // 2. Gán sự kiện submit
+  // 2. Gán sự kiện submit (Giữ nguyên)
   const profileForm = document.getElementById("profile-form");
   profileForm.addEventListener("submit", handleProfileUpdate);
 
-  // 3. === PHẦN MỚI: Tải tin đăng của chủ trọ ===
+  // 3. Tải tin đăng CỦA CHỦ TRỌ (Giữ nguyên)
   await loadMyPosts();
+
+  // 4. === PHẦN MỚI (NGÀY 6): Tải tin đã lưu ===
+  await loadSavedPosts();
 });
