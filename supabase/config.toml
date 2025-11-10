@@ -86,3 +86,20 @@ enabled = true
 verify_jwt = true 
 import_map = "./functions/add-bookmark/deno.json"
 entrypoint = "./functions/add-bookmark/index.ts"
+[functions.remove-bookmark]
+enabled = true
+verify_jwt = true
+import_map = "./functions/remove-bookmark/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/remove-bookmark/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/remove-bookmark/*.html" ]
+
+# CẤU HÌNH CHO BOOKMARKS (XÓA)
+[functions.remove-bookmark]
+enabled = true
+verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+import_map = "./functions/remove-bookmark/deno.json"
+entrypoint = "./functions/remove-bookmark/index.ts"
