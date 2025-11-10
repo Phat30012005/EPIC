@@ -1,70 +1,82 @@
+# supabase/config.toml
+
+# CẤU HÌNH CHO FUNCTION HELLO WORLD (MẶC ĐỊNH)
 [functions.hello-world]
 enabled = true
 verify_jwt = true
 import_map = "./functions/hello-world/deno.json"
 entrypoint = "./functions/hello-world/index.ts"
 
-
-# CẤU HÌNH CHO FUNCTION ĐĂNG KÝ MỚI
+# CẤU HÌNH CHO FUNCTION ĐĂNG KÝ
 [functions.user-signup]
 enabled = true
-verify_jwt = false
+verify_jwt = false # <--- false, vì user chưa đăng nhập
 import_map = "./functions/user-signup/deno.json"
 entrypoint = "./functions/user-signup/index.ts"
 
-# CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP MỚI
+# CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP
 [functions.user-login]
 enabled = true
-verify_jwt = false
+verify_jwt = false # <--- false, vì user chưa đăng nhập
 import_map = "./functions/user-login/deno.json"
 entrypoint = "./functions/user-login/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY CHI TIẾT BÀI ĐĂNG
 [functions.get-post-detail]
 enabled = true
-verify_jwt = false
+verify_jwt = false # <--- false, vì ai cũng xem được
 import_map = "./functions/get-post-detail/deno.json"
 entrypoint = "./functions/get-post-detail/index.ts"
 
-# CẤU HÌNH CHO FUNCTION ĐĂNG TIN
+# === GIAI ĐOẠN 2 (NGÀY 3-4) ===
+
+# CẤU HÌNH CHO FUNCTION TẠO BÀI ĐĂNG
 [functions.create-post]
 enabled = true
-verify_jwt = true # <<< Bắt buộc đăng nhập
+verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/create-post/deno.json"
 entrypoint = "./functions/create-post/index.ts"
 
-# CẤU HINH CHO FUNCTION LẤY DANH SÁCH TIN
+# CẤU HÌNH CHO FUNCTION LẤY DANH SÁCH BÀI ĐĂNG
 [functions.get-posts-list]
 enabled = true
-verify_jwt = false # <<< Ai cũng có thể xem
+verify_jwt = false # <--- false, ai cũng xem được
 import_map = "./functions/get-posts-list/deno.json"
 entrypoint = "./functions/get-posts-list/index.ts"
 
-# FUNCTION LẤY THÔNG TIN USER
+# CẤU HÌNH CHO FUNCTION LẤY PROFILE USER
 [functions.get-user-profile]
 enabled = true
-verify_jwt = true # <<< Bắt buộc đăng nhập
+verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/get-user-profile/deno.json"
 entrypoint = "./functions/get-user-profile/index.ts"
 
-# FUNCTION CẬP NHẬT THÔNG TIN USER
+# CẤU HÌNH CHO FUNCTION CẬP NHẬT PROFILE USER
 [functions.update-user-profile]
 enabled = true
-verify_jwt = true # <<< Bắt buộc đăng nhập
+verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/update-user-profile/deno.json"
 entrypoint = "./functions/update-user-profile/index.ts"
 
-# FUNCTION LẤY TIN ĐĂNG CỦA CHỦ TRỌ
+# CẤU HÌNH CHO FUNCTION LẤY TIN CỦA CHỦ TRỌ
 [functions.get-lessor-posts]
 enabled = true
-verify_jwt = true # <<< Bắt buộc đăng nhập
+verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/get-lessor-posts/deno.json"
 entrypoint = "./functions/get-lessor-posts/index.ts"
 
-# === CÔNG VIỆC MỚI (TASK 4 - NGÀY 4) ===
-# FUNCTION XÓA BÀI ĐĂNG
+# CẤU HÌNH CHO FUNCTION XÓA BÀI ĐĂNG
 [functions.delete-post]
 enabled = true
-verify_jwt = true # <<< Bắt buộc đăng nhập
+verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/delete-post/deno.json"
 entrypoint = "./functions/delete-post/index.ts"
+
+# === GIAI ĐOẠN 3 (NGÀY 6) ===
+
+# CẤU HÌNH CHO FUNCTION TÌM KIẾM
+[functions.search-posts]
+enabled = true
+verify_jwt = false # <--- false, ai cũng được tìm
+import_map = "./functions/search-posts/deno.json"
+entrypoint = "./functions/search-posts/index.ts"
