@@ -1,215 +1,231 @@
 /* =======================================
    --- FILE: js/dangtin.js ---
-   (ĐÃ SỬA LỖI UPLOAD NHIỀU ẢNH)
+   (ĐÃ REFACTOR ĐỂ GỌI EDGE FUNCTION 'create-post' - VAI TÂM)
    ======================================= */
 
 // Dữ liệu Phường/Xã Cần Thơ (Giữ nguyên)
 const CAN_THO_WARDS = [
-  "An Cư (Ninh Kiều)", "An Hòa (Ninh Kiều)", "An Khánh (Ninh Kiều)",
-  "An Lạc (Ninh Kiều)", "An Nghiệp (Ninh Kiều)", "An Phú (Ninh Kiều)",
-  "Cái Khế (Ninh Kiều)", "Hưng Lợi (Ninh Kiều)", "Tân An (Ninh Kiều)",
-  "Thới Bình (Ninh Kiều)", "Xuân Khánh (Ninh Kiều)", "An Thới (Bình Thủy)",
-  "Bình Thủy (Bình Thủy)", "Bùi Hữu Nghĩa (Bình Thủy)", "Long Hòa (Bình Thủy)",
-  "Long Tuyền (Bình Thủy)", "Phú Thứ (Cái Răng)", "Hưng Phú (Cái Răng)",
-  "Hưng Thạnh (Cái Răng)", "Lê Bình (Cái Răng)", "Thường Thạnh (Cái Răng)",
-  "Tân Phú (Cái Răng)", "Ba Láng (Cái Răng)", "Thốt Nốt (Thốt Nốt)",
-  "Thới Thuận (Thốt Nốt)", "Trung Kiên (Thốt Nốt)", "Thuận An (Thốt Nốt)",
-  "Thạnh An (Thốt Nốt)", "Trà Nóc (Ô Môn)", "Phước Thới (Ô Môn)",
-  "Thới An (Ô Môn)", "Thới Long (Ô Môn)", "Long Hưng (Ô Môn)",
-  "Đông Thuận (Ô Môn)", "Tân Hưng (Ô Môn)", "Trung Hưng (Cờ Đỏ)",
-  "Đông Thắng (Cờ Đỏ)", "Thạnh Phú (Cờ Đỏ)", "Thới Hưng (Cờ Đỏ)",
-  "Thới Xuân (Cờ Đỏ)", "Thới Lai (Thới Lai)", "Xuân Thắng (Thới Lai)",
-  "Tân Thạnh (Thới Lai)", "Định Môn (Thới Lai)", "Trường Lạc (Thới Lai)",
-  "Phong Điền (Phong Điền)", "Giai Xuân (Phong Điền)", "Mỹ Khánh (Phong Điền)",
-  "Nhơn Ái (Phong Điền)", "Nhơn Nghĩa (Phong Điền)", "Trường Thành (Thới Lai)",
+  "An Cư (Ninh Kiều)",
+  "An Hòa (Ninh Kiều)",
+  "An Khánh (Ninh Kiều)",
+  "An Lạc (Ninh Kiều)",
+  "An Nghiệp (Ninh Kiều)",
+  "An Phú (Ninh Kiều)",
+  "Cái Khế (Ninh Kiều)",
+  "Hưng Lợi (Ninh Kiều)",
+  "Tân An (Ninh Kiều)",
+  "Thới Bình (Ninh Kiều)",
+  "Xuân Khánh (Ninh Kiều)",
+  "An Thới (Bình Thủy)",
+  "Bình Thủy (Bình Thủy)",
+  "Bùi Hữu Nghĩa (Bình Thủy)",
+  "Long Hòa (Bình Thủy)",
+  "Long Tuyền (Bình Thủy)",
+  "Phú Thứ (Cái Răng)",
+  "Hưng Phú (Cái Răng)",
+  "Hưng Thạnh (Cái Răng)",
+  "Lê Bình (Cái Răng)",
+  "Thường Thạnh (Cái Răng)",
+  "Tân Phú (Cái Răng)",
+  "Ba Láng (Cái Răng)",
+  "Thốt Nốt (Thốt Nốt)",
+  "Thới Thuận (Thốt Nốt)",
+  "Trung Kiên (Thốt Nốt)",
+  "Thuận An (Thốt Nốt)",
+  "Thạnh An (Thốt Nốt)",
+  "Trà Nóc (Ô Môn)",
+  "Phước Thới (Ô Môn)",
+  "Thới An (Ô Môn)",
+  "Thới Long (Ô Môn)",
+  "Long Hưng (Ô Môn)",
+  "Đông Thuận (Ô Môn)",
+  "Tân Hưng (Ô Môn)",
+  "Trung Hưng (Cờ Đỏ)",
+  "Đông Thắng (Cờ Đỏ)",
+  "Thạnh Phú (Cờ Đỏ)",
+  "Thới Hưng (Cờ Đỏ)",
+  "Thới Xuân (Cờ Đỏ)",
+  "Thới Lai (Thới Lai)",
+  "Xuân Thắng (Thới Lai)",
+  "Tân Thạnh (Thới Lai)",
+  "Định Môn (Thới Lai)",
+  "Trường Lạc (Thới Lai)",
+  "Phong Điền (Phong Điền)",
+  "Giai Xuân (Phong Điền)",
+  "Mỹ Khánh (Phong Điền)",
+  "Nhơn Ái (Phong Điền)",
+  "Nhơn Nghĩa (Phong Điền)",
+  "Trường Thành (Thới Lai)",
 ];
 
 /**
- * Thiết lập logic chính cho trang Đăng Tin
- */
+ * Thiết lập logic chính cho trang Đăng Tin
+ */
 function setupDangTinPage() {
-    const postForm = document.getElementById("postForm");
-    const imageInput = document.getElementById("images");
-    const imagePreviewContainer = document.getElementById("image-preview");
-    const wardHiddenInput = document.getElementById("ward-hidden");
-    const customSelectTrigger = document.getElementById("ward-custom-select");
-    const customDropdown = document.getElementById("ward-dropdown");
+  const postForm = document.getElementById("postForm");
+  const imageInput = document.getElementById("images");
+  const imagePreviewContainer = document.getElementById("image-preview");
+  const wardHiddenInput = document.getElementById("ward-hidden");
+  const customSelectTrigger = document.getElementById("ward-custom-select");
+  const customDropdown = document.getElementById("ward-dropdown");
 
-    if (!postForm || !imageInput || !imagePreviewContainer || !wardHiddenInput || !customSelectTrigger || !customDropdown) {
-        // Thêm kiểm tra null an toàn
-        console.warn("Một số thành phần DOM của trang dangtin.html không tìm thấy.");
-        return;
+  if (
+    !postForm ||
+    !imageInput ||
+    !imagePreviewContainer ||
+    !wardHiddenInput ||
+    !customSelectTrigger ||
+    !customDropdown
+  ) {
+    console.warn(
+      "Một số thành phần DOM của trang dangtin.html không tìm thấy."
+    );
+    return;
+  }
+
+  // --- PHẦN LOGIC UI (GIỮ NGUYÊN) ---
+  // 1. Load Wards vào Dropdown
+  CAN_THO_WARDS.forEach((ward) => {
+    const li = document.createElement("li");
+    li.textContent = ward;
+    li.setAttribute("data-value", ward);
+    customDropdown.appendChild(li);
+    li.addEventListener("click", () => {
+      wardHiddenInput.value = ward;
+      customSelectTrigger.textContent = ward;
+      customDropdown.classList.add("hidden");
+    });
+  });
+  // 2. Mở/đóng Dropdown
+  customSelectTrigger.addEventListener("click", () =>
+    customDropdown.classList.toggle("hidden")
+  );
+  // 3. Đóng khi click ra ngoài
+  document.addEventListener("click", (e) => {
+    if (
+      !customSelectTrigger.contains(e.target) &&
+      !customDropdown.contains(e.target)
+    ) {
+      customDropdown.classList.add("hidden");
     }
+  });
+  // 4. Xem trước ảnh
+  imageInput.addEventListener("change", () => {
+    imagePreviewContainer.innerHTML = ""; // Xóa các ảnh cũ
+    if (imageInput.files.length > 10) {
+      alert("Bạn chỉ được đăng tối đa 10 ảnh.");
+      imageInput.value = "";
+      return;
+    }
+    for (const file of imageInput.files) {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB
+        alert(`File ${file.name} quá lớn (tối đa 5MB).`);
+        continue;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement("img");
+        img.src = e.target.result;
+        img.className = "w-24 h-24 object-cover rounded-md shadow-md";
+        imagePreviewContainer.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  // --- KẾT THÚC LOGIC UI ---
 
-    // 1. Load Wards vào Dropdown (Giữ nguyên)
-    CAN_THO_WARDS.forEach((ward) => {
-        const li = document.createElement("li");
-        li.textContent = ward;
-        li.setAttribute("data-value", ward);
-        customDropdown.appendChild(li);
-        li.addEventListener("click", () => {
-            wardHiddenInput.value = ward;
-            customSelectTrigger.textContent = ward;
-            customDropdown.classList.add("hidden");
-        });
-    });
+  // 5. Gán sự kiện submit (Trỏ đến hàm 'submitPost' đã REFACTOR)
+  postForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitButton = postForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = "ĐANG XỬ LÝ...";
 
-    // 2. Mở/đóng Dropdown (Giữ nguyên)
-    customSelectTrigger.addEventListener("click", () => customDropdown.classList.toggle("hidden"));
+    // Gọi hàm submit mới, truyền giá trị ward vào
+    await submitPost(wardHiddenInput.value);
 
-    // 3. Đóng khi click ra ngoài (Giữ nguyên)
-    document.addEventListener("click", (e) => {
-        if (!customSelectTrigger.contains(e.target) && !customDropdown.contains(e.target)) {
-            customDropdown.classList.add("hidden");
-        }
-    });
-
-    // 4. Xem trước ảnh (ĐÃ SỬA để hiển thị nhiều ảnh)
-    imageInput.addEventListener("change", () => {
-        imagePreviewContainer.innerHTML = ""; // Xóa các ảnh cũ
-
-        if (imageInput.files.length > 10) {
-            alert("Bạn chỉ được đăng tối đa 10 ảnh.");
-            imageInput.value = ""; // Xóa file
-            return;
-        }
-
-        for (const file of imageInput.files) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB
-                alert(`File ${file.name} quá lớn (tối đa 5MB).`);
-                continue; // Bỏ qua file này
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = document.createElement("img");
-                img.src = e.target.result;
-                img.className = "w-24 h-24 object-cover rounded-md shadow-md"; 
-                imagePreviewContainer.appendChild(img);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // 5. Gán sự kiện submit
-    postForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const submitButton = postForm.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = "ĐANG XỬ LÝ...";
-        
-        await submitPost(wardHiddenInput.value); // Gọi hàm submit mới
-        
-        submitButton.disabled = false;
-        submitButton.textContent = "ĐĂNG TIN";
-    });
+    submitButton.disabled = false;
+    submitButton.textContent = "ĐĂNG TIN";
+  });
 }
 
 /**
- * Xử lý logic submit (ĐÃ SỬA ĐỂ UPLOAD NHIỀU ẢNH)
- */
+ * Xử lý logic submit (ĐÃ REFACTOR ĐỂ GỌI EDGE FUNCTION)
+ */
 async function submitPost(selectedWardValue) {
-    // 1. Kiểm tra đăng nhập
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert("Bạn phải đăng nhập trước khi đăng tin!");
-        window.location.href = "/public/login.html";
-        return;
-    }
+  // 1. Lấy file ảnh
+  const imageInput = document.getElementById("images");
+  if (imageInput.files.length === 0) {
+    alert("Vui lòng chọn ít nhất một ảnh.");
+    return;
+  }
+  if (imageInput.files.length > 10) {
+    alert("Bạn chỉ được đăng tối đa 10 ảnh.");
+    return;
+  }
+  const files = Array.from(imageInput.files);
 
-    // 2. Lấy file ảnh
-    const imageInput = document.getElementById("images");
-    if (imageInput.files.length === 0) {
-        alert("Vui lòng chọn ít nhất một ảnh.");
-        return;
-    }
-    if (imageInput.files.length > 10) {
-        alert("Bạn chỉ được đăng tối đa 10 ảnh.");
-        return;
-    }
+  // 2. Thu thập dữ liệu và BẮT ĐẦU TẠO FORMDATA
+  // FormData cho phép chúng ta gửi cả text và file
+  const formData = new FormData();
 
-    const files = Array.from(imageInput.files); // Chuyển sang mảng
-    
-    console.log(`Bắt đầu tải lên ${files.length} ảnh...`);
+  // 3. Thêm TẤT CẢ các trường text vào FormData
+  formData.append("title", document.getElementById("title").value);
+  formData.append("motelName", document.getElementById("motelName").value);
+  formData.append("price", document.getElementById("price").value);
+  formData.append("area", document.getElementById("area").value);
+  formData.append("rooms", document.getElementById("rooms").value);
+  formData.append("ward", selectedWardValue); // Giá trị từ dropdown
+  formData.append("address", document.getElementById("address").value);
+  formData.append("description", document.getElementById("description").value);
+  formData.append("room_type", document.getElementById("roomType").value);
+  formData.append("contactName", document.getElementById("contactName").value);
+  formData.append("phone", document.getElementById("phone").value);
+  formData.append("email", document.getElementById("email").value);
 
-    // 3. Tải TẤT CẢ ảnh lên Storage (dùng Promise.all để chạy song song)
-    const uploadPromises = files.map(file => {
-        if (file.size > 5 * 1024 * 1024) {
-            console.warn(`Bỏ qua file ${file.name} vì quá lớn.`);
-            return Promise.resolve(null); // Trả về null nếu file lỗi
-        }
-        const filePath = `public/${user.id}/${Date.now()}_${file.name}`;
-        
-        return supabase.storage
-            .from("post-images") 
-            .upload(filePath, file)
-            .then(({ data: uploadData, error: uploadError }) => {
-                if (uploadError) {
-                    console.error("Lỗi upload ảnh:", uploadError);
-                    return null; // Trả về null nếu upload lỗi
-                }
-                
-                // 4. Lấy URL công khai
-                const { data: urlData } = supabase.storage
-                    .from("post-images")
-                    .getPublicUrl(filePath);
-                
-                console.log("Upload thành công:", urlData.publicUrl);
-                return urlData.publicUrl; // Trả về URL
-            });
-    });
+  // 4. Xử lý trường 'highlights' (mảng)
+  // Backend 'create-post' mong đợi một chuỗi JSON
+  const highlights = Array.from(
+    document.querySelectorAll('input[name="highlight"]:checked')
+  ).map((el) => el.value);
 
-    // Chờ tất cả các promise upload hoàn thành
-    const settledUploads = await Promise.all(uploadPromises);
-    // Lọc ra các URL thành công (bỏ qua các giá trị null)
-    const successfulUrls = settledUploads.filter(url => url !== null);
+  // RẤT QUAN TRỌNG: Chuyển mảng thành chuỗi JSON
+  formData.append("highlights", JSON.stringify(highlights));
 
-    if (successfulUrls.length === 0) {
-        alert("Không thể upload bất kỳ ảnh nào. Vui lòng thử lại.");
-        return;
-    }
-     
-    console.log("Tất cả các URL ảnh:", successfulUrls);
+  // 5. Thêm TẤT CẢ file ảnh vào FormData
+  // Dùng .append() lặp lại với CÙNG MỘT TÊN 'images'
+  files.forEach((file) => {
+    formData.append("images", file); // Tên 'images' phải khớp với backend
+  });
 
-    // 5. Thu thập dữ liệu form
-    const newPostData = {
-        title: document.getElementById("title").value,
-        motelName: document.getElementById("motelName").value,
-        price: Number(document.getElementById("price").value),
-        area: Number(document.getElementById("area").value),
-        rooms: Number(document.getElementById("rooms").value),
-        ward: selectedWardValue,
-        address: document.getElementById("address").value,
-        description: document.getElementById("description").value,
-        highlights: Array.from(document.querySelectorAll('input[name="highlight"]:checked')).map((el) => el.value),
-        room_type: document.getElementById("roomType").value,
-        
-        // GÁN MẢNG URL VÀO CỘT 'image_url' (đã có kiểu text[])
-        //
-        // !!! LƯU Ý QUAN TRỌNG !!!
-        // Tên cột phải là 'image_url' (số ít, không có 's').
-        // Lỗi trong ảnh chụp màn hình của bạn là do tên cột bị gõ sai thành 'image_urls' (số nhiều).
-        // Dòng code dưới đây là phiên bản ĐÚNG.
-        image_url: successfulUrls, 
-        
-        user_id: user.id, 
-        contactName: document.getElementById("contactName").value,
-        phone: document.getElementById("phone").value,
-        email: document.getElementById("email").value,
-    };
+  console.log("Đã tạo FormData. Chuẩn bị gọi Edge Function 'create-post'...");
 
-    // 6. Lưu vào CSDL
-    console.log("Đang lưu tin đăng vào CSDL:", newPostData);
-    const { error: insertError } = await supabase
-        .from("posts") 
-        .insert([newPostData]);
+  // 6. GỌI EDGE FUNCTION (đã xóa toàn bộ logic supabase cũ)
+  const { data, error } = await callEdgeFunction("create-post", {
+    method: "POST",
+    body: formData, // 'api-client.js' sẽ tự động xử lý FormData
+  });
 
-    if (insertError) {
-        console.error("Lỗi khi lưu tin đăng:", insertError);
-        alert("Lỗi: " + insertError.message);
+  // 7. Xử lý kết quả
+  if (error) {
+    console.error("Lỗi khi gọi create-post:", error);
+
+    // KIỂM TRA LỖI QUAN TRỌNG: Lỗi chưa đăng nhập
+    if (error.name === "AuthError") {
+      // (Lỗi này do 'api-client.js' trả về)
+      alert("Bạn cần đăng nhập để đăng tin!");
+      window.location.href = "/public/login.html";
     } else {
-        alert("Đăng tin thành công!");
-        window.location.href = "/public/danhsach.html"; 
+      // Các lỗi khác (từ backend 500, 400...)
+      alert("Lỗi đăng tin: " + error.message);
     }
+  } else {
+    // 'data' ở đây là { id: ..., title: ... } do function trả về
+    console.log("Đăng tin thành công:", data);
+    alert("Đăng tin thành công!");
+    window.location.href = "/public/danhsach.html";
+  }
 }
 
 // Gọi hàm setup khi DOM đã tải
