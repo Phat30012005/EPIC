@@ -47,10 +47,17 @@ verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/get-user-profile/deno.json"
 entrypoint = "./functions/get-user-profile/index.ts"
 
-# === CÔNG VIỆC MỚI (TASK 2 - NGÀY 4) ===
 # FUNCTION CẬP NHẬT THÔNG TIN USER
 [functions.update-user-profile]
 enabled = true
 verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/update-user-profile/deno.json"
 entrypoint = "./functions/update-user-profile/index.ts"
+
+# === CÔNG VIỆC MỚI (TASK 3 - NGÀY 4) ===
+# FUNCTION LẤY TIN ĐĂNG CỦA CHỦ TRỌ
+[functions.get-lessor-posts]
+enabled = true
+verify_jwt = true # <<< Bắt buộc đăng nhập
+import_map = "./functions/get-lessor-posts/deno.json"
+entrypoint = "./functions/get-lessor-posts/index.ts"

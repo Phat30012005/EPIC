@@ -146,3 +146,13 @@ Body (Gửi đi - JSON):
 
 Response (Nhận về - Thành công 200): { "data": { id, contactName, phone, ... } } (profile mới)
 Response (Nhận về - Thất bại): { "error": "..." }
+
+4.3. Lấy tin đăng của Chủ trọ
+
+Endpoint: GET /functions/v1/get-lessor-posts
+Xác thực: CÓ (verify_jwt = true)
+
+Body: KHÔNG
+
+Response (Nhận về - Thành công 200): { "data": [...] } (mảng bài đăng)
+Response (Nhận về - Thất bại): { "error": "..." }
