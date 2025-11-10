@@ -2,50 +2,133 @@ Tài liệu API (Nội bộ) CHICKY.STU
 
 Tài liệu này dùng để team Frontend biết cách gọi các Edge Function mà team Backend xây dựng.
 
-Giai đoạn 1: Ngày 2 (Đã xong)
+Giai đoạn 1: Ngày 2
 
-1. Xác thực (Auth)
+Xác thực (Auth)
 
 1.1. Đăng ký
-POST /functions/v1/user-signup (verify_jwt = false)
-Body: { "email", "password", "contactName", "phone", "role" }
+
+Mục đích: Thay thế logic trong auth-signup.js.
+
+Endpoint: POST /functions/v1/user-signup
+Xác thực: KHÔNG (verify_jwt = false)
+
+Body (Gửi đi - JSON):
+
+{
+"email": "user@example.com",
+"password": "somepassword",
+"contactName": "Tên Liên Hệ",
+"phone": "0909123456",
+"role": "LESSOR"
+}
+
+Response (Nhận về - Thành công 200): { "data": { ...user } }
+
+Response (Nhận về - Thất bại 400/500): { "error": "..." }
 
 1.2. Đăng nhập
-POST /functions/v1/user-login (verify_jwt = false)
-Body: { "email", "password" }
 
-2. Bài đăng (Posts)
+Mục đích: Thay thế logic trong auth-login.js.
+
+Endpoint: POST /functions/v1/user-login
+Xác thực: KHÔNG (verify_jwt = false)
+
+Body (Gửi đi - JSON):
+
+{
+"email": "user@example.com",
+"password": "somepassword"
+}
+
+Response (Nhận về - Thành công 200): { "data": { ...session } }
+
+Response (Nhận về - Thất bại 400/500): { "error": "..." }
+
+Bài đăng (Posts)
 
 2.1. Lấy chi tiết bài đăng
-GET /functions/v1/get-post-detail?id=POST_ID (verify_jwt = false)
 
-Giai đoạn 2: Ngày 3 (Đang thực hiện)
+Mục đích: Thay thế logic trong chitiet.js.
 
-3. Bài đăng (Tiếp theo)
+Endpoint: GET /functions/v1/get-post-detail?id=POST_ID_TRUYEN_VAO
 
-3.1. Tạo bài đăng mới (Đăng tin)
+Response (Nhận về - Thành công): { "data": { ...post, profiles: {...} } }
 
-Mục đích: Thay thế logic trong dangtin.js.
+Response (Nhận về - Thất bại): { "error": "..." }
+
+Giai đoạn 2: Ngày 3-4
+
+Bài đăng (Tiếp)
+
+3.1. Đăng tin mới
 
 Endpoint: POST /functions/v1/create-post
-Xác thực: BẮT BUỘC (verify_jwt = true)
-Gửi Authorization: Bearer <access_token> trong header.
+Xác thực: CÓ (verify_jwt = true)
 
-Body (Gửi đi): FormData (Không phải JSON!)
+Body (Gửi đi - FormData):
 
-Chứa các cặp key-value cho tất cả các trường (ví dụ: title, price, ward...)
+title (string)
 
-Chứa các file ảnh (ví dụ: images: [file1, file2])
+motelName (string)
 
-3.2. Lấy danh sách bài đăng (Lọc)
+price (string)
 
-Mục đích: Thay thế logic trong danhSach.js.
+area (string)
+
+rooms (string)
+
+ward (string)
+
+address (string)
+
+description (string)
+
+room_type (string)
+
+contactName (string)
+
+phone (string)
+
+email (string)
+
+highlights (string - JSON.stringify của mảng)
+
+images (File)
+
+images (File)
+
+... (có thể gửi nhiều file 'images')
+
+Response (Nhận về - Thành công 200): { "data": { id, title, ... } }
+Response (Nhận về - Thất bại): { "error": "..." }
+
+3.2. Lấy danh sách (Filter)
 
 Endpoint: GET /functions/v1/get-posts-list
 Xác thực: KHÔNG (verify_jwt = false)
 
-Query Params (Ví dụ):
+Query Params (Gửi đi):
 
-/functions/v1/get-posts-list (lấy tất cả)
+?price=1-2
 
-/functions/v1/get-posts-list?type=Phòng%20đơn&price=1-2&ward=Ninh%20Kiều
+?type=Phòng+đơn
+
+?size=10-16
+
+?ward=Ninh+Kiều
+
+Response (Nhận về - Thành công 200): { "data": [...] } (mảng bài đăng)
+Response (Nhận về - Thất bại): { "error": "..." }
+
+Người dùng (User)
+
+4.1. Lấy thông tin Profile
+
+Endpoint: GET /functions/v1/get-user-profile
+Xác thực: CÓ (verify_jwt = true)
+
+Body: KHÔNG
+
+Response (Nhận về - Thành công 200): { "data": { contactName, phone, role, email } }
+Response (Nhận về - Thất bại): { "error": "..." }
