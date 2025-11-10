@@ -1,82 +1,88 @@
 # supabase/config.toml
 
-# CẤU HÌNH CHO FUNCTION HELLO WORLD (MẶC ĐỊNH)
 [functions.hello-world]
 enabled = true
 verify_jwt = true
 import_map = "./functions/hello-world/deno.json"
 entrypoint = "./functions/hello-world/index.ts"
 
-# CẤU HÌNH CHO FUNCTION ĐĂNG KÝ
+
+# CẤU HÌNH CHO FUNCTION ĐĂNG KÝ MỚI
 [functions.user-signup]
 enabled = true
-verify_jwt = false # <--- false, vì user chưa đăng nhập
-import_map = "./functions/user-signup/deno.json"
+verify_jwt = false
+# SỬA LẠI ĐƯỜNG DẪN NÀY
+import_map = "./functions/user-signup/deno.json" 
 entrypoint = "./functions/user-signup/index.ts"
 
-# CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP
+# CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP MỚI
 [functions.user-login]
 enabled = true
-verify_jwt = false # <--- false, vì user chưa đăng nhập
-import_map = "./functions/user-login/deno.json"
+verify_jwt = false
+# SỬA LẠI ĐƯỜNG DẪN NÀY
+import_map = "./functions/user-login/deno.json" 
 entrypoint = "./functions/user-login/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY CHI TIẾT BÀI ĐĂNG
 [functions.get-post-detail]
 enabled = true
-verify_jwt = false # <--- false, vì ai cũng xem được
-import_map = "./functions/get-post-detail/deno.json"
+verify_jwt = false
+# SỬA LẠI ĐƯỜNG DẪN NÀY
+import_map = "./functions/get-post-detail/deno.json" 
 entrypoint = "./functions/get-post-detail/index.ts"
 
-# === GIAI ĐOẠN 2 (NGÀY 3-4) ===
-
-# CẤU HÌNH CHO FUNCTION TẠO BÀI ĐĂNG
+# CẤU HÌNH CHO FUNCTION ĐĂNG TIN
 [functions.create-post]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = true 
 import_map = "./functions/create-post/deno.json"
 entrypoint = "./functions/create-post/index.ts"
 
-# CẤU HÌNH CHO FUNCTION LẤY DANH SÁCH BÀI ĐĂNG
+# CẤU HÌNH CHO FUNCTION LẤY DANH SÁCH TIN
 [functions.get-posts-list]
 enabled = true
-verify_jwt = false # <--- false, ai cũng xem được
+verify_jwt = false 
 import_map = "./functions/get-posts-list/deno.json"
 entrypoint = "./functions/get-posts-list/index.ts"
 
-# CẤU HÌNH CHO FUNCTION LẤY PROFILE USER
+# CẤU HÌNH CHO FUNCTION LẤY PROFILE
 [functions.get-user-profile]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = true 
 import_map = "./functions/get-user-profile/deno.json"
 entrypoint = "./functions/get-user-profile/index.ts"
 
-# CẤU HÌNH CHO FUNCTION CẬP NHẬT PROFILE USER
+# CẤU HÌNH CHO FUNCTION CẬP NHẬT PROFILE
 [functions.update-user-profile]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = true  
 import_map = "./functions/update-user-profile/deno.json"
 entrypoint = "./functions/update-user-profile/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY TIN CỦA CHỦ TRỌ
 [functions.get-lessor-posts]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = true  
 import_map = "./functions/get-lessor-posts/deno.json"
 entrypoint = "./functions/get-lessor-posts/index.ts"
 
-# CẤU HÌNH CHO FUNCTION XÓA BÀI ĐĂNG
+# CẤU HÌNH CHO FUNCTION XÓA TIN
 [functions.delete-post]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = true # 
 import_map = "./functions/delete-post/deno.json"
 entrypoint = "./functions/delete-post/index.ts"
-
-# === GIAI ĐOẠN 3 (NGÀY 6) ===
 
 # CẤU HÌNH CHO FUNCTION TÌM KIẾM
 [functions.search-posts]
 enabled = true
-verify_jwt = false # <--- false, ai cũng được tìm
+verify_jwt = false 
 import_map = "./functions/search-posts/deno.json"
 entrypoint = "./functions/search-posts/index.ts"
+
+# CẤU HÌNH CHO BOOKMARKS (THÊM)
+[functions.add-bookmark]
+enabled = true
+verify_jwt = true 
+import_map = "./functions/add-bookmark/deno.json"
+entrypoint = "./functions/add-bookmark/index.ts"
