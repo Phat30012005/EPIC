@@ -1,98 +1,166 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chi tiết tin | Chicky.stu</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/public/css/style.css" />
-    <link rel="stylesheet" href="/public/css/chatbox.css">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body class="bg-gray-100 flex flex-col min-h-screen">
 
+    <!-- === PHẦN MỚI (NGÀY 6): THÊM FONT AWESOME === -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="/public/css/style.css" />
+    <link rel="stylesheet" href="/public/css/chatbox.css" />
+
+    <!-- === PHẦN MỚI (NGÀY 6): CSS CHO NÚT LƯU TIN (Giống danhsach.html) === -->
+    <style>
+      .save-btn {
+        transition: all 0.2s ease;
+      }
+      .save-btn {
+        color: #dc3545;
+        background-color: #fff;
+      }
+      .save-btn:hover {
+        color: #fff;
+        background-color: #dc3545;
+      }
+      .save-btn.active {
+        color: #fff;
+        background-color: #dc3545;
+        border-color: #dc3545;
+      }
+      /* Đổi icon rỗng thành đặc khi active */
+      .save-btn.active .fa-regular.fa-heart::before {
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        content: "\f004"; /* Mã unicode cho icon trái tim đặc */
+      }
+    </style>
+    <!-- === KẾT THÚC PHẦN MỚI === -->
+  </head>
+  <body class="bg-gray-100 flex flex-col min-h-screen">
     <div id="header-placeholder"></div>
 
     <main class="container mx-auto px-4 py-8 flex-grow">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6" id="detail-page-title">Đang tải...</h1>
-        
-        <div id="post-detail-container" class="card p-6">
-            
-            <div class="mb-6 relative image-gallery-wrapper">
-                <div id="detail-images-display" class="image-display-area">
-                    </div>
-                <button id="prev-btn" class="slider-btn slider-btn-prev">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <button id="next-btn" class="slider-btn slider-btn-next">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <div id="detail-thumbnails" class="image-thumbnails-area">
-                    </div>
-            </div>
+      <h1
+        class="text-3xl font-bold text-center text-gray-800 mb-6"
+        id="detail-page-title"
+      >
+        Đang tải...
+      </h1>
 
-            <h2 class="text-3xl font-bold text-gray-800 mb-2" id="detail-title">Đang tải...</h2>
-            <div class="text-gray-500 mb-4">
-                <span id="detail-date"></span>
-            </div>
-
-            <div class="flex items-center text-2xl font-bold text-red-600 mb-4">
-                <i class="fa-solid fa-tag me-2"></i>
-                <span id="detail-price"></span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-gray-700 mb-6 detail-info-grid">
-                
-                <div class="flex items-center">
-                    <i class="fa-solid fa-ruler-combined me-2 text-blue-500"></i>
-                    <span class="font-semibold text-gray-600">Diện tích:</span>
-                    <span class="ms-2" id="detail-area"></span>
-                </div>
-                <div class="flex items-center">
-                    <i class="fa-solid fa-door-open me-2 text-blue-500"></i>
-                    <span class="font-semibold text-gray-600">Số phòng:</span>
-                    <span class="ms-2" id="detail-rooms"></span>
-                </div>
-                <div class="flex items-center">
-                    <i class="fa-solid fa-location-dot me-2 text-blue-500"></i>
-                    <span class="font-semibold text-gray-600">Khu vực:</span>
-                    <span class="ms-2" id="detail-ward"></span>
-                </div>
-                <div class="flex items-center">
-                    <i class="fa-solid fa-map-pin me-2 text-blue-500"></i>
-                    <span class="font-semibold text-gray-600">Địa chỉ chi tiết:</span>
-                    <span class="ms-2" id="detail-address"></span>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h2 class="section-title mb-4">MÔ TẢ CHI TIẾT</h2>
-                <p id="detail-description" class="text-base text-gray-700 leading-relaxed whitespace-pre-wrap"></p>
-            </div>
-            
-            <div class="mb-6">
-                <h2 class="section-title mb-4">ĐẶC ĐIỂM NỔI BẬT</h2>
-                <div id="detail-highlights" class="highlight-list">
-                    <p>Đang tải...</p>
-                </div>
-            </div>
-
-            <div>
-                <h2 class="section-title mb-4">THÔNG TIN LIÊN HỆ</h2>
-                <p class="text-base text-gray-700"><i class="fa-solid fa-user me-2 text-red-500"></i> Người liên hệ: <span class="font-semibold" id="detail-contact-name"></span></p>
-                <p class="text-base text-gray-700"><i class="fa-solid fa-phone me-2 text-red-500"></i> Điện thoại: <span class="font-semibold" id="detail-phone"></span></p>
-                <p class="text-base text-gray-700"><i class="fa-solid fa-envelope me-2 text-red-500"></i> Email: <span class="font-semibold" id="detail-email"></span></p>
-            </div>
+      <div id="post-detail-container" class="card p-6">
+        <!-- (Phần ảnh... giữ nguyên) -->
+        <div class="mb-6 relative image-gallery-wrapper">
+          <div id="detail-images-display" class="image-display-area"></div>
+          <button id="prev-btn" class="slider-btn slider-btn-prev">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button id="next-btn" class="slider-btn slider-btn-next">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <div id="detail-thumbnails" class="image-thumbnails-area"></div>
         </div>
+
+        <h2 class="text-3xl font-bold text-gray-800 mb-2" id="detail-title">
+          Đang tải...
+        </h2>
+        <div class="text-gray-500 mb-4">
+          <span id="detail-date"></span>
+        </div>
+
+        <!-- === CẬP NHẬT (NGÀY 6): THÊM NÚT LƯU BÊN CẠNH GIÁ === -->
+        <div class="d-flex align-items-center mb-4">
+          <div class="flex items-center text-2xl font-bold text-red-600">
+            <i class="fa-solid fa-tag me-2"></i>
+            <span id="detail-price"></span>
+          </div>
+
+          <button
+            id="detail-save-btn"
+            class="btn btn-outline-danger save-btn ms-3"
+            style="display: none"
+          >
+            <i class="fa-regular fa-heart me-2"></i>Lưu tin
+          </button>
+        </div>
+        <!-- === KẾT THÚC CẬP NHẬT === -->
+
+        <!-- (Phần thông tin... giữ nguyên) -->
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-gray-700 mb-6 detail-info-grid"
+        >
+          <div class="flex items-center">
+            <i class="fa-solid fa-ruler-combined me-2 text-blue-500"></i>
+            <span class="font-semibold text-gray-600">Diện tích:</span>
+            <span class="ms-2" id="detail-area"></span>
+          </div>
+          <div class="flex items-center">
+            <i class="fa-solid fa-door-open me-2 text-blue-500"></i>
+            <span class="font-semibold text-gray-600">Số phòng:</span>
+            <span class="ms-2" id="detail-rooms"></span>
+          </div>
+          <div class="flex items-center">
+            <i class="fa-solid fa-location-dot me-2 text-blue-500"></i>
+            <span class="font-semibold text-gray-600">Khu vực:</span>
+            <span class="ms-2" id="detail-ward"></span>
+          </div>
+          <div class="flex items-center">
+            <i class="fa-solid fa-map-pin me-2 text-blue-500"></i>
+            <span class="font-semibold text-gray-600">Địa chỉ chi tiết:</span>
+            <span class="ms-2" id="detail-address"></span>
+          </div>
+        </div>
+
+        <!-- (Phần mô tả... giữ nguyên) -->
+        <div class="mb-6">
+          <h2 class="section-title mb-4">MÔ TẢ CHI TIẾT</h2>
+          <p
+            id="detail-description"
+            class="text-base text-gray-700 leading-relaxed whitespace-pre-wrap"
+          ></p>
+        </div>
+
+        <div class="mb-6">
+          <h2 class="section-title mb-4">ĐẶC ĐIỂM NỔI BẬT</h2>
+          <div id="detail-highlights" class="highlight-list">
+            <p>Đang tải...</p>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="section-title mb-4">THÔNG TIN LIÊN HỆ</h2>
+          <p class="text-base text-gray-700">
+            <i class="fa-solid fa-user me-2 text-red-500"></i> Người liên hệ:
+            <span class="font-semibold" id="detail-contact-name"></span>
+          </p>
+          <p class="text-base text-gray-700">
+            <i class="fa-solid fa-phone me-2 text-red-500"></i> Điện thoại:
+            <span class="font-semibold" id="detail-phone"></span>
+          </p>
+          <p class="text-base text-gray-700">
+            <i class="fa-solid fa-envelope me-2 text-red-500"></i> Email:
+            <span class="font-semibold" id="detail-email"></span>
+          </p>
+        </div>
+      </div>
     </main>
 
     <div id="footer-placeholder"></div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
-    
-    <script src="/public/js/chitiet.js"></script> <script src="/public/js/main.js"></script> </body>
+    <script src="/public/js/api-client.js"></script>
+    <script src="/public/js/chitiet.js"></script>
+    <script src="/public/js/main.js"></script>
+  </body>
 </html>
