@@ -132,3 +132,17 @@ Body: KHÔNG
 
 Response (Nhận về - Thành công 200): { "data": { contactName, phone, role, email } }
 Response (Nhận về - Thất bại): { "error": "..." }
+
+4.2. Cập nhật thông tin Profile
+
+Endpoint: POST /functions/v1/update-user-profile
+Xác thực: CÓ (verify_jwt = true)
+
+Body (Gửi đi - JSON):
+{
+"contactName": "Tên Mới",
+"phone": "0909876543"
+}
+
+Response (Nhận về - Thành công 200): { "data": { id, contactName, phone, ... } } (profile mới)
+Response (Nhận về - Thất bại): { "error": "..." }

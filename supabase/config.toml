@@ -40,10 +40,17 @@ verify_jwt = false # <<< Ai cũng có thể xem
 import_map = "./functions/get-posts-list/deno.json"
 entrypoint = "./functions/get-posts-list/index.ts"
 
-# === CÔNG VIỆC MỚI (NGÀY 4) ===
 # FUNCTION LẤY THÔNG TIN USER
 [functions.get-user-profile]
 enabled = true
 verify_jwt = true # <<< Bắt buộc đăng nhập
 import_map = "./functions/get-user-profile/deno.json"
 entrypoint = "./functions/get-user-profile/index.ts"
+
+# === CÔNG VIỆC MỚI (TASK 2 - NGÀY 4) ===
+# FUNCTION CẬP NHẬT THÔNG TIN USER
+[functions.update-user-profile]
+enabled = true
+verify_jwt = true # <<< Bắt buộc đăng nhập
+import_map = "./functions/update-user-profile/deno.json"
+entrypoint = "./functions/update-user-profile/index.ts"
