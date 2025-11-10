@@ -1,5 +1,5 @@
--- supabase/migrations/20251110191000_add_fts_to_posts.sql
--- === SỬA LỖI: Bổ sung cài đặt FTS Tiếng Việt ===
+-- supabase/migrations/20251110200000_add_fts_v2.sql
+-- PHIÊN BẢN 2 - SỬA LỖI FTS TIẾNG VIỆT
 
 -- 1. Kích hoạt extension 'unaccent' (Quan trọng)
 -- (Giúp bỏ dấu tiếng Việt, vd: "trọ" -> "tro", "rẻ" -> "re")
@@ -16,12 +16,10 @@ ALTER TEXT SEARCH CONFIGURATION public.vietnamese
 
 
 -- 3. Thêm một cột 'fts' (Full-Text Search) vào bảng 'posts'
--- (Đổi từ '1.' trong file cũ thành '3.' ở file mới)
 ALTER TABLE public.posts
 ADD COLUMN fts tsvector;
 
 -- 4. Tạo một HÀM (function) để tự động cập nhật cột 'fts'
--- (Sửa 'vietnamese' thành 'public.vietnamese' để rõ ràng hơn)
 CREATE OR REPLACE FUNCTION update_posts_fts_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -40,11 +38,9 @@ FOR EACH ROW
 EXECUTE FUNCTION update_posts_fts_column();
 
 -- 6. Tạo một INDEX (chỉ mục) GIN trên cột 'fts'
--- Đây là bước TỐI QUAN TRỌNG để tăng tốc độ tìm kiếm
 CREATE INDEX posts_fts_idx ON public.posts USING GIN (fts);
 
 -- 7. Cập nhật lại tất cả các hàng hiện có (chỉ chạy 1 lần)
--- (Sửa 'vietnamese' thành 'public.vietnamese')
 UPDATE public.posts SET fts = 
     setweight(to_tsvector('public.vietnamese', COALESCE(title, '')), 'A') ||
     setweight(to_tsvector('public.vietnamese', COALESCE(motelName, '')), 'B') ||
