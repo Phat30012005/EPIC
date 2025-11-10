@@ -10,27 +10,58 @@
       rel="stylesheet"
     />
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- === PHẦN MỚI (NGÀY 6): THÊM FONT AWESOME === -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="stylesheet" href="/public/css/chatbox.css" />
+
+    <!-- === PHẦN MỚI (NGÀY 6): CSS CHO NÚT LƯU TIN === -->
+    <style>
+      .save-btn {
+        transition: all 0.2s ease;
+      }
+      /* Trạng thái chưa lưu (mặc định) */
+      .save-btn {
+        color: #dc3545; /* Màu đỏ (outline) */
+        background-color: #fff;
+      }
+      .save-btn:hover {
+        color: #fff;
+        background-color: #dc3545;
+      }
+      /* Trạng thái đã lưu (active) */
+      .save-btn.active {
+        color: #fff;
+        background-color: #dc3545; /* Màu đỏ (solid) */
+        border-color: #dc3545;
+      }
+      .save-btn.active .fa-regular {
+        /* Đổi icon rỗng thành đặc */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+      }
+    </style>
+    <!-- === KẾT THÚC PHẦN MỚI === -->
   </head>
 
   <body class="bg-gray-100 flex flex-col min-h-screen">
     <div id="header-placeholder"></div>
 
     <main class="container my-5 flex-grow">
-      <!-- === PHẦN MỚI (NGÀY 6): Tiêu đề cho Kết quả Tìm kiếm (ẩn) === -->
+      <!-- (Phần còn lại của HTML giữ nguyên) -->
       <h1
         id="search-results-title"
         class="text-2xl font-bold text-center text-gray-700 mb-6"
         style="display: none"
       ></h1>
-      <!-- === KẾT THÚC PHẦN MỚI === -->
-
-      <!-- === CẬP NHẬT (NGÀY 6): Thêm ID cho các phần tử mặc định === -->
       <h2 id="default-title" class="text-center mb-4 font-bold">
         Danh sách phòng trọ
       </h2>
-
       <div id="default-quick-links" class="text-center my-4">
         <a
           href="/public/danhsach.html?type=Phòng%20ghép"
@@ -48,14 +79,11 @@
           >Căn hộ</a
         >
       </div>
-
       <form
         id="desktopFilters"
         class="d-none d-md-flex gap-2 align-items-center mb-4"
         onsubmit="event.preventDefault();"
       >
-        <!-- === KẾT THÚC CẬP NHẬT ID === -->
-
         <select id="filterPrice" class="form-select">
           <option value="">Giá phòng</option>
           <option value="1-2">1 - 2 triệu</option>
@@ -63,14 +91,12 @@
           <option value="5-6">5 - 6 triệu</option>
           <option value="tren6">Trên 6 triệu</option>
         </select>
-
         <select id="filterType" class="form-select">
           <option value="">Loại phòng trọ</option>
           <option value="Phòng đơn">Phòng đơn</option>
           <option value="Phòng ghép">Phòng ghép</option>
           <option value="Căn hộ">Căn hộ</option>
         </select>
-
         <select id="roomsize-desktop" class="form-select">
           <option value="">Diện tích</option>
           <option value="10-16">10-16m²</option>
@@ -78,7 +104,6 @@
           <option value="26-35">26-35m²</option>
           <option value="tren35">Trên 35m²</option>
         </select>
-
         <select id="local-desktop" class="form-select">
           <option value="">Khu vực</option>
           <option value="Ninh Kiều">Ninh Kiều</option>
@@ -102,12 +127,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Tải API Client trước -->
     <script src="/public/js/api-client.js"></script>
-    <!-- Tải danhSach.js sau -->
     <script src="/public/js/danhSach.js"></script>
-
     <script src="/public/js/chatbox.js"></script>
     <script src="/public/js/main.js"></script>
   </body>
