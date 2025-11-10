@@ -1,28 +1,57 @@
 <header>
-    <nav class="max-w-screen-xl mx-auto px-4 d-flex justify-content-between align-items-center py-3 flex-wrap">
-        <a href="/public/index.html" class="d-flex align-items-center text-decoration-none mb-2 mb-md-0 header-logo">
-            <img src="/public/assets/logo1.png"
-                alt="Trang chủ" width="45" height="45" class="me-2" />
-            <span class="fw-bold fs-5 text-primary">CHICKY.STU</span>
-        </a>
+  <nav
+    class="max-w-screen-xl mx-auto px-4 d-flex justify-content-between align-items-center py-3 flex-wrap"
+  >
+    <a
+      href="/public/index.html"
+      class="d-flex align-items-center text-decoration-none mb-2 mb-md-0 header-logo"
+    >
+      <img
+        src="/public/assets/logo1.png"
+        alt="Trang chủ"
+        width="45"
+        height="45"
+        class="me-2"
+      />
+      <span class="fw-bold fs-5 text-primary">CHICKY.STU</span>
+    </a>
 
-        <div class="d-flex align-items-center flex-wrap gap-3">
-            <ul class="nav-links">
-                <li><a href="/public/index.html" class="nav-link">Trang chủ</a></li>
-                <li><a href="/public/danhsach.html" class="nav-link">Danh sách</a></li>
-                <li><a href="/public/dangtin.html" class="nav-link">Đăng tin</a></li>
-                
-                <li id="admin-link" style="display: none;">
-                    <a href="/public/admin.html" class="nav-link">Admin</a>
-                </li>
+    <!-- === PHẦN MỚI (THÊM Ô TÌM KIẾM) === -->
+    <div class="flex-grow-1 mx-md-4 my-2 my-md-0" style="max-width: 400px">
+      <form id="search-form" class="d-flex">
+        <input
+          id="search-input"
+          class="form-control me-2"
+          type="search"
+          placeholder="Tìm kiếm phòng trọ, khu vực..."
+          aria-label="Search"
+        />
+        <button class="btn btn-outline-primary" type="submit">Tìm</button>
+      </form>
+    </div>
+    <!-- === KẾT THÚC PHẦN MỚI === -->
 
-                <li id="profile-link" style="display: none;">
-                    <a class="nav-link">Hồ sơ</a>
-                </li>
-                </ul>
-            <a id="login-button" href="/public/login.html" class="btn btn-primary px-3 py-2 ms-2">
-                🔑 Đăng nhập
-            </a>
-        </div>
-    </nav>
+    <div class="d-flex align-items-center flex-wrap gap-3">
+      <ul class="nav-links">
+        <li><a href="/public/index.html" class="nav-link">Trang chủ</a></li>
+        <li><a href="/public/danhsach.html" class="nav-link">Danh sách</a></li>
+        <li><a href="/public/dangtin.html" class="nav-link">Đăng tin</a></li>
+
+        <li id="admin-link" style="display: none">
+          <a href="/public/admin.html" class="nav-link">Admin</a>
+        </li>
+
+        <li id="profile-link" style="display: none">
+          <a class="nav-link">Hồ sơ</a>
+        </li>
+      </ul>
+      <a
+        id="login-button"
+        href="/public/login.html"
+        class="btn btn-primary px-3 py-2 ms-2"
+      >
+        🔑 Đăng nhập
+      </a>
+    </div>
+  </nav>
 </header>

@@ -1,6 +1,5 @@
 // public/js/main.js
-// ĐÃ CẬP NHẬT LOGIC ĐỂ ĐIỀU HƯỚNG HỒ SƠ THEO VAI TRÒ
-// === ĐÃ SỬA LỖI "Cannot read properties of null (reading 'split')" ===
+// === ĐÃ CẬP NHẬT (NGÀY 6) ĐỂ THÊM LOGIC TÌM KIẾM ===
 
 // ... (Giữ nguyên các hàm tiện ích showAlert, showConfirm) ...
 window.showAlert = function (message) {
@@ -37,35 +36,54 @@ window.showConfirm = function (message, onConfirm) {
   };
 };
 
-// === PHẦN SỬA LỖI (Lỗi 'split' của main.js:72) ===
+// ... (Giữ nguyên hàm setupNavigation) ...
 window.setupNavigation = function () {
   const path = window.location.pathname.split("/").pop() || "index.html";
   const navLinks = document.querySelectorAll(".nav-link");
 
   navLinks.forEach((link) => {
-    // 1. Thêm kiểm tra 'href' an toàn
     const href = link.getAttribute("href");
-
-    // 2. Nếu link không có href (như link 'Hồ sơ' lúc chưa auth)
-    //    hoặc href là '#' thì bỏ qua, không xử lý
     if (!href || href === "#") {
       return;
     }
-
-    // 3. Chỉ xử lý các link có href hợp lệ
     const linkPath = href.split("/").pop() || "index.html";
-    link.classList.remove("!text-[#007bff]"); // (Loại bỏ class lạ nếu có)
+    link.classList.remove("!text-[#007bff]");
 
     if (linkPath === path) {
-      link.classList.add("text-primary"); // Đặt class active
+      link.classList.add("text-primary");
     } else {
-      link.classList.remove("text-primary"); // Xóa class active
+      link.classList.remove("text-primary");
     }
   });
 };
-// === KẾT THÚC SỬA LỖI ===
 
-// ===========================================
+// === HÀM MỚI (NGÀY 6): GÁN SỰ KIỆN CHO FORM TÌM KIẾM ===
+/**
+ * Gán sự kiện submit cho #search-form trong header.
+ * Khi submit, chuyển hướng đến trang danhsach.html với query.
+ */
+function setupSearchForm() {
+  const searchForm = document.getElementById("search-form");
+  const searchInput = document.getElementById("search-input");
+
+  if (searchForm && searchInput) {
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault(); // Ngăn form tải lại trang
+      const query = searchInput.value.trim(); // Lấy từ khóa
+
+      if (query) {
+        // Nếu có từ khóa, chuyển hướng
+        console.log(`Đang tìm kiếm: ${query}`);
+        // Chuyển hướng đến trang danh sách VÀ đính kèm query
+        // ví dụ: /public/danhsach.html?q=phòng+trọ
+        window.location.href = `/public/danhsach.html?q=${encodeURIComponent(
+          query
+        )}`;
+      }
+    });
+  }
+}
+// === KẾT THÚC HÀM MỚI ===
 
 // ===========================================
 // 🚀 LOGIC KHỞI ĐỘNG CHÍNH
@@ -92,13 +110,14 @@ document.addEventListener("DOMContentLoaded", function () {
   loadComponent("/public/header.html", "header-placeholder", () => {
     // Callback này chạy SAU KHI header.html đã được chèn vào DOM
 
-    // Chạy setupNavigation NGAY LẬP TỨC
-    // (Bây giờ nó đã an toàn vì đã được sửa lỗi)
     setupNavigation();
+
+    // === GỌI HÀM MỚI (NGÀY 6) ===
+    setupSearchForm();
+    // === KẾT THÚC ===
 
     const loginButton = document.getElementById("login-button");
     const adminLink = document.getElementById("admin-link");
-
     const profileLinkLi = document.getElementById("profile-link");
     const profileLinkA = profileLinkLi
       ? profileLinkLi.querySelector("a")
@@ -111,7 +130,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Danh sách email admin (Giữ nguyên)
     const ADMIN_EMAILS = [
       "phat30012005@gmail.com",
       "lethanhvy102005@gmail.com",
@@ -133,22 +151,15 @@ document.addEventListener("DOMContentLoaded", function () {
           window.location.reload();
         };
 
-        // === SỬA ĐỔI: Điều hướng hồ sơ theo vai trò ===
         const role = session.user.user_metadata.role;
         if (role === "LESSOR") {
-          profileLinkA.href = "/public/profile-lessor.html"; // Trang cho chủ trọ
+          profileLinkA.href = "/public/profile-lessor.html";
         } else {
-          // Mặc định là 'RENTER'
-          profileLinkA.href = "/public/profile-renter.html"; // Trang cho người thuê
+          profileLinkA.href = "/public/profile-renter.html";
         }
-        profileLinkLi.style.display = "list-item"; // Hiển thị <li>
-
-        // === BỔ SUNG: Chạy lại setupNavigation SAU KHI gán href
-        // để đảm bảo link 'Hồ sơ' được highlight đúng nếu đang ở trang hồ sơ
+        profileLinkLi.style.display = "list-item";
         setupNavigation();
-        // === KẾT THÚC BỔ SUNG ===
 
-        // Logic admin (Giữ nguyên)
         if (ADMIN_EMAILS.includes(session.user.email)) {
           adminLink.style.display = "list-item";
         } else {
@@ -164,14 +175,9 @@ document.addEventListener("DOMContentLoaded", function () {
         loginButton.classList.remove("btn-outline-danger");
         loginButton.classList.add("btn-primary");
         loginButton.onclick = null;
-
-        // Ẩn cả hai link khi đã đăng xuất
         adminLink.style.display = "none";
-        profileLinkLi.style.display = "none"; // Ẩn <li>
-
-        // === BỔ SUNG: Chạy lại setupNavigation
+        profileLinkLi.style.display = "none";
         setupNavigation();
-        // === KẾT THÚC BỔ SUNG ===
       }
     });
   });
