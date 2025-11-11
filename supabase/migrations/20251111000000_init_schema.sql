@@ -1,13 +1,10 @@
 -- supabase/migrations/20251111000000_init_schema.sql
--- FILE MÓNG NHÀ (V2 - ĐÃ SỬA LỖI THỨ TỰ FTS)
+-- FILE MÓNG NHÀ (V3 - ĐÃ SỬA LỖI POLICY 'reviews')
 
 -- === PHẦN 1: EXTENSIONS ===
--- Kích hoạt extension để tìm kiếm không dấu (unaccent)
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- === PHẦN 2: TÌM KIẾM (CÀI ĐẶT) ===
--- (SỬA LỖI: Chuyển phần cài đặt FTS lên đầu)
--- 1. Tạo cấu hình tìm kiếm tiếng Việt (bỏ dấu)
 CREATE TEXT SEARCH CONFIGURATION public.vietnamese (COPY = pg_catalog.simple);
 ALTER TEXT SEARCH CONFIGURATION public.vietnamese
     ALTER MAPPING FOR hword, hword_part, word
@@ -49,7 +46,6 @@ CREATE TABLE public.posts (
     contactName text,
     phone text,
     email text
-    -- (SỬA LỖI: Tạm thời BỎ cột 'fts' ở đây, chúng ta sẽ thêm nó ở PHẦN 6)
 );
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 
@@ -77,7 +73,7 @@ ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
 
 -- === PHẦN 4: TRIGGER (TỰ ĐỘNG SAO CHÉP USER MỚI) ===
--- (Không thay đổi, giữ nguyên)
+-- (Không thay đổi)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -104,7 +100,6 @@ CREATE TRIGGER on_auth_user_created
 
 
 -- === PHẦN 5: POLICIES (QUY TẮC BẢO MẬT RLS) ===
--- (Không thay đổi, giữ nguyên)
 
 -- Policies cho PROFILES:
 CREATE POLICY "Public can read profiles" ON public.profiles
@@ -121,11 +116,11 @@ CREATE POLICY "LESSORs can insert posts" ON public.posts
     (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'LESSOR'
   );
 CREATE POLICY "Users can delete their own posts" ON public.posts
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE USING (auth.uid() = user_id); -- (Cột này tên 'user_id' -> ĐÚNG)
 
 -- Policies cho BOOKMARKS:
 CREATE POLICY "User can manage their own bookmarks" ON public.bookmarks
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id); -- (Cột này tên 'user_id' -> ĐÚNG)
 
 -- Policies cho REVIEWS:
 CREATE POLICY "Public can read reviews" ON public.reviews
@@ -135,17 +130,19 @@ CREATE POLICY "RENTERs can insert reviews" ON public.reviews
     auth.role() = 'authenticated' AND
     (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'RENTER'
   );
-CREATE POLICY "Users can update/delete their own reviews" ON public.reviews
-  FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+  
+-- (SỬA LỖI: Đổi 'id' thành 'user_id' cho 2 policy dưới)
+CREATE POLICY "Users can update their own reviews" ON public.reviews
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id); -- <--- ĐÃ SỬA TỪ 'id'
+  
 CREATE POLICY "Users can delete their own reviews" ON public.reviews
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE USING (auth.uid() = user_id); -- <--- ĐÃ SỬA TỪ 'id'
 
 
 -- === PHẦN 6: TÌM KIẾM (ÁP DỤNG) ===
--- (SỬA LỖI: Chúng ta thêm cột 'fts' vào bảng 'posts' SAU KHI nó đã được tạo)
+-- (Không thay đổi)
 
 -- 1. Thêm cột 'fts' (GENERATED) vào bảng 'posts'
--- (Lúc này, cả 'posts' và 'public.vietnamese' đều đã tồn tại)
 ALTER TABLE public.posts
 ADD COLUMN fts tsvector GENERATED ALWAYS AS (
     setweight(to_tsvector('public.vietnamese', coalesce(title, '')), 'A') ||
