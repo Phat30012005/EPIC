@@ -2,7 +2,7 @@
 // PHIÊN BẢN HOÀN CHỈNH (CÓ VALIDATION & UPLOAD ẢNH)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "[https://esm.sh/@supabase/supabase-js@2](https://esm.sh/@supabase/supabase-js@2)";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
