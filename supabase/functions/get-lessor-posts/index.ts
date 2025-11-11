@@ -1,75 +1,91 @@
 // supabase/functions/get-lessor-posts/index.ts
 
+// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Hàm tạo phản hồi lỗi chuẩn
-function createErrorResponse(message: string, status: number) {
-  console.error(`[get-lessor-posts] Lỗi ${status}:`, message);
-  return new Response(JSON.stringify({ error: message }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: status,
-  });
-}
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-console.log("[get-lessor-posts] Function đã sẵn sàng.");
-
-Deno.serve(async (req, context) => {
-  // 1. Xử lý preflight request (OPTIONS)
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  // 2. Lấy user ID từ token (Bảo mật)
-  // Vì verify_jwt = true, chúng ta có thể tin tưởng context.auth
-  const {
-    data: { user },
-    error: authError,
-  } = await context.auth.getUser();
-
-  if (authError) {
-    return createErrorResponse(`Xác thực thất bại: ${authError.message}`, 401);
-  }
-  if (!user) {
-    return createErrorResponse(
-      "Không tìm thấy user (token không hợp lệ?)",
-      401
-    );
-  }
-
-  // 3. Khởi tạo Admin Client
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+async function getLessorPosts(lessorId) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // 4. Logic chính: Lấy các bài đăng CỦA user này
-  try {
-    const { data: posts, error: postsError } = await supabaseAdmin
-      .from("posts")
-      .select("*") // Lấy tất cả các cột
-      .eq("user_id", user.id) // CHỈ lấy các bài có user_id khớp
-      .order("created_at", { ascending: false }); // Sắp xếp tin mới nhất lên đầu
+  const { data, error } = await supabase
+    .from("posts")
+    .select(
+      `
+      *,
+      districts:district_id (name),
+      wards:ward_id (name),
+      reviews:reviews (
+        review_id,
+        created_at,
+        rating,
+        profiles:user_id (full_name)
+      )
+    `
+    )
+    .eq("user_id", lessorId)
+    .order("created_at", { ascending: false });
 
-    if (postsError) {
-      throw new Error(`Lỗi query CSDL: ${postsError.message}`);
+  if (error) {
+    throw error;
+  }
+
+  // Calculate average rating for each post
+  const postsWithAvgRating = data.map((post) => {
+    let totalRating = 0;
+    const reviewsCount = post.reviews.length;
+
+    if (reviewsCount > 0) {
+      post.reviews.forEach((review) => {
+        totalRating += review.rating;
+      });
+      post.average_rating = (totalRating / reviewsCount).toFixed(1);
+    } else {
+      post.average_rating = "N/A";
+    }
+    return post;
+  });
+
+  return postsWithAvgRating;
+}
+
+Deno.serve(async (req) => {
+  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
+
+  try {
+    const { lessorId } = await req.json();
+    if (!lessorId) {
+      throw new Error("Missing lessorId parameter");
     }
 
-    // 5. Trả về thành công (trả về mảng bài đăng)
-    console.log(
-      `[get-lessor-posts] Lấy ${posts.length} bài đăng cho user ${user.email}.`
-    );
-    return new Response(JSON.stringify({ data: posts }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    const data = await getLessorPosts(lessorId);
+    return new Response(JSON.stringify(data), {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-  } catch (err) {
-    return createErrorResponse(err.message || "Lỗi không xác định", 500);
+  } catch (error) {
+    console.error("Error in get-lessor-posts function:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   }
 });

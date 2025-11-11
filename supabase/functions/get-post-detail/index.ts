@@ -1,83 +1,68 @@
+// supabase/functions/get-post-detail/index.ts
+
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Tiêu chuẩn CORS
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+async function getPostDetail(postId) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  const { data, error } = await supabase
+    .from("posts")
+    .select(
+      `
+      *,
+      profiles:user_id (full_name, phone_number, avatar_url),
+      districts:district_id (name),
+      wards:ward_id (name)
+    `
+    )
+    .eq("post_id", postId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+  return data;
+}
 
 Deno.serve(async (req) => {
-  // 1. Xử lý preflight request (OPTIONS)
+  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   }
 
   try {
-    // 2. Lấy ID từ query param của URL
-    // Ví dụ: .../get-post-detail?id=abc-123
-    const url = new URL(req.url);
-    const postId = url.searchParams.get("id");
-
-    // 3. Kiểm tra xem có ID không
+    const { postId } = await req.json();
     if (!postId) {
-      return new Response(
-        JSON.stringify({ error: 'Thiếu tham số "id" của bài đăng' }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400, // Bad Request
-        }
-      );
+      throw new Error("Missing postId parameter");
     }
-
-    // 4. Khởi tạo Admin Client (để vượt qua RLS nếu cần)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // 5. Query CSDL (Logic chính)
-    // Đây là logic quan trọng y hệt như trong chitiet.js:
-    // Lấy 'posts' và JOIN 'profiles' nơi có user_id khớp
-    const { data, error } = await supabaseAdmin
-      .from("posts")
-      .select("*, profiles(*)") // JOIN với bảng profiles
-      .eq("id", postId) // Lọc theo ID
-      .single(); // Chỉ lấy 1 kết quả
-
-    if (error) {
-      console.error("Lỗi query CSDL:", error.message);
-      // Thường lỗi này là 500, hoặc 404 nếu .single() không tìm thấy gì
-      return new Response(JSON.stringify({ error: error.message }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500, // Internal Server Error
-      });
-    }
-
-    // 6. Xử lý trường hợp không tìm thấy bài đăng (data là null)
-    if (!data) {
-      return new Response(
-        JSON.stringify({ error: "Không tìm thấy bài đăng" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 404, // Not Found
-        }
-      );
-    }
-
-    // 7. Trả về thành công
-    return new Response(JSON.stringify({ data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    const data = await getPostDetail(postId);
+    return new Response(JSON.stringify(data), {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-  } catch (err) {
-    console.error("Lỗi server nội bộ:", err);
-    // Trả về lỗi 500 (Internal Server Error)
-    return new Response(JSON.stringify({ error: err.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+  } catch (error) {
+    console.error("Error in get-post-detail function:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
   }
 });

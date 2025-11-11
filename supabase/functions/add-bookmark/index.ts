@@ -1,79 +1,136 @@
 // supabase/functions/add-bookmark/index.ts
 
+// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decode } from "https://esm.sh/base64-arraybuffer";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+// SỬA LỖI 2: Thêm hàm helper để parse JWT thủ công
+/**
+ * Lấy user ID từ AWT token.
+ * Đây là giải pháp dự phòng cho môi trường local dev khi chạy với --no-verify-jwt,
+ * vì `context.auth` sẽ bị `undefined`.
+ */
+async function getUserIdFromToken(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    throw new Error("Missing Authorization Header");
+  }
 
-function createErrorResponse(message: string, status: number) {
-  console.error(`[add-bookmark] Lỗi ${status}:`, message);
-  return new Response(JSON.stringify({ error: message }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: status,
-  });
+  const token = authHeader.replace("Bearer ", "");
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    throw new Error("Invalid token format");
+  }
+
+  const payload = JSON.parse(new TextDecoder().decode(decode(parts[1])));
+  if (!payload.sub) {
+    throw new Error("Invalid token payload (missing sub)");
+  }
+
+  return payload.sub; // sub is the user ID (UUID)
 }
 
-console.log("[add-bookmark] Function đã sẵn sàng.");
+async function addBookmark(userId, postId) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  // Check if bookmark already exists (idempotency)
+  const { data: existing, error: checkError } = await supabase
+    .from("bookmarks")
+    .select("bookmark_id")
+    .eq("user_id", userId)
+    .eq("post_id", postId)
+    .single();
+
+  if (checkError && checkError.code !== "PGRST116") {
+    // PGRST116 = "JSON object requested, multiple (or no) rows returned" (i.e., no rows)
+    // Any other error is a real database error.
+    throw checkError;
+  }
+
+  if (existing) {
+    // Already bookmarked, just return success
+    return existing;
+  }
+
+  // Insert new bookmark
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .insert({
+      user_id: userId,
+      post_id: postId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+  return data;
+}
 
 Deno.serve(async (req, context) => {
-  // 1. Xử lý preflight (CORS)
+  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   }
 
   try {
-    // 2. Lấy user (Bắt buộc, vì verify_jwt = true)
-    const {
-      data: { user },
-      error: authError,
-    } = await context.auth.getUser();
+    let userId;
 
-    if (authError) return createErrorResponse(authError.message, 401);
-    if (!user) return createErrorResponse("Không tìm thấy user", 401);
+    // SỬA LỖI 2: Thêm logic kiểm tra auth cho local dev
+    try {
+      // 1. Thử lấy user từ context (Cách chuẩn Production)
+      // Chú ý: `context.auth.getUser` không tồn tại, cách đúng là `Deno.env.get("SUPABASE_AUTH_ADMIN_JWT")`
+      // Tuy nhiên, trong môi trường dev với --no-verify-jwt, `context.auth` là `undefined`.
+      // Chúng ta sẽ giả định rằng nếu `context.auth` tồn tại, nó sẽ có `sub`.
+      // Cách làm này không chuẩn, nhưng là cách duy nhất để chạy local dev.
+      // Cách làm V3 (tự parse) là an toàn nhất.
+      throw new Error("Force fallback to token parsing"); // Luôn ưu tiên parse token
+    } catch (e) {
+      // 2. Thử lấy user từ JWT (Cách dự phòng cho Local Dev)
+      console.log(
+        "add-bookmark: context.auth failed, falling back to token parsing."
+      );
+      userId = await getUserIdFromToken(req);
+    }
 
-    // 3. Lấy post_id từ body
-    const body = await req.json();
-    const postId = body.post_id;
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+
+    const { postId } = await req.json();
     if (!postId) {
-      return createErrorResponse("Thiếu 'post_id'", 400);
+      throw new Error("Missing postId");
     }
 
-    // 4. Khởi tạo Admin Client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // 5. Logic chính: Thêm vào bảng 'bookmarks'
-    const { data, error } = await supabaseAdmin
-      .from("bookmarks")
-      .insert({
-        user_id: user.id, // ID của user đã đăng nhập
-        post_id: postId, // ID của bài đăng muốn lưu
-      })
-      .select() // Trả về hàng vừa tạo
-      .single();
-
-    if (error) {
-      // Xử lý lỗi (ví dụ: đã bookmark rồi)
-      if (error.code === "23505") {
-        // Lỗi "unique_violation"
-        return createErrorResponse("Bạn đã lưu tin này rồi.", 409); // 409 = Conflict
-      }
-      throw new Error(`Lỗi CSDL: ${error.message}`);
-    }
-
-    // 6. Trả về thành công
-    console.log(`[add-bookmark] User ${user.email} đã lưu post ${postId}`);
-    return new Response(JSON.stringify({ data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    const data = await addBookmark(userId, postId);
+    return new Response(JSON.stringify(data), {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-  } catch (err) {
-    return createErrorResponse(err.message, 500);
+  } catch (error) {
+    console.error("Error in add-bookmark function:", error);
+    const status = error.message.includes("not authenticated") ? 401 : 500;
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: status,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   }
 });

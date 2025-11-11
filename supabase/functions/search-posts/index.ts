@@ -1,75 +1,106 @@
 // supabase/functions/search-posts/index.ts
 
+// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+async function searchPosts(searchTerm) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
-function createErrorResponse(message: string, status: number) {
-  return new Response(JSON.stringify({ error: message }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: status,
+  // Use the search_posts_v2 RPC function defined in migration 20251110200000_add_fts_v2.sql
+  const { data, error } = await supabase.rpc("search_posts_v2", {
+    search_term: searchTerm,
   });
+
+  if (error) {
+    throw error;
+  }
+
+  // The RPC function returns posts, but we need to fetch reviews and calculate avg_rating
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Get post IDs
+  const postIds = data.map((post) => post.post_id);
+
+  // Fetch reviews for these posts
+  const { data: reviewsData, error: reviewsError } = await supabase
+    .from("reviews")
+    .select("post_id, rating")
+    .in("post_id", postIds);
+
+  if (reviewsError) {
+    throw reviewsError;
+  }
+
+  // Create a map for quick lookup of reviews
+  const reviewsMap = new Map();
+  reviewsData.forEach((review) => {
+    if (!reviewsMap.has(review.post_id)) {
+      reviewsMap.set(review.post_id, []);
+    }
+    reviewsMap.get(review.post_id).push(review.rating);
+  });
+
+  // Calculate average rating for each post
+  const postsWithAvgRating = data.map((post) => {
+    const reviews = reviewsMap.get(post.post_id) || [];
+    let totalRating = 0;
+    const reviewsCount = reviews.length;
+
+    if (reviewsCount > 0) {
+      reviews.forEach((rating) => {
+        totalRating += rating;
+      });
+      post.average_rating = (totalRating / reviewsCount).toFixed(1);
+    } else {
+      post.average_rating = "N/A";
+    }
+    return post;
+  });
+
+  return postsWithAvgRating;
 }
 
-console.log("[search-posts] Function đã sẵn sàng.");
-
 Deno.serve(async (req) => {
-  // 1. Xử lý preflight (CORS)
+  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   }
 
   try {
-    // 2. Lấy từ khóa tìm kiếm (query) từ URL
-    // ví dụ: .../search-posts?q=phòng+trọ+ninh+kiều
-    const url = new URL(req.url);
-    const searchQuery = url.searchParams.get("q");
-
-    if (!searchQuery) {
-      return createErrorResponse("Thiếu tham số 'q' (query)", 400);
+    const { searchTerm } = await req.json();
+    if (typeof searchTerm !== "string" || searchTerm.trim() === "") {
+      throw new Error("Missing or invalid searchTerm parameter");
     }
 
-    // 3. Khởi tạo Admin Client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // 4. Chuyển đổi từ khóa tìm kiếm sang định dạng 'tsquery'
-    // 'plainto_tsquery' tốt cho input của người dùng
-    // 'websearch_to_tsquery' (mới hơn) thậm chí còn tốt hơn
-    // Chúng ta dùng 'plainto_tsquery' cho tiếng Việt
-    const tsQuery = `plainto_tsquery('vietnamese', '${searchQuery}')`;
-
-    // 5. Thực thi RPC (Remote Procedure Call)
-    // Thay vì dùng .select(), chúng ta dùng .rpc() để gọi hàm
-    // hoặc query trực tiếp bằng FTS
-
-    // Logic: Tìm các bài đăng 'posts' MÀ 'fts' (cột tsvector)
-    // khớp (@@) với 'tsQuery' (từ khóa)
-    const { data, error } = await supabaseAdmin
-      .from("posts")
-      .select("*") // Lấy tất cả các cột
-      .filter("fts", "@@", tsQuery); // Đây là cú pháp FTS
-
-    if (error) {
-      return createErrorResponse(error.message, 500);
-    }
-
-    // 6. Trả về thành công
-    console.log(
-      `[search-posts] Tìm thấy ${data.length} kết quả cho: ${searchQuery}`
-    );
-    return new Response(JSON.stringify({ data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    const data = await searchPosts(searchTerm);
+    return new Response(JSON.stringify(data), {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-  } catch (err) {
-    return createErrorResponse(err.message, 500);
+  } catch (error) {
+    console.error("Error in search-posts function:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   }
 });

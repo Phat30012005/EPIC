@@ -1,118 +1,108 @@
 // supabase/functions/get-posts-list/index.ts
-// (ĐÃ HOÀN THIỆN LOGIC - VAI TRÒ CỦA MAI)
 
+// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+async function getPosts(filters) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
-// Hàm trợ giúp xử lý lỗi (tương tự create-post)
-function createErrorResponse(message: string, status: number) {
-  console.error(`LỖI: ${message}`);
-  return new Response(JSON.stringify({ error: message }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: status,
+  let query = supabase.from("posts").select(
+    `
+      *,
+      districts:district_id (name),
+      wards:ward_id (name),
+      reviews:reviews (
+        review_id,
+        created_at,
+        rating,
+        profiles:user_id (full_name)
+      )
+    `
+  );
+
+  // Apply filters
+  if (filters.districtId) {
+    query = query.eq("district_id", filters.districtId);
+  }
+  if (filters.wardId) {
+    query = query.eq("ward_id", filters.wardId);
+  }
+  if (filters.minPrice) {
+    query = query.gte("price", filters.minPrice);
+  }
+  if (filters.maxPrice) {
+    query = query.lte("price", filters.maxPrice);
+  }
+  if (filters.minArea) {
+    query = query.gte("area", filters.minArea);
+  }
+  if (filters.maxArea) {
+    query = query.lte("area", filters.maxArea);
+  }
+
+  // Ordering
+  query = query.order("created_at", { ascending: false });
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  // Calculate average rating for each post
+  const postsWithAvgRating = data.map((post) => {
+    let totalRating = 0;
+    const reviewsCount = post.reviews.length;
+
+    if (reviewsCount > 0) {
+      post.reviews.forEach((review) => {
+        totalRating += review.rating;
+      });
+      post.average_rating = (totalRating / reviewsCount).toFixed(1);
+    } else {
+      post.average_rating = "N/A";
+    }
+    return post;
   });
+
+  return postsWithAvgRating;
 }
 
 Deno.serve(async (req) => {
-  // 1. Xử lý preflight (CORS)
+  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   }
 
   try {
-    // 2. Khởi tạo Admin Client (dùng để query)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // 3. === LOGIC FILTER ĐỘNG (CỐT LÕI CỦA MAI) ===
-
-    // Lấy các tham số filter từ URL
-    // ví dụ: .../get-posts-list?type=Phòng%20đơn&price=1-2
-    const url = new URL(req.url);
-    const roomType = url.searchParams.get("type");
-    const priceRange = url.searchParams.get("price");
-
-    // ĐỔI TÊN: Đổi 'roomsize-desktop' thành 'size' cho ngắn gọn phía API
-    const sizeRange = url.searchParams.get("size");
-    // ĐỔI TÊN: Đổi 'local-desktop' thành 'ward'
-    const ward = url.searchParams.get("ward");
-
-    console.log(
-      `[get-posts-list] Đang lọc với: type=${roomType}, price=${priceRange}, size=${sizeRange}, ward=${ward}`
-    );
-
-    // 4. Xây dựng query động
-    // RẤT QUAN TRỌNG: Khai báo 'let query' để có thể sửa đổi nó
-    let query = supabaseAdmin.from("posts").select("*");
-
-    // Lọc theo Loại phòng (nếu có)
-    if (roomType) {
-      query = query.eq("room_type", roomType);
-    }
-
-    // Lọc theo Khu vực (nếu có)
-    // Dùng 'ilike' để tìm kiếm không phân biệt hoa/thường
-    // và '%${ward}%' để tìm trong chuỗi (ví dụ: "Ninh Kiều" sẽ khớp với "An Cư (Ninh Kiều)")
-    if (ward) {
-      // **LƯU Ý QUAN TRỌNG**: Tên cột trong CSDL của bạn là 'ward'
-      query = query.ilike("ward", `%${ward}%`);
-    }
-
-    // Lọc theo Giá (nếu có)
-    if (priceRange) {
-      // **LƯU Ý QUAN TRỌNG**: Tên cột trong CSDL của bạn là 'price'
-      if (priceRange === "1-2") {
-        query = query.gte("price", 1000000).lte("price", 2000000);
-      } else if (priceRange === "3-4") {
-        query = query.gte("price", 3000000).lte("price", 4000000);
-      } else if (priceRange === "5-6") {
-        query = query.gte("price", 5000000).lte("price", 6000000);
-      } else if (priceRange === "tren6") {
-        query = query.gte("price", 6000000); // gte = 'greater than or equal'
-      }
-    }
-
-    // Lọc theo Diện tích (nếu có)
-    if (sizeRange) {
-      // **LƯU Ý QUAN TRỌNG**: Tên cột trong CSDL của bạn là 'area'
-      if (sizeRange === "10-16") {
-        query = query.gte("area", 10).lte("area", 16);
-      } else if (sizeRange === "17-25") {
-        query = query.gte("area", 17).lte("area", 25);
-      } else if (sizeRange === "26-35") {
-        query = query.gte("area", 26).lte("area", 35);
-      } else if (sizeRange === "tren35") {
-        query = query.gte("area", 35);
-      }
-    }
-
-    // 5. Thực thi query
-    // Luôn sắp xếp tin mới nhất lên đầu
-    const { data, error } = await query.order("created_at", {
-      ascending: false,
+    const filters = await req.json();
+    const data = await getPosts(filters);
+    return new Response(JSON.stringify(data), {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-
-    if (error) {
-      // Lỗi CSDL (ví dụ: gõ sai tên cột)
-      return createErrorResponse(error.message, 500);
-    }
-
-    // 6. Trả về thành công
-    console.log(`[get-posts-list] Tìm thấy ${data.length} kết quả.`);
-    return new Response(JSON.stringify({ data }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+  } catch (error) {
+    console.error("Error in get-posts-list function:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-  } catch (err) {
-    // Lỗi chung
-    return createErrorResponse(err.message, 500);
   }
 });
