@@ -1,6 +1,4 @@
 
-
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -50,8 +48,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
-
-
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -61,11 +57,12 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     NEW.id, 
     NEW.raw_user_meta_data->>'contactName',
     NEW.raw_user_meta_data->>'phone',
-    'USER',
+    NEW.raw_user_meta_data->>'role', -- <--- ĐÃ SỬA TỪ 'USER' THÀNH ĐOẠN NÀY
     NEW.email -- Thêm email của user mới
   );
   RETURN NEW;
 END;$$;
+
 
 
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
@@ -436,6 +433,3 @@ using (((bucket_id = 'post-images'::text) AND ((storage.foldername(name))[1] = '
   for insert
   to public
 with check (((bucket_id = 'post-images'::text) AND (storage.extension(name) = ANY (ARRAY['png'::text, 'jpg'::text, 'jpeg'::text, 'webp'::text])) AND ((storage.foldername(name))[1] = 'public'::text)));
-
-
-
