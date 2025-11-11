@@ -15,7 +15,7 @@ function createErrorResponse(message: string, status: number) {
 
 // Danh sách email Admin (giữ nguyên)
 const ADMIN_EMAILS = [
-  "phat30012005@gmail.com",
+  "phatkimlam2005@gmail.com",
   "lethanhvy102005@gmail.com",
   "maib2308257@student.ctu.edu.vn",
   "ngab2308259@student.ctu.edu.vn",

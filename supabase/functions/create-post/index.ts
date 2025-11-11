@@ -1,213 +1,234 @@
 // supabase/functions/create-post/index.ts
-// PHIÊN BẢN HOÀN CHỈNH (CÓ VALIDATION & UPLOAD ẢNH)
+// PHIÊN BẢN SỬA LỖI 500 (Internal Server Error) CHO LOCAL DEV
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+// === BẮT ĐẦU PHẦN SỬA LỖI (V3) ===
 
-// Hàm tiện ích tạo lỗi (giữ nguyên)
-function createErrorResponse(message: string, status: number) {
-  console.error(`[create-post] Lỗi ${status}:`, message);
-  return new Response(JSON.stringify({ error: message }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-    status: status,
-  });
+// Hàm helper để parse JWT thủ công khi chạy local với --no-verify-jwt
+// Vì khi đó context.auth sẽ bị undefined
+function getUserIdFromJwt(req: Request): string | null {
+  try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      console.warn("Local dev: No auth header found.");
+      return null;
+    }
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      console.warn("Local dev: No token found in header.");
+      return null;
+    }
+    // Giải mã phần payload (thứ 2) của JWT
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    // 'sub' (subject) chính là user ID
+    return payload.sub || null;
+  } catch (error) {
+    console.error("Local dev: Error parsing JWT:", error.message);
+    return null;
+  }
 }
 
-const BUCKET_NAME = "post-images";
-const MAX_FILE_SIZE_MB = 5;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const MAX_IMAGE_COUNT = 10;
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/jpg", // (Một số trình duyệt dùng 'image/jpg')
-];
+// === KẾT THÚC PHẦN SỬA LỖI (V3) ===
 
-Deno.serve(async (req, context) => {
-  // 1. Xử lý preflight (CORS)
+// Hàm tạo phản hồi lỗi chuẩn
+const createErrorResponse = (message: string, statusCode: number) => {
+  return new Response(JSON.stringify({ error: message }), {
+    status: statusCode,
+    headers: {
+      "Content-Type": "application/json",
+      Connection: "keep-alive",
+    },
+  });
+};
+
+// Hàm tạo phản hồi thành công chuẩn
+const createSuccessResponse = (data: any) => {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      Connection: "keep-alive",
+    },
+  });
+};
+
+console.log("Create Post Function Initialized");
+
+Deno.serve(async (req) => {
+  // 1. Khởi tạo Supabase client (cho cả Admin và Service)
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    {
+      global: {
+        headers: { Authorization: req.headers.get("Authorization")! },
+      },
+    }
+  );
+
+  const serviceRoleClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
+
+  // 2. Xử lý CORS Preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers":
+          "authorization, x-client-info, apikey, content-type",
+      },
+    });
   }
 
   try {
-    // 2. === BẢO MẬT: LẤY USER ===
-    const {
-      data: { user },
-      error: authError,
-    } = await context.auth.getUser();
+    // 3. Lấy User ID (Phần đã sửa lỗi V3)
+    let userId: string | null = null;
+    let userEmail: string | null = null;
 
-    if (authError) {
-      return createErrorResponse("Chưa xác thực hoặc token không hợp lệ", 401);
-    }
-    console.log(`[create-post] Được gọi bởi user: ${user.email}`);
+    // Lấy context.auth từ Supabase
+    // @ts-ignore: Bỏ qua lỗi type vì Deno.serve không có context
+    const { auth } = req.context || {};
 
-    // 3. === XỬ LÝ FORMDATA ===
-    const formData = await req.formData();
-
-    // 4. === VALIDATION (XÁC THỰC) DỮ LIỆU TEXT ===
-    // (Lấy dữ liệu từ FormData)
-    const title = formData.get("title") as string;
-    const motelName = formData.get("motelName") as string;
-    const priceRaw = Number(formData.get("price"));
-    const areaRaw = Number(formData.get("area"));
-    const roomsRaw = Number(formData.get("rooms"));
-    const ward = formData.get("ward") as string;
-    const address = formData.get("address") as string;
-    const description = formData.get("description") as string;
-    const roomType = formData.get("room_type") as string;
-    const contactName = formData.get("contactName") as string;
-    const phone = formData.get("phone") as string;
-    const email = formData.get("email") as string;
-
-    // (Parse mảng 'highlights' từ chuỗi JSON)
-    let highlights: string[] = [];
-    try {
-      highlights = JSON.parse((formData.get("highlights") as string) || "[]");
-      if (!Array.isArray(highlights)) highlights = [];
-    } catch (e) {
-      console.warn("Lỗi parse highlights, dùng mảng rỗng:", e.message);
-      highlights = [];
-    }
-
-    // (Kiểm tra các trường bắt buộc)
-    if (
-      !title ||
-      !motelName ||
-      !ward ||
-      !address ||
-      !description ||
-      !roomType ||
-      !contactName ||
-      !phone ||
-      !email
-    ) {
-      return createErrorResponse("Thiếu thông tin văn bản bắt buộc", 400);
-    }
-    if (isNaN(priceRaw) || priceRaw <= 0) {
-      return createErrorResponse("Giá (price) không hợp lệ", 400);
-    }
-    if (isNaN(areaRaw) || areaRaw <= 0) {
-      return createErrorResponse("Diện tích (area) không hợp lệ", 400);
-    }
-    if (isNaN(roomsRaw) || roomsRaw <= 0) {
-      return createErrorResponse("Số phòng (rooms) không hợp lệ", 400);
-    }
-
-    // 5. === VALIDATION (XÁC THỰC) DỮ LIỆU FILE (ẢNH) ===
-    const images = formData.getAll("images") as File[];
-
-    if (images.length === 0) {
-      return createErrorResponse("Cần ít nhất một ảnh", 400);
-    }
-    if (images.length > MAX_IMAGE_COUNT) {
-      return createErrorResponse(
-        `Chỉ được đăng tối đa ${MAX_IMAGE_COUNT} ảnh`,
-        400
+    if (auth) {
+      // Chạy trên Production (hoặc local nếu CÓ verify jwt)
+      console.log("Production context detected. Using context.auth.getUser()");
+      const {
+        data: { user },
+        error: authError,
+      } = await auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error("User not found (from context)");
+      userId = user.id;
+      userEmail = user.email;
+    } else {
+      // Chạy trên Local với --no-verify-jwt (context.auth bị undefined)
+      console.warn(
+        "Local dev context detected (context.auth is undefined). Falling back to manual JWT parsing."
       );
-    }
-
-    // (Kiểm tra từng file)
-    for (const file of images) {
-      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      userId = getUserIdFromJwt(req);
+      if (!userId) {
+        // Nếu không thể parse JWT, trả về lỗi 401 (như khi auth thất bại)
         return createErrorResponse(
-          `File '${file.name}' có định dạng không hợp lệ (${file.type})`,
-          400
+          "Unauthorized: Invalid token (local dev)",
+          401
         );
       }
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        return createErrorResponse(
-          `File '${file.name}' quá lớn (tối đa ${MAX_FILE_SIZE_MB}MB)`,
-          400
-        );
-      }
+      // Vì không có user object, chúng ta không thể lấy email từ token
+      // (Token payload chỉ chứa userId ('sub'), không chứa email)
+      // Chúng ta sẽ lấy email từ FormData sau
+      console.log(`Local dev: Successfully parsed userId: ${userId}`);
     }
 
-    // 6. === UPLOAD ẢNH LÊN STORAGE ===
-    // (Khởi tạo Admin Client - Bắt buộc dùng Admin để upload)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    if (!userId) {
+      return createErrorResponse("User authentication failed", 401);
+    }
 
-    const uploadPromises = images.map((file) => {
-      // Tạo đường dẫn file duy nhất
-      // Định dạng: public/[user_id]/[random_uuid]-[tên_file]
-      const filePath = `public/${user.id}/${crypto.randomUUID()}-${file.name}`;
+    // 4. Xử lý FormData
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (e) {
+      return createErrorResponse(`Failed to parse FormData: ${e.message}`, 400);
+    }
 
-      return supabaseAdmin.storage.from(BUCKET_NAME).upload(filePath, file, {
-        contentType: file.type,
-        cacheControl: "3600", // Cache 1 giờ
-      });
-    });
+    const images = formData.getAll("images") as File[];
+    if (images.length === 0 || images.some((img) => img.size === 0)) {
+      return createErrorResponse("No images or invalid images provided.", 400);
+    }
 
-    // (Chờ tất cả upload hoàn tất song song)
-    const uploadResults = await Promise.all(uploadPromises);
+    const newPost = {
+      title: formData.get("title") as string,
+      motelName: formData.get("motelName") as string,
+      price: Number(formData.get("price")),
+      area: Number(formData.get("area")),
+      rooms: Number(formData.get("rooms")),
+      ward: formData.get("ward") as string,
+      address: formData.get("address") as string,
+      description: formData.get("description") as string,
+      highlights: formData.getAll("highlights") as string[],
+      room_type: formData.get("room_type") as string,
+      contactName: formData.get("contactName") as string,
+      phone: formData.get("phone") as string,
+      email: userEmail ?? (formData.get("email") as string), // Lấy email từ user nếu có, nếu không thì từ form
+      user_id: userId,
+      image_url: [] as string[], // Sẽ được cập nhật sau khi upload
+    };
 
-    // (Kiểm tra lỗi upload)
-    const failedUploads = uploadResults.filter((r) => r.error);
-    if (failedUploads.length > 0) {
-      console.error("Lỗi upload Storage:", failedUploads[0].error);
+    // 5. Upload ảnh lên Storage (dùng Service Role)
+    const uploadedImagePaths: string[] = [];
+    const publicImageUrls: string[] = [];
+
+    for (const image of images) {
+      const timestamp = Date.now();
+      const imagePath = `public/${userId}/${timestamp}-${image.name}`;
+      uploadedImagePaths.push(imagePath);
+
+      const { error: uploadError } = await serviceRoleClient.storage
+        .from("post-images")
+        .upload(imagePath, image, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        // THẤT BẠI: Dọn dẹp những ảnh đã upload (nếu có)
+        if (uploadedImagePaths.length > 0) {
+          await serviceRoleClient.storage
+            .from("post-images")
+            .remove(uploadedImagePaths);
+        }
+        return createErrorResponse(
+          `Failed to upload image: ${uploadError.message}`,
+          500
+        );
+      }
+
+      // Lấy URL public của ảnh
+      const { data: publicUrlData } = serviceRoleClient.storage
+        .from("post-images")
+        .getPublicUrl(imagePath);
+
+      if (!publicUrlData) {
+        return createErrorResponse("Failed to get public URL for image", 500);
+      }
+
+      publicImageUrls.push(publicUrlData.publicUrl);
+    }
+
+    // 6. Thêm URL ảnh vào đối tượng bài đăng
+    newPost.image_url = publicImageUrls;
+
+    // 7. Chèn bài đăng vào Database (dùng client của user)
+    const { data: postData, error: dbError } = await supabase
+      .from("posts")
+      .insert(newPost)
+      .select()
+      .single(); // Lấy bản ghi vừa tạo
+
+    if (dbError) {
+      console.error("Database error:", dbError);
+      // THẤT BẠI: Dọn dẹp ảnh đã upload (Rollback Storage)
+      await serviceRoleClient.storage
+        .from("post-images")
+        .remove(uploadedImagePaths);
       return createErrorResponse(
-        `Lỗi khi upload ảnh: ${failedUploads[0].error.message}`,
+        `Failed to create post in DB: ${dbError.message}`,
         500
       );
     }
 
-    // (Lấy URL public của các ảnh đã upload)
-    const imageUrls = uploadResults.map((r) => {
-      return supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(r.data.path)
-        .data.publicUrl;
-    });
-
-    // 7. === LƯU BÀI ĐĂNG VÀO CSDL ===
-    const postData = {
-      user_id: user.id, // ID của người đăng
-      title: title,
-      motelName: motelName,
-      price: priceRaw,
-      area: areaRaw,
-      rooms: roomsRaw,
-      ward: ward,
-      address: address,
-      description: description,
-      room_type: roomType,
-      contactName: contactName,
-      phone: phone,
-      email: email,
-      highlights: highlights,
-      image_url: imageUrls, // Mảng các URL public
-    };
-
-    const { data: newPost, error: insertError } = await supabaseAdmin
-      .from("posts")
-      .insert(postData)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error("Lỗi insert CSDL:", insertError);
-      // (Nếu lỗi, phải XÓA các ảnh vừa upload để dọn dẹp)
-      const filePathsToDelete = uploadResults.map((r) => r.data.path);
-      await supabaseAdmin.storage.from(BUCKET_NAME).remove(filePathsToDelete);
-
-      return createErrorResponse(`Lỗi lưu CSDL: ${insertError.message}`, 500);
-    }
-
-    // 8. === TRẢ VỀ THÀNH CÔNG ===
-    console.log(`[create-post] Đăng tin thành công: ${newPost.id}`);
-    return new Response(JSON.stringify({ data: newPost }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, // 200 OK (hoặc 201 Created đều được)
-    });
-  } catch (err) {
-    // (Bắt các lỗi chung, ví dụ: req.formData() thất bại)
-    return createErrorResponse(err.message, 500);
+    // 8. THÀNH CÔNG
+    return createSuccessResponse(postData);
+  } catch (error) {
+    console.error("Critical error in create-post function:", error);
+    return createErrorResponse(
+      error.message || "An unexpected error occurred",
+      500
+    );
   }
 });
