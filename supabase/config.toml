@@ -110,3 +110,9 @@ import_map = "./functions/add-review/deno.json"
 entrypoint = "./functions/add-review/index.ts"
 
 
+# CẤU HÌNH CHO REVIEWS (LẤY DANH SÁCH)
+[functions.get-reviews-for-post]
+enabled = true
+verify_jwt = false 
+import_map = "./functions/get-reviews-for-post/deno.json"
+entrypoint = "./functions/get-reviews-for-post/index.ts"
