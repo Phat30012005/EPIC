@@ -101,3 +101,12 @@ enabled = true
 verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/get-user-bookmarks/deno.json"
 entrypoint = "./functions/get-user-bookmarks/index.ts"
+
+#CAU HINH REVIEW
+[functions.add-review]
+enabled = true
+verify_jwt = true
+import_map = "./functions/add-review/deno.json"
+entrypoint = "./functions/add-review/index.ts"
+
+
