@@ -10,8 +10,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- === PHẦN MỚI (NGÀY 6): THÊM FONT AWESOME === -->
+    <!-- THÊM FONT AWESOME (Cho Nút Lưu + Sao Đánh Giá) -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
@@ -20,33 +19,66 @@
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="stylesheet" href="/public/css/chatbox.css" />
 
-    <!-- === PHẦN MỚI (NGÀY 6): CSS CHO NÚT LƯU TIN (Giống danhsach.html) === -->
+    <!-- === CSS MỚI CHO TÍNH NĂNG (NÚT LƯU + SAO ĐÁNH GIÁ) === -->
     <style>
-      .save-btn {
+      /* CSS cho nút "Lưu tin" */
+      .save-post-btn {
+        background-color: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
         transition: all 0.2s ease;
       }
-      .save-btn {
-        color: #dc3545;
-        background-color: #fff;
+
+      .save-post-btn:hover {
+        background-color: #e5e7eb;
       }
-      .save-btn:hover {
-        color: #fff;
-        background-color: #dc3545;
+
+      .save-post-btn.active {
+        background-color: #fef2f2;
+        color: #dc2626;
+        border-color: #fca5a5;
       }
-      .save-btn.active {
-        color: #fff;
-        background-color: #dc3545;
-        border-color: #dc3545;
+
+      /* CSS MỚI cho Sao Đánh Giá */
+      .star-rating {
+        font-size: 2rem;
+        color: #d1d5db;
+        /* Màu sao rỗng */
+        cursor: pointer;
       }
-      /* Đổi icon rỗng thành đặc khi active */
-      .save-btn.active .fa-regular.fa-heart::before {
-        font-family: "Font Awesome 6 Free";
-        font-weight: 900;
-        content: "\f004"; /* Mã unicode cho icon trái tim đặc */
+
+      .star-rating .star {
+        transition: color 0.2s ease;
+      }
+
+      /* Khi hover, tất cả sao TỪ ĐẦU đến sao được hover sẽ sáng */
+      .star-rating:hover .star {
+        color: #f59e0b;
+        /* Màu vàng (hover) */
+      }
+
+      .star-rating .star:hover ~ .star {
+        color: #d1d5db;
+        /* Các sao đằng sau (~) sao được hover sẽ rỗng */
+      }
+
+      /* Lớp 'selected' cho sao đã được click */
+      .star-rating .star.selected {
+        color: #f59e0b;
+        /* Màu vàng (selected) */
+      }
+
+      /* Đảm bảo các sao đằng sau sao 'selected' rỗng */
+      .star-rating .star.selected ~ .star {
+        color: #d1d5db;
       }
     </style>
-    <!-- === KẾT THÚC PHẦN MỚI === -->
+    <!-- === KẾT THÚC CSS MỚI === -->
   </head>
+
   <body class="bg-gray-100 flex flex-col min-h-screen">
     <div id="header-placeholder"></div>
 
@@ -59,7 +91,7 @@
       </h1>
 
       <div id="post-detail-container" class="card p-6">
-        <!-- (Phần ảnh... giữ nguyên) -->
+        <!-- PHẦN HIỂN THỊ ẢNH (Giữ nguyên) -->
         <div class="mb-6 relative image-gallery-wrapper">
           <div id="detail-images-display" class="image-display-area"></div>
           <button id="prev-btn" class="slider-btn slider-btn-prev">
@@ -71,31 +103,27 @@
           <div id="detail-thumbnails" class="image-thumbnails-area"></div>
         </div>
 
-        <h2 class="text-3xl font-bold text-gray-800 mb-2" id="detail-title">
-          Đang tải...
-        </h2>
-        <div class="text-gray-500 mb-4">
-          <span id="detail-date"></span>
-        </div>
-
-        <!-- === CẬP NHẬT (NGÀY 6): THÊM NÚT LƯU BÊN CẠNH GIÁ === -->
-        <div class="d-flex align-items-center mb-4">
-          <div class="flex items-center text-2xl font-bold text-red-600">
-            <i class="fa-solid fa-tag me-2"></i>
-            <span id="detail-price"></span>
+        <!-- TIÊU ĐỀ VÀ NÚT LƯU TIN (CẬP NHẬT) -->
+        <div class="flex justify-between items-start mb-2">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-800" id="detail-title">
+              Đang tải...
+            </h2>
+            <div class="text-gray-500 mt-1">
+              <span id="detail-date"></span>
+            </div>
           </div>
-
-          <button
-            id="detail-save-btn"
-            class="btn btn-outline-danger save-btn ms-3"
-            style="display: none"
-          >
-            <i class="fa-regular fa-heart me-2"></i>Lưu tin
+          <!-- NÚT LƯU TIN (TỪ NGÀY 6) -->
+          <button id="save-post-btn" class="save-post-btn flex-shrink-0 ml-4">
+            <i class="far fa-heart mr-2"></i> Lưu tin
           </button>
         </div>
-        <!-- === KẾT THÚC CẬP NHẬT === -->
 
-        <!-- (Phần thông tin... giữ nguyên) -->
+        <!-- THÔNG TIN CƠ BẢN (Giữ nguyên) -->
+        <div class="flex items-center text-2xl font-bold text-red-600 mb-4">
+          <i class="fa-solid fa-tag me-2"></i>
+          <span id="detail-price"></span>
+        </div>
         <div
           class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 text-gray-700 mb-6 detail-info-grid"
         >
@@ -121,7 +149,7 @@
           </div>
         </div>
 
-        <!-- (Phần mô tả... giữ nguyên) -->
+        <!-- MÔ TẢ VÀ LIÊN HỆ (Giữ nguyên) -->
         <div class="mb-6">
           <h2 class="section-title mb-4">MÔ TẢ CHI TIẾT</h2>
           <p
@@ -129,15 +157,13 @@
             class="text-base text-gray-700 leading-relaxed whitespace-pre-wrap"
           ></p>
         </div>
-
         <div class="mb-6">
           <h2 class="section-title mb-4">ĐẶC ĐIỂM NỔI BẬT</h2>
           <div id="detail-highlights" class="highlight-list">
             <p>Đang tải...</p>
           </div>
         </div>
-
-        <div>
+        <div class="mb-6">
           <h2 class="section-title mb-4">THÔNG TIN LIÊN HỆ</h2>
           <p class="text-base text-gray-700">
             <i class="fa-solid fa-user me-2 text-red-500"></i> Người liên hệ:
@@ -152,6 +178,76 @@
             <span class="font-semibold" id="detail-email"></span>
           </p>
         </div>
+
+        <!-- === KHU VỰC ĐÁNH GIÁ (MỚI) === -->
+        <div id="reviews-section">
+          <h2 class="section-title mb-4">ĐÁNH GIÁ</h2>
+
+          <!-- 1. Form gửi đánh giá -->
+          <div
+            id="review-form-container"
+            class="app-card bg-gray-50 p-4 rounded-lg mb-6"
+          >
+            <h3 class="text-lg font-semibold mb-2">Để lại đánh giá của bạn</h3>
+
+            <!-- Thông báo khi chưa đăng nhập (sẽ bị ẩn nếu đã đăng nhập) -->
+            <div id="review-login-prompt" class="hidden">
+              <p class="text-gray-600">
+                Bạn cần
+                <a href="/public/login.html" class="text-primary font-semibold"
+                  >đăng nhập</a
+                >
+                để để lại đánh giá.
+              </p>
+            </div>
+
+            <!-- Form đánh giá (sẽ bị ẩn nếu chưa đăng nhập) -->
+            <form id="review-form" class="hidden space-y-3">
+              <div>
+                <label class="form-label text-gray-600">Chọn số sao:</label>
+                <div id="star-rating-input" class="star-rating">
+                  <span class="star" data-value="1">★</span>
+                  <span class="star" data-value="2">★</span>
+                  <span class="star" data-value="3">★</span>
+                  <span class="star" data-value="4">★</span>
+                  <span class="star" data-value="5">★</span>
+                </div>
+              </div>
+              <div>
+                <label for="review-comment" class="form-label text-gray-600"
+                  >Viết bình luận:</label
+                >
+                <textarea
+                  id="review-comment"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Chia sẻ trải nghiệm của bạn..."
+                  required
+                ></textarea>
+              </div>
+              <div class="text-end">
+                <button
+                  type="submit"
+                  id="review-submit-btn"
+                  class="btn btn-primary"
+                >
+                  Gửi đánh giá
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 2. Danh sách đánh giá đã có -->
+          <div id="reviews-list-container">
+            <div id="reviews-list-loading" class="text-center text-gray-500">
+              <p>Đang tải đánh giá...</p>
+            </div>
+            <div id="reviews-list" class="space-y-4">
+              <!-- Đánh giá sẽ được render bởi JS vào đây -->
+            </div>
+          </div>
+        </div>
+        <!-- === KẾT THÚC KHU VỰC ĐÁNH GIÁ === -->
       </div>
     </main>
 
@@ -159,7 +255,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
+    <!-- TẢI API CLIENT (QUAN TRỌNG) -->
     <script src="/public/js/api-client.js"></script>
+
     <script src="/public/js/chitiet.js"></script>
     <script src="/public/js/main.js"></script>
   </body>
