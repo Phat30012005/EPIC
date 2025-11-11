@@ -28,11 +28,11 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$BEGIN
-  INSERT INTO public.profiles (id, "contactName", phone, role, email)
-  VALUES (
-    NEW.id, 
-    NEW.raw_user_meta_data->>'contactName',
-    NEW.raw_user_meta_data->>'phone',
+INSERT INTO public.profiles (id, full_name, phone_number, role, email)
+VALUES (
+  NEW.id, 
+  NEW.raw_user_meta_data->>'contactName',
+  NEW.raw_user_meta_data->>'phone',
     NEW.raw_user_meta_data->>'role',
     NEW.email
   );
@@ -69,9 +69,9 @@ ALTER TABLE "public"."posts" OWNER TO "postgres";
 -- === TẠO BẢNG "profiles" ===
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "phone" "text",
+    "phone_number" "text",
     "role" "text",
-    "contactName" "text",
+    "full_name" "text",
     "email" "text"
 );
 ALTER TABLE "public"."profiles" OWNER TO "postgres";

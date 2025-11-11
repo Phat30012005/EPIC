@@ -8,11 +8,11 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 AS $function$
 BEGIN
   -- Chèn một hàng mới vào public.profiles
-  INSERT INTO public.profiles (id, email, "contactName", phone, role)
+INSERT INTO public.profiles (id, email, full_name, phone_number, role)
   VALUES (
-    new.id, -- Lấy id từ auth.users
-    new.email, -- Lấy email từ auth.users
-    new.raw_user_meta_data ->> 'contactName', -- Lấy contactName từ metadata
+    new.id, 
+    new.email, 
+    new.raw_user_meta_data ->> 'contactName', 
     new.raw_user_meta_data ->> 'phone',       -- Lấy phone từ metadata
     new.raw_user_meta_data ->> 'role'         -- Lấy role từ metadata
   );
