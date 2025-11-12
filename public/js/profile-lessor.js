@@ -28,9 +28,9 @@ function populateProfileForm(profile) {
   profileForm.style.display = "block";
 }
 
+// [THAY THẾ HÀM NÀY]
 async function handleProfileUpdate(e) {
   e.preventDefault();
-  // ... (Giữ nguyên code)
   const nameInput = document.getElementById("profile-name");
   const phoneInput = document.getElementById("profile-phone");
   const updateButton = document.getElementById("update-profile-btn");
@@ -41,18 +41,22 @@ async function handleProfileUpdate(e) {
   const newName = nameInput.value;
   const newPhone = phoneInput.value;
 
+  // (SỬA LỖI: Chuyển sang FormData để khớp với backend)
+  const formData = new FormData();
+  formData.append("fullName", newName);
+  formData.append("phone", newPhone);
+  // Chúng ta không gửi avatar, nhưng backend vẫn xử lý được
+
   const { data, error } = await callEdgeFunction("update-user-profile", {
-    method: "POST",
-    body: {
-      contactName: newName,
-      phone: newPhone,
-    },
+    method: "POST", // 'api-client' sẽ tự xử lý FormData
+    body: formData,
   });
 
   if (error) {
     alert("Cập nhật thất bại: " + error.message);
   } else {
     alert("Cập nhật hồ sơ thành công!");
+
     populateProfileForm(data);
   }
 

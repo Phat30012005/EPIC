@@ -197,7 +197,13 @@ Deno.serve(async (req) => {
         return createErrorResponse("Failed to get public URL for image", 500);
       }
 
-      publicImageUrls.push(publicUrlData.publicUrl);
+      // (SỬA LỖI 'kong:8000'):
+      // Tự xây dựng URL public-facing thay vì dùng URL nội bộ của Docker
+      const localSupabaseUrl =
+        Deno.env.get("SUPABASE_URL") ?? "http://127.0.0.1:54321";
+      const publicUrl = `${localSupabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${imagePath}`;
+
+      publicImageUrls.push(publicUrl);
     }
 
     // 6. Thêm URL ảnh vào đối tượng bài đăng
