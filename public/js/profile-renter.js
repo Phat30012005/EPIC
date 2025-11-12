@@ -4,9 +4,8 @@
 // ===========================================
 // PHẦN XỬ LÝ HỒ SƠ (Giữ nguyên)
 // ===========================================
-
+// [THAY THẾ HÀM NÀY]
 function populateProfileForm(profile) {
-  // ... (Giữ nguyên code)
   const emailInput = document.getElementById("profile-email");
   const nameInput = document.getElementById("profile-name");
   const phoneInput = document.getElementById("profile-phone");
@@ -14,9 +13,10 @@ function populateProfileForm(profile) {
   const loadingDiv = document.getElementById("profile-loading");
   const profileForm = document.getElementById("profile-form");
 
+  // (SỬA LỖI: Đọc 'full_name' và 'phone_number' từ CSDL)
   emailInput.value = profile.email || "Đang tải...";
-  nameInput.value = profile.contactName || "";
-  phoneInput.value = profile.phone || "";
+  nameInput.value = profile.full_name || ""; // <--- SỬA
+  phoneInput.value = profile.phone_number || ""; // <--- SỬA
 
   if (profile.role === "RENTER") {
     roleInput.value = "Người thuê";
@@ -28,9 +28,9 @@ function populateProfileForm(profile) {
   profileForm.style.display = "block";
 }
 
+// [THAY THẾ HÀM NÀY]
 async function handleProfileUpdate(e) {
   e.preventDefault();
-  // ... (Giữ nguyên code)
   const nameInput = document.getElementById("profile-name");
   const phoneInput = document.getElementById("profile-phone");
   const updateButton = document.getElementById("update-profile-btn");
@@ -41,11 +41,12 @@ async function handleProfileUpdate(e) {
   const newName = nameInput.value;
   const newPhone = phoneInput.value;
 
+  // (SỬA LỖI: Gửi JSON khớp với Backend V2)
   const { data, error } = await callEdgeFunction("update-user-profile", {
     method: "POST",
     body: {
-      contactName: newName,
-      phone: newPhone,
+      full_name: newName, // <--- SỬA
+      phone_number: newPhone, // <--- SỬA
     },
   });
 
@@ -54,13 +55,13 @@ async function handleProfileUpdate(e) {
     console.error("Lỗi cập nhật:", error);
   } else {
     alert("Cập nhật hồ sơ thành công!");
-    populateProfileForm(data.data);
+    // (SỬA LỖI LOGIC: 'data' trả về là profile)
+    populateProfileForm(data);
   }
 
   updateButton.disabled = false;
   updateButton.textContent = "Lưu thay đổi";
 }
-
 // ===========================================
 // PHẦN MỚI (NGÀY 6): XỬ LÝ TIN ĐÃ LƯU
 // ===========================================

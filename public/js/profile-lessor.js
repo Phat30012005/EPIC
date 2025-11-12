@@ -4,9 +4,8 @@
 // ===========================================
 // PHẦN XỬ LÝ HỒ SƠ (Giữ nguyên)
 // ===========================================
-
+// [THAY THẾ HÀM NÀY]
 function populateProfileForm(profile) {
-  // ... (Giữ nguyên code)
   const emailInput = document.getElementById("profile-email");
   const nameInput = document.getElementById("profile-name");
   const phoneInput = document.getElementById("profile-phone");
@@ -14,9 +13,10 @@ function populateProfileForm(profile) {
   const loadingDiv = document.getElementById("profile-loading");
   const profileForm = document.getElementById("profile-form");
 
+  // (SỬA LỖI: Đọc 'full_name' và 'phone_number' từ CSDL)
   emailInput.value = profile.email || "Đang tải...";
-  nameInput.value = profile.contactName || "";
-  phoneInput.value = profile.phone || "";
+  nameInput.value = profile.full_name || ""; // <--- SỬA
+  phoneInput.value = profile.phone_number || ""; // <--- SỬA
 
   if (profile.role === "LESSOR") {
     roleInput.value = "Người cho thuê";
@@ -41,29 +41,26 @@ async function handleProfileUpdate(e) {
   const newName = nameInput.value;
   const newPhone = phoneInput.value;
 
-  // (SỬA LỖI: Chuyển sang FormData để khớp với backend)
-  const formData = new FormData();
-  formData.append("fullName", newName);
-  formData.append("phone", newPhone);
-  // Chúng ta không gửi avatar, nhưng backend vẫn xử lý được
-
+  // (SỬA LỖI: Gửi JSON khớp với Backend V2)
   const { data, error } = await callEdgeFunction("update-user-profile", {
-    method: "POST", // 'api-client' sẽ tự xử lý FormData
-    body: formData,
+    method: "POST",
+    body: {
+      full_name: newName, // <--- SỬA
+      phone_number: newPhone, // <--- SỬA
+    },
   });
 
   if (error) {
     alert("Cập nhật thất bại: " + error.message);
   } else {
     alert("Cập nhật hồ sơ thành công!");
-
+    // (SỬA LỖI LOGIC: 'data' trả về là profile)
     populateProfileForm(data);
   }
 
   updateButton.disabled = false;
   updateButton.textContent = "Lưu thay đổi";
 }
-
 // ===========================================
 // PHẦN XỬ LÝ TIN ĐĂNG (Giữ nguyên)
 // ===========================================
