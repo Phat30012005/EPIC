@@ -67,7 +67,7 @@ async function loadPostDetails(postId) {
     return; // Dừng hàm
   }
 
-  const post = responseData.data; // (data lồng trong data)
+  const post = responseData;
   if (!post) {
     console.error("Không tìm thấy dữ liệu bài đăng trả về.");
     return;
@@ -164,8 +164,8 @@ async function loadSavedStatus(postId) {
   }
 
   // Kiểm tra xem post này có trong danh sách không
-  const bookmarks = responseData.data;
-  const isSaved = bookmarks.some((b) => b.posts.id === postId);
+  const bookmarks = responseData;
+  const isSaved = bookmarks.some((b) => b.post.id === postId);
 
   // Cập nhật UI và gán sự kiện
   updateSaveButtonUI(isSaved);
@@ -243,13 +243,13 @@ async function loadReviews(postId) {
     return;
   }
 
-  if (responseData.data.length === 0) {
+  if (responseData.length === 0) {
     loadingEl.innerHTML = "<p>Chưa có đánh giá nào cho tin này.</p>";
   } else {
     loadingEl.style.display = "none";
   }
 
-  renderReviews(responseData.data);
+  renderReviews(responseData);
 }
 
 // Hiển thị review ra HTML

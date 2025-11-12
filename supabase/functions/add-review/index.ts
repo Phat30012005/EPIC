@@ -1,9 +1,9 @@
 // supabase/functions/add-review/index.ts
+// PHIÊN BẢN V2 (Đã dọn dẹp 'post_id')
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode } from "https://esm.sh/base64-arraybuffer";
 
@@ -25,7 +25,8 @@ async function getUserIdFromToken(req: Request) {
   return payload.sub; // sub is the user ID (UUID)
 }
 
-async function addReview(userId, postId, rating, comment) {
+// (SỬA LỖI: Đổi tên tham số thành 'post_id' (snake_case))
+async function addReview(userId, post_id, rating, comment) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -50,7 +51,7 @@ async function addReview(userId, postId, rating, comment) {
     .from("reviews")
     .insert({
       user_id: userId,
-      post_id: postId,
+      post_id: post_id, // <--- ĐÃ SỬA
       rating: rating,
       comment: comment,
     })
@@ -102,15 +103,17 @@ Deno.serve(async (req, context) => {
       throw new Error("User not authenticated");
     }
 
-    const { postId, rating, comment } = await req.json();
-    if (!postId || !rating) {
-      throw new Error("Missing postId or rating");
+    // (SỬA LỖI: Nhận 'post_id' (snake_case) từ frontend)
+    const { post_id, rating, comment } = await req.json();
+    if (!post_id || !rating) {
+      // <--- ĐÃ SỬA
+      throw new Error("Missing post_id or rating");
     }
     if (typeof rating !== "number" || rating < 1 || rating > 5) {
       throw new Error("Rating must be a number between 1 and 5");
     }
 
-    const data = await addReview(userId, postId, rating, comment);
+    const data = await addReview(userId, post_id, rating, comment); // <--- ĐÃ SỬA
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",

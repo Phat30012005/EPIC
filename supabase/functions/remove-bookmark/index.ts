@@ -1,9 +1,7 @@
 // supabase/functions/remove-bookmark/index.ts
+// PHIÊN BẢN V2 (Đã dọn dẹp 'post_id' và sửa lỗi Auth/GET)
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode } from "https://esm.sh/base64-arraybuffer";
 
@@ -25,7 +23,8 @@ async function getUserIdFromToken(req: Request) {
   return payload.sub; // sub is the user ID (UUID)
 }
 
-async function removeBookmark(userId, postId) {
+// (SỬA LỖI: Đổi tên tham số thành 'post_id' (snake_case))
+async function removeBookmark(userId, post_id) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -35,7 +34,7 @@ async function removeBookmark(userId, postId) {
     .from("bookmarks")
     .delete()
     .eq("user_id", userId)
-    .eq("post_id", postId);
+    .eq("post_id", post_id); // <--- ĐÃ SỬA
 
   if (error) {
     throw error;
@@ -49,7 +48,7 @@ Deno.serve(async (req, context) => {
     return new Response(null, {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "DELETE, OPTIONS", // <--- SỬA (Cho phép DELETE)
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
@@ -72,12 +71,17 @@ Deno.serve(async (req, context) => {
       throw new Error("User not authenticated");
     }
 
-    const { postId } = await req.json();
-    if (!postId) {
-      throw new Error("Missing postId");
+    // (SỬA LỖI: Đọc 'post_id' từ URL (DELETE) thay vì req.json())
+    const url = new URL(req.url);
+    const post_id = url.searchParams.get("post_id"); // <--- SỬA
+
+    if (!post_id) {
+      // <--- SỬA
+      throw new Error("Missing 'post_id' parameter");
     }
 
-    const data = await removeBookmark(userId, postId);
+    const data = await removeBookmark(userId, post_id); // <--- SỬA
+
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",

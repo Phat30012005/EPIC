@@ -121,8 +121,8 @@ function renderRooms(rooms) {
 
     // (Lấy ảnh... giống như cũ)
     const imageSrc =
-      Array.isArray(room.image_url) && room.image_url.length > 0
-        ? room.image_url[0]
+      Array.isArray(room.image_urls) && room.image_urls.length > 0
+        ? room.image_urls[0]
         : "/public/assets/logo2.jpg";
 
     // === LOGIC MỚI (NGÀY 6): KIỂM TRA ĐÃ LƯU HAY CHƯA ===

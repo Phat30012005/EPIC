@@ -53,7 +53,7 @@ async function handleProfileUpdate(e) {
     alert("Cập nhật thất bại: " + error.message);
   } else {
     alert("Cập nhật hồ sơ thành công!");
-    populateProfileForm(data.data);
+    populateProfileForm(data);
   }
 
   updateButton.disabled = false;
@@ -245,7 +245,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const userProfile = data.data;
+  const userProfile = data;
   if (userProfile) {
     populateProfileForm(userProfile);
   }

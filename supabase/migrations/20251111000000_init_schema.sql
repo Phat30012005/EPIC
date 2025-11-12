@@ -1,5 +1,5 @@
 -- supabase/migrations/20251111000000_init_schema.sql
--- FILE MÓNG NHÀ (V4 - SỬA LỖI CASE SENSITIVE "contactName")
+-- FILE MÓNG NHÀ (V5 - SỬA LỖI FK CỦA REVIEWS VÀ BOOKMARKS)
 
 -- === PHẦN 1: EXTENSIONS ===
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -13,7 +13,7 @@ ALTER TEXT SEARCH CONFIGURATION public.vietnamese
 
 -- === PHẦN 3: TẠO BẢNG ===
 
--- Bảng (1): PROFILES (HỒ SƠ NGƯỜI DÙNG)
+-- Bảng (1): PROFILES (PHẢI TẠO TRƯỚC)
 CREATE TABLE public.profiles (
     id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email text,
@@ -24,14 +24,14 @@ CREATE TABLE public.profiles (
 );
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Bảng (2): POSTS (BÀI ĐĂNG)
+-- Bảng (2): POSTS
 CREATE TABLE public.posts (
     post_id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
 
     title text NOT NULL,
-    "motelName" text NOT NULL, -- (Giữ nguyên dấu "")
+    "motelName" text NOT NULL,
     description text,
     price bigint,
     area numeric,
@@ -43,27 +43,28 @@ CREATE TABLE public.posts (
     image_urls text[] NOT NULL,
     highlights text[],
 
-    -- (SỬA LỖI V4: Thêm dấu "" để giữ case sensitive, khớp với JS)
     "contactName" text,
     "phone" text,
     "email" text
 );
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 
--- Bảng (3): BOOKMARKS (TIN ĐÃ LƯU)
+-- Bảng (3): BOOKMARKS (SỬA LỖI V5)
 CREATE TABLE public.bookmarks (
     bookmark_id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    -- (SỬA LỖI: Tham chiếu trực tiếp tới public.profiles(id))
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, 
     post_id uuid NOT NULL REFERENCES public.posts(post_id) ON DELETE CASCADE,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT unique_user_post_bookmark UNIQUE (user_id, post_id)
 );
 ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
 
--- Bảng (4): REVIEWS (ĐÁNH GIÁ)
+-- Bảng (4): REVIEWS (SỬA LỖI V5)
 CREATE TABLE public.reviews (
     review_id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    -- (SỬA LỖI: Tham chiếu trực tiếp tới public.profiles(id))
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, 
     post_id uuid NOT NULL REFERENCES public.posts(post_id) ON DELETE CASCADE,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     rating int NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -101,7 +102,7 @@ CREATE TRIGGER on_auth_user_created
 
 
 -- === PHẦN 5: POLICIES (QUY TẮC BẢO MẬT RLS) ===
--- (Không thay đổi)
+-- (Không thay đổi, các policy 'auth.uid() = user_id' vẫn đúng)
 
 -- Policies cho PROFILES:
 CREATE POLICY "Public can read profiles" ON public.profiles
@@ -133,7 +134,7 @@ CREATE POLICY "RENTERs can insert reviews" ON public.reviews
     (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'RENTER'
   );
 CREATE POLICY "Users can update their own reviews" ON public.reviews
-  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id); 
 CREATE POLICY "Users can delete their own reviews" ON public.reviews
   FOR DELETE USING (auth.uid() = user_id);
 
@@ -141,7 +142,6 @@ CREATE POLICY "Users can delete their own reviews" ON public.reviews
 -- === PHẦN 6: TÌM KIẾM (ÁP DỤNG) ===
 -- (Không thay đổi)
 
--- 1. Thêm cột 'fts' (GENERATED) vào bảng 'posts'
 ALTER TABLE public.posts
 ADD COLUMN fts tsvector GENERATED ALWAYS AS (
     setweight(to_tsvector('public.vietnamese', coalesce(title, '')), 'A') ||
@@ -149,7 +149,6 @@ ADD COLUMN fts tsvector GENERATED ALWAYS AS (
     setweight(to_tsvector('public.vietnamese', coalesce(description, '')), 'C')
 ) STORED;
 
--- 2. Tạo RPC function
 CREATE OR REPLACE FUNCTION public.search_posts_v2(search_term text)
 RETURNS SETOF posts
 LANGUAGE plpgsql
@@ -165,12 +164,11 @@ BEGIN
 END;
 $$;
 
--- 3. Tạo Index GIN
 CREATE INDEX posts_fts_idx ON public.posts USING GIN (fts);
 
 
 -- === PHẦN 7: STORAGE POLICIES ===
--- (Gộp luôn file migration thứ 2 vào đây cho chắc)
+-- (Không thay đổi)
 
 CREATE POLICY "Allow public read on post-images"
   ON "storage"."objects"

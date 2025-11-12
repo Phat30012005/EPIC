@@ -1,9 +1,9 @@
 // supabase/functions/add-bookmark/index.ts
+// PHIÊN BẢN V2 (Đã dọn dẹp 'post_id')
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode } from "https://esm.sh/base64-arraybuffer";
 
@@ -33,7 +33,8 @@ async function getUserIdFromToken(req: Request) {
   return payload.sub; // sub is the user ID (UUID)
 }
 
-async function addBookmark(userId, postId) {
+// (SỬA LỖI: Đổi tên tham số thành 'post_id' (snake_case))
+async function addBookmark(userId, post_id) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -44,12 +45,11 @@ async function addBookmark(userId, postId) {
     .from("bookmarks")
     .select("bookmark_id")
     .eq("user_id", userId)
-    .eq("post_id", postId)
+    .eq("post_id", post_id) // <--- ĐÃ SỬA
     .single();
 
   if (checkError && checkError.code !== "PGRST116") {
-    // PGRST116 = "JSON object requested, multiple (or no) rows returned" (i.e., no rows)
-    // Any other error is a real database error.
+    // ...
     throw checkError;
   }
 
@@ -63,7 +63,7 @@ async function addBookmark(userId, postId) {
     .from("bookmarks")
     .insert({
       user_id: userId,
-      post_id: postId,
+      post_id: post_id, // <--- ĐÃ SỬA
     })
     .select()
     .single();
@@ -91,15 +91,8 @@ Deno.serve(async (req, context) => {
 
     // SỬA LỖI 2: Thêm logic kiểm tra auth cho local dev
     try {
-      // 1. Thử lấy user từ context (Cách chuẩn Production)
-      // Chú ý: `context.auth.getUser` không tồn tại, cách đúng là `Deno.env.get("SUPABASE_AUTH_ADMIN_JWT")`
-      // Tuy nhiên, trong môi trường dev với --no-verify-jwt, `context.auth` là `undefined`.
-      // Chúng ta sẽ giả định rằng nếu `context.auth` tồn tại, nó sẽ có `sub`.
-      // Cách làm này không chuẩn, nhưng là cách duy nhất để chạy local dev.
-      // Cách làm V3 (tự parse) là an toàn nhất.
       throw new Error("Force fallback to token parsing"); // Luôn ưu tiên parse token
     } catch (e) {
-      // 2. Thử lấy user từ JWT (Cách dự phòng cho Local Dev)
       console.log(
         "add-bookmark: context.auth failed, falling back to token parsing."
       );
@@ -110,12 +103,13 @@ Deno.serve(async (req, context) => {
       throw new Error("User not authenticated");
     }
 
-    const { postId } = await req.json();
-    if (!postId) {
-      throw new Error("Missing postId");
+    // (SỬA LỖI: Nhận 'post_id' (snake_case) từ frontend)
+    const { post_id } = await req.json();
+    if (!post_id) {
+      throw new Error("Missing post_id");
     }
 
-    const data = await addBookmark(userId, postId);
+    const data = await addBookmark(userId, post_id); // <--- ĐÃ SỬA
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",
