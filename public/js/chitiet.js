@@ -128,8 +128,7 @@ async function loadPostDetails(postId) {
     highlightsContainer.innerHTML = "<p>Không có tiện ích nổi bật.</p>";
   }
 
-  // Hình ảnh (Giữ nguyên)
-  renderImages(post.image_url, post.title);
+  renderImages(post.image_urls, post.title);
 }
 
 /**
