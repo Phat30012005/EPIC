@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       area: Number(formData.get("area")),
       rooms: Number(formData.get("rooms")),
       ward: formData.get("ward") as string,
-      address: formData.get("address") as string,
+      address_detail: formData.get("address_detail") as string,
       description: formData.get("description") as string,
       highlights: formData.getAll("highlights") as string[],
       room_type: formData.get("room_type") as string,
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       phone: formData.get("phone") as string,
       email: userEmail ?? (formData.get("email") as string), // Lấy email từ user nếu có, nếu không thì từ form
       user_id: userId,
-      image_url: [] as string[], // Sẽ được cập nhật sau khi upload
+      image_urls: [] as string[], // Sẽ được cập nhật sau khi upload
     };
 
     // 5. Upload ảnh lên Storage (dùng Service Role)
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
     }
 
     // 6. Thêm URL ảnh vào đối tượng bài đăng
-    newPost.image_url = publicImageUrls;
+    newPost.image_urls = publicImageUrls;
 
     // 7. Chèn bài đăng vào Database (dùng client của user)
     const { data: postData, error: dbError } = await supabase

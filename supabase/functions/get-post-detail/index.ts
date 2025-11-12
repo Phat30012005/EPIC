@@ -1,9 +1,7 @@
 // supabase/functions/get-post-detail/index.ts
+// PHIÊN BẢN V2 (Sửa lỗi 500, lỗi select CSDL V4, và lỗi logic GET/POST)
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 async function getPostDetail(postId) {
@@ -12,17 +10,16 @@ async function getPostDetail(postId) {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // (SỬA LỖI: Bỏ 'districts', 'wards'. Chỉ select cột có thật trong CSDL V4)
   const { data, error } = await supabase
     .from("posts")
     .select(
       `
       *,
-      profiles:user_id (full_name, phone_number, avatar_url),
-      districts:district_id (name),
-      wards:ward_id (name)
+      profiles:user_id (full_name, phone_number, email)
     `
     )
-    .eq("post_id", postId)
+    .eq("post_id", postId) // 'post_id' ở đây là đúng (vì đây là lệnh WHERE)
     .single();
 
   if (error) {
@@ -32,31 +29,38 @@ async function getPostDetail(postId) {
 }
 
 Deno.serve(async (req) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // Xử lý CORS (Giữ nguyên)
   if (req.method === "OPTIONS") {
-    return new Response(null, {
+    return new Response("ok", {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, OPTIONS", // Chỉ cho phép GET
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
 
   try {
-    const { postId } = await req.json();
+    // (SỬA LỖI: Đọc 'id' từ URL (GET) thay vì req.json() (POST))
+    const url = new URL(req.url);
+    const postId = url.searchParams.get("id"); // 'id' khớp với 'chitiet.js' gửi
+
     if (!postId) {
-      throw new Error("Missing postId parameter");
+      throw new Error("Missing post 'id' parameter");
     }
+
     const data = await getPostDetail(postId);
-    return new Response(JSON.stringify(data), {
+
+    // Trả về thành công
+    return new Response(JSON.stringify({ data: data }), {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
+      status: 200,
     });
   } catch (error) {
-    console.error("Error in get-post-detail function:", error);
+    console.error("Lỗi trong function get-post-detail:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: {

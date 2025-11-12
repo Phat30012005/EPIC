@@ -29,32 +29,42 @@ async function getReviewsForPost(postId) {
   return data;
 }
 
+// [DÁN CODE NÀY VÀO THAY THẾ HÀM Deno.serve CŨ]
 Deno.serve(async (req) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // Xử lý CORS
   if (req.method === "OPTIONS") {
-    return new Response(null, {
+    return new Response("ok", {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, OPTIONS", // Chỉ cho phép GET
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
 
   try {
-    const { postId } = await req.json();
+    // (SỬA LỖI: Đọc 'post_id' từ URL (GET) thay vì req.json())
+    const url = new URL(req.url);
+    // 'chitiet.js' gửi 'post_id' qua params
+    const postId = url.searchParams.get("post_id");
+
     if (!postId) {
-      throw new Error("Missing postId parameter");
+      throw new Error("Missing 'post_id' parameter");
     }
+
+    // Gọi hàm logic (ở trên)
     const data = await getReviewsForPost(postId);
-    return new Response(JSON.stringify(data), {
+
+    // Trả về thành công
+    return new Response(JSON.stringify({ data: data }), {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
+      status: 200,
     });
   } catch (error) {
-    console.error("Error in get-reviews-for-post function:", error);
+    console.error("Lỗi trong function get-reviews-for-post:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: {

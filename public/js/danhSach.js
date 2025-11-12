@@ -196,8 +196,8 @@ async function handleSearch(searchQuery) {
     return;
   }
   if (data) {
-    console.log("Tìm kiếm thành công:", data.data);
-    renderRooms(data.data);
+    console.log("Tìm kiếm thành công:", data);
+    renderRooms(data);
   }
 }
 async function handleFilter() {
@@ -246,8 +246,8 @@ async function handleFilter() {
     return;
   }
   if (data) {
-    console.log("Lọc thành công:", data.data);
-    renderRooms(data.data);
+    console.log("Lọc thành công:", data);
+    renderRooms(data);
   }
 }
 

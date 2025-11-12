@@ -31,7 +31,8 @@ async function getUserBookmarks(userId) {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // 1. Lấy danh sách bookmarks của user, join với bảng posts
+  // 1. Lấy danh sách bookmarks, join với 'posts'
+  // (Đã SỬA: Bỏ 'districts', 'wards', 'reviews' vì CSDL V3 không có)
   const { data, error } = await supabase
     .from("bookmarks")
     .select(
@@ -45,9 +46,7 @@ async function getUserBookmarks(userId) {
         area,
         image_urls,
         address_detail,
-        districts:district_id (name),
-        wards:ward_id (name),
-        reviews:reviews (rating) 
+        ward 
       )
     `
     )
@@ -58,33 +57,22 @@ async function getUserBookmarks(userId) {
     throw error;
   }
 
-  // 2. Xử lý dữ liệu (tính avg_rating)
-  const bookmarksWithAvgRating = data.map((bookmark) => {
-    // Đảm bảo `bookmark.posts` không null (trường hợp post đã bị xóa nhưng bookmark còn)
+  // 2. Xử lý dữ liệu (Làm phẳng cấu trúc)
+  // (Tạm thời bỏ qua 'avg_rating' để sửa lỗi 500)
+  const simplifiedBookmarks = data.map((bookmark) => {
+    // Đảm bảo `bookmark.posts` không null
     if (!bookmark.posts) {
-      return { ...bookmark, post: null, average_rating: "N/A" };
+      return { ...bookmark, post: null };
     }
 
+    // Đổi tên 'posts' (số nhiều) thành 'post' (số ít)
     const post = bookmark.posts;
-    let totalRating = 0;
-    const reviewsCount = post.reviews.length;
-
-    if (reviewsCount > 0) {
-      post.reviews.forEach((review) => {
-        totalRating += review.rating;
-      });
-      post.average_rating = (totalRating / reviewsCount).toFixed(1);
-    } else {
-      post.average_rating = "N/A";
-    }
-
-    // Làm phẳng cấu trúc
-    delete bookmark.posts; // Xóa key `posts` (số nhiều)
-    return { ...bookmark, post: post }; // Thêm key `post` (số ít)
+    delete bookmark.posts;
+    return { ...bookmark, post: post };
   });
 
   // Lọc ra các bookmark mà post đã bị xóa
-  const validBookmarks = bookmarksWithAvgRating.filter((b) => b.post !== null);
+  const validBookmarks = simplifiedBookmarks.filter((b) => b.post !== null);
 
   return validBookmarks;
 }

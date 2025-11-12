@@ -1,5 +1,5 @@
 -- supabase/migrations/20251111000000_init_schema.sql
--- FILE MÓNG NHÀ (V3 - ĐÃ SỬA LỖI POLICY 'reviews')
+-- FILE MÓNG NHÀ (V4 - SỬA LỖI CASE SENSITIVE "contactName")
 
 -- === PHẦN 1: EXTENSIONS ===
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -31,7 +31,7 @@ CREATE TABLE public.posts (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
 
     title text NOT NULL,
-    "motelName" text NOT NULL,
+    "motelName" text NOT NULL, -- (Giữ nguyên dấu "")
     description text,
     price bigint,
     area numeric,
@@ -43,9 +43,10 @@ CREATE TABLE public.posts (
     image_urls text[] NOT NULL,
     highlights text[],
 
-    contactName text,
-    phone text,
-    email text
+    -- (SỬA LỖI V4: Thêm dấu "" để giữ case sensitive, khớp với JS)
+    "contactName" text,
+    "phone" text,
+    "email" text
 );
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 
@@ -100,6 +101,7 @@ CREATE TRIGGER on_auth_user_created
 
 
 -- === PHẦN 5: POLICIES (QUY TẮC BẢO MẬT RLS) ===
+-- (Không thay đổi)
 
 -- Policies cho PROFILES:
 CREATE POLICY "Public can read profiles" ON public.profiles
@@ -116,11 +118,11 @@ CREATE POLICY "LESSORs can insert posts" ON public.posts
     (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'LESSOR'
   );
 CREATE POLICY "Users can delete their own posts" ON public.posts
-  FOR DELETE USING (auth.uid() = user_id); -- (Cột này tên 'user_id' -> ĐÚNG)
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- Policies cho BOOKMARKS:
 CREATE POLICY "User can manage their own bookmarks" ON public.bookmarks
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id); -- (Cột này tên 'user_id' -> ĐÚNG)
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- Policies cho REVIEWS:
 CREATE POLICY "Public can read reviews" ON public.reviews
@@ -130,13 +132,10 @@ CREATE POLICY "RENTERs can insert reviews" ON public.reviews
     auth.role() = 'authenticated' AND
     (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'RENTER'
   );
-  
--- (SỬA LỖI: Đổi 'id' thành 'user_id' cho 2 policy dưới)
 CREATE POLICY "Users can update their own reviews" ON public.reviews
-  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id); -- <--- ĐÃ SỬA TỪ 'id'
-  
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own reviews" ON public.reviews
-  FOR DELETE USING (auth.uid() = user_id); -- <--- ĐÃ SỬA TỪ 'id'
+  FOR DELETE USING (auth.uid() = user_id);
 
 
 -- === PHẦN 6: TÌM KIẾM (ÁP DỤNG) ===
@@ -168,3 +167,28 @@ $$;
 
 -- 3. Tạo Index GIN
 CREATE INDEX posts_fts_idx ON public.posts USING GIN (fts);
+
+
+-- === PHẦN 7: STORAGE POLICIES ===
+-- (Gộp luôn file migration thứ 2 vào đây cho chắc)
+
+CREATE POLICY "Allow public read on post-images"
+  ON "storage"."objects"
+  AS PERMISSIVE
+  FOR SELECT
+  TO PUBLIC
+USING (
+  (bucket_id = 'post-images'::text) AND
+  ((storage.foldername(name))[1] = 'public'::text)
+);
+
+CREATE POLICY "Allow public upload on post-images"
+  ON "storage"."objects"
+  AS PERMISSIVE
+  FOR INSERT
+  TO PUBLIC
+WITH CHECK (
+  (bucket_id = 'post-images'::text) AND
+  (storage.extension(name) = ANY (ARRAY['png'::text, 'jpg'::text, 'jpeg'::text, 'webp'::text])) AND
+  ((storage.foldername(name))[1] = 'public'::text)
+);

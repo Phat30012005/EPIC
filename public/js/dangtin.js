@@ -177,7 +177,7 @@ async function submitPost(selectedWardValue) {
   formData.append("area", document.getElementById("area").value);
   formData.append("rooms", document.getElementById("rooms").value);
   formData.append("ward", selectedWardValue); // Giá trị từ dropdown
-  formData.append("address", document.getElementById("address").value);
+  formData.append("address_detail", document.getElementById("address").value);
   formData.append("description", document.getElementById("description").value);
   formData.append("room_type", document.getElementById("roomType").value);
   formData.append("contactName", document.getElementById("contactName").value);

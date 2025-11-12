@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Backend trả về { data: { user, session } }
       // Chúng ta cần truyền responseData.data.session vào hàm setSession
       const { data, error: sessionError } = await supabase.auth.setSession(
-        responseData.data.session
+        responseData.session
       );
 
       if (sessionError) {

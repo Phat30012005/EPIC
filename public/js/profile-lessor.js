@@ -141,7 +141,7 @@ async function loadMyPosts() {
     document.getElementById("my-posts-loading").textContent =
       "Lỗi khi tải tin đăng.";
   } else {
-    renderMyPosts(data.data);
+    renderMyPosts(data);
   }
 }
 
@@ -225,7 +225,7 @@ async function loadSavedPosts() {
     document.getElementById("saved-posts-loading").textContent =
       "Lỗi khi tải tin đã lưu.";
   } else {
-    renderSavedPosts(data.data);
+    renderSavedPosts(data);
   }
 }
 
