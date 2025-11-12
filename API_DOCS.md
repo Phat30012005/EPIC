@@ -34,4 +34,4 @@ Body (Gửi đi - JSON):
 "comment": "Nhà trọ này rất tốt!"
 }
 
-Response (Lỗi 409): { "error": "Bạn đã đánh giá tin này rồi." }
+Response (Lỗi 409): { "error": "Bạn đã đánh giá tin này rồi."
