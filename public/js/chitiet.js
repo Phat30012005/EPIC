@@ -78,8 +78,8 @@ async function loadPostDetails(postId) {
   document.title = `${post.title || "Chi tiết"} | Chicky.stu`;
 
   // (SỬA LỖI 1: Hiển thị Tên trọ ở H2, Tiêu đề ở H1)
-  setTextContent("detail-title", post.motelName); // <--- SỬA
-  setTextContent("detail-page-title", post.title); // <--- SỬA
+  setTextContent("detail-title", post.title);
+  setTextContent("detail-page-title", post.motelName);
 
   const date = new Date(post.created_at);
   if (!isNaN(date.getTime())) {

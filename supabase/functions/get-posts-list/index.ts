@@ -17,6 +17,7 @@ async function getPosts(filters) {
       id:post_id,
       post_id,
       title,
+      "motelName",
       price,
       area,
       image_urls,

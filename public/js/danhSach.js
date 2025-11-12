@@ -135,9 +135,11 @@ function renderRooms(rooms) {
 
     div.innerHTML = `
       <img src="${imageSrc}" alt="${
-      room.title
+      room.motelName
     }" class="w-full h-40 object-cover mb-3 rounded">
-      <h5 class="font-bold text-lg mb-1">${room.title || "Chưa có tiêu đề"}</h5>
+      <h5 class="font-bold text-lg mb-1">${
+        room.motelName || "Chưa có tiêu đề"
+      }</h5>
       <p class="text-gray-600 mb-1">${room.address || "Chưa có địa chỉ"}</p>
       <p class="text-primary font-semibold mb-2">${
         room.price?.toLocaleString() || 0
