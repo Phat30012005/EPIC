@@ -163,7 +163,8 @@ function renderSavedPosts(bookmarks) {
   loadingDiv.style.display = "none";
 
   bookmarks.forEach((bookmark) => {
-    const post = bookmark.posts;
+    const post = bookmark.post;
+
     if (!post) {
       postsList.innerHTML += `<p class="text-muted">Một tin đã lưu không còn tồn tại (có thể đã bị xóa).</p>`;
       return;
@@ -174,7 +175,7 @@ function renderSavedPosts(bookmarks) {
     postDiv.innerHTML = `
       <div>
         <a href="/public/chitiet.html?id=${
-          post.id
+          post.post_id
         }" class="fw-bold text-primary" target="_blank">${post.title}</a>
         <p class="mb-0 text-muted">${post.price.toLocaleString()} đ/tháng - ${
       post.ward
@@ -182,7 +183,7 @@ function renderSavedPosts(bookmarks) {
       </div>
       <div>
         <button class="btn btn-sm btn-outline-danger unsave-post-btn" data-id="${
-          post.id
+          post.post_id
         }">
           Bỏ lưu
         </button>

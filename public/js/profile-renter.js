@@ -70,6 +70,7 @@ async function handleProfileUpdate(e) {
  * Render danh sách tin đã lưu
  * @param {Array} bookmarks - Mảng bookmarks từ API (chứa 'posts')
  */
+// [THAY THẾ HÀM NÀY]
 function renderSavedPosts(bookmarks) {
   const postsList = document.getElementById("saved-posts-list");
   const loadingDiv = document.getElementById("saved-posts-loading");
@@ -84,8 +85,8 @@ function renderSavedPosts(bookmarks) {
   loadingDiv.style.display = "none"; // Ẩn loading
 
   bookmarks.forEach((bookmark) => {
-    // API trả về { id, created_at, posts: {...} }
-    const post = bookmark.posts;
+    // (SỬA LỖI: Backend trả về 'post' (số ít), không phải 'posts' (số nhiều))
+    const post = bookmark.post;
 
     // Xử lý nếu tin gốc đã bị xóa
     if (!post) {
@@ -99,7 +100,7 @@ function renderSavedPosts(bookmarks) {
     postDiv.innerHTML = `
       <div>
         <a href="/public/chitiet.html?id=${
-          post.id
+          post.post_id // (Sửa: CSDL V5 dùng 'post_id')
         }" class="fw-bold text-primary" target="_blank">${post.title}</a>
         <p class="mb-0 text-muted">${post.price.toLocaleString()} đ/tháng - ${
       post.ward
@@ -107,7 +108,7 @@ function renderSavedPosts(bookmarks) {
       </div>
       <div>
         <button class="btn btn-sm btn-outline-danger unsave-post-btn" data-id="${
-          post.id
+          post.post_id // (Sửa: CSDL V5 dùng 'post_id')
         }">
           Bỏ lưu
         </button>
@@ -134,7 +135,7 @@ function addUnsaveListeners() {
         // Gọi API 'remove-bookmark'
         const { data, error } = await callEdgeFunction("remove-bookmark", {
           method: "DELETE",
-          params: { post_id: postId }, // Gửi ID qua query param
+          params: { post_id: postId },
         });
 
         if (error) {
