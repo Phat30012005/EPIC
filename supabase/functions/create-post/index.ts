@@ -141,9 +141,6 @@ Deno.serve(async (req, context) => {
       description: formData.get("description") as string,
       highlights: highlightsArray,
       room_type: formData.get("room_type") as string,
-      contactName: formData.get("contactName") as string,
-      phone: formData.get("phone") as string,
-      email: formData.get("email") as string,
       user_id: userId,
       image_urls: [] as string[],
     };

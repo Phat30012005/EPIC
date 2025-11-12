@@ -15,6 +15,7 @@ async function getPosts(filters) {
   let query = supabase.from("posts").select(
     `
       id:post_id,
+      post_id,
       title,
       price,
       area,

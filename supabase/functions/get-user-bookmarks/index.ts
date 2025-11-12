@@ -40,6 +40,7 @@ async function getUserBookmarks(userId) {
       bookmark_id,
       created_at,
       posts:post_id (
+        id:post_id,
         post_id,
         title,
         price,

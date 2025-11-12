@@ -179,10 +179,6 @@ async function submitPost(selectedWardValue) {
   formData.append("ward", selectedWardValue); // Giá trị từ dropdown
   formData.append("address_detail", document.getElementById("address").value);
   formData.append("description", document.getElementById("description").value);
-  formData.append("room_type", document.getElementById("roomType").value);
-  formData.append("contactName", document.getElementById("contactName").value);
-  formData.append("phone", document.getElementById("phone").value);
-  formData.append("email", document.getElementById("email").value);
 
   // 4. Xử lý trường 'highlights' (mảng)
   // Backend 'create-post' mong đợi một chuỗi JSON

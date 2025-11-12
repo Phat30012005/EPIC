@@ -49,13 +49,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 /**
  * 2. Tải thông tin chính của bài đăng
  */
+// [THAY THẾ HÀM NÀY]
 async function loadPostDetails(postId) {
   // Gọi Edge Function "get-post-detail"
   const { data: responseData, error } = await callEdgeFunction(
     "get-post-detail",
     {
-      params: { id: postId },
-      method: "GET", // (Quan trọng: method GET)
+      params: { id: postId }, // 'id' khớp với backend V2
+      method: "GET",
     }
   );
 
@@ -67,16 +68,19 @@ async function loadPostDetails(postId) {
     return; // Dừng hàm
   }
 
-  const post = responseData;
+  const post = responseData; // (API client đã unpack)
   if (!post) {
     console.error("Không tìm thấy dữ liệu bài đăng trả về.");
     return;
   }
 
-  // === RENDER DỮ LIỆU (Giữ nguyên) ===
+  // === RENDER DỮ LIỆU ===
   document.title = `${post.title || "Chi tiết"} | Chicky.stu`;
-  setTextContent("detail-title", post.title);
-  setTextContent("detail-page-title", post.title);
+
+  // (SỬA LỖI 1: Hiển thị Tên trọ ở H2, Tiêu đề ở H1)
+  setTextContent("detail-title", post.motelName); // <--- SỬA
+  setTextContent("detail-page-title", post.title); // <--- SỬA
+
   const date = new Date(post.created_at);
   if (!isNaN(date.getTime())) {
     setTextContent(
@@ -94,27 +98,33 @@ async function loadPostDetails(postId) {
   setTextContent("detail-area", `${post.area} m²`);
   setTextContent("detail-rooms", post.rooms || "Không rõ");
   setTextContent("detail-ward", post.ward);
-  setTextContent("detail-address", post.address);
+  setTextContent("detail-address", post.address_detail); // (Khớp CSDL V5)
   const descriptionEl = document.getElementById("detail-description");
   if (descriptionEl) {
     descriptionEl.textContent = post.description || "Không có mô tả chi tiết.";
   }
 
-  // Thông tin liên hệ (từ JOIN)
+  // (SỬA LỖI 6: Lấy thông tin liên hệ từ 'profiles' đã JOIN)
   if (post.profiles) {
     setTextContent(
       "detail-contact-name",
-      post.profiles.contactName || "Chưa cập nhật"
+      post.profiles.full_name || "Chưa cập nhật" // <--- SỬA
     );
-    setTextContent("detail-phone", post.profiles.phone || "Chưa cập nhật");
-    setTextContent("detail-email", post.profiles.email || "Chưa cập nhật");
+    setTextContent(
+      "detail-phone",
+      post.profiles.phone_number || "Chưa cập nhật" // <--- SỬA
+    );
+    setTextContent(
+      "detail-email",
+      post.profiles.email || "Chưa cập nhật" // <--- SỬA
+    );
   } else {
     setTextContent("detail-contact-name", "Không rõ");
     setTextContent("detail-phone", "Không rõ");
     setTextContent("detail-email", "Không rõ");
   }
 
-  // Highlights (Giữ nguyên)
+  // Highlights
   const highlightsContainer = document.getElementById("detail-highlights");
   if (post.highlights && post.highlights.length > 0) {
     highlightsContainer.innerHTML = "";
@@ -128,9 +138,9 @@ async function loadPostDetails(postId) {
     highlightsContainer.innerHTML = "<p>Không có tiện ích nổi bật.</p>";
   }
 
-  renderImages(post.image_urls, post.title);
+  // Hình ảnh
+  renderImages(post.image_urls, post.title); // (Đã sửa ở lần trước)
 }
-
 /**
  * 3. HÀM XỬ LÝ NÚT "LƯU TIN" (NGÀY 6)
  */
@@ -282,11 +292,13 @@ function renderReviews(reviews) {
 }
 
 // Khởi tạo form đánh giá
+// [THAY THẾ HÀM NÀY]
 async function setupReviewForm(postId) {
   const container = document.getElementById("review-form-container");
   const loginPrompt = document.getElementById("review-login-prompt");
   const reviewForm = document.getElementById("review-form");
 
+  // (SỬA LỖI 4: Lấy session để kiểm tra vai trò)
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -298,25 +310,33 @@ async function setupReviewForm(postId) {
     return; // Dừng
   }
 
-  // 2. Đã đăng nhập -> Hiển thị form
+  // 2. (SỬA LỖI 4) Kiểm tra vai trò
+  const userRole = session.user.user_metadata.role;
+  if (userRole === "LESSOR") {
+    loginPrompt.innerHTML =
+      '<p class="text-gray-600">Chỉ có <span class="font-semibold">Người Thuê</span> mới có thể để lại đánh giá.</p>';
+    loginPrompt.classList.remove("hidden");
+    reviewForm.classList.add("hidden");
+    return; // Dừng
+  }
+
+  // 3. Đã đăng nhập VÀ là RENTER -> Hiển thị form
   loginPrompt.classList.add("hidden");
   reviewForm.classList.remove("hidden");
 
-  // 3. Logic chọn sao
+  // 4. Logic chọn sao (Giữ nguyên)
   const stars = document.querySelectorAll("#star-rating-input .star");
   stars.forEach((star) => {
     star.addEventListener("click", () => {
       currentRating = parseInt(star.dataset.value, 10);
-      // Xóa 'selected' khỏi tất cả
       stars.forEach((s) => s.classList.remove("selected"));
-      // Thêm 'selected' cho sao được click và các sao trước nó
       for (let i = 0; i < currentRating; i++) {
         stars[i].classList.add("selected");
       }
     });
   });
 
-  // 4. Logic Gửi form
+  // 5. Logic Gửi form (Giữ nguyên)
   const submitBtn = document.getElementById("review-submit-btn");
   reviewForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -333,7 +353,6 @@ async function setupReviewForm(postId) {
     }
 
     try {
-      // Gọi API 'add-review'
       await callEdgeFunction("add-review", {
         method: "POST",
         body: {
@@ -343,16 +362,13 @@ async function setupReviewForm(postId) {
         },
       });
 
-      alert("Gửi đánhá thành công!");
-      // Reset form và tải lại
+      alert("Gửi đánh giá thành công!");
       reviewForm.reset();
       currentRating = 0;
       stars.forEach((s) => s.classList.remove("selected"));
-      // Tải lại danh sách review
       loadReviews(postId);
     } catch (error) {
       console.error("Lỗi khi gửi review:", error);
-      // Lỗi "Đã đánh giá" (409) sẽ được bắt ở đây
       alert(`Lỗi: ${error.message}`);
     } finally {
       submitBtn.disabled = false;
@@ -360,7 +376,6 @@ async function setupReviewForm(postId) {
     }
   });
 }
-
 /**
  * 5. CÁC HÀM TIỆN ÍCH (HELPER FUNCTIONS)
  */

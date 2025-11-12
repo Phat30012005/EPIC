@@ -155,25 +155,25 @@ h5 {
 }
 /* Định dạng cho ảnh NẰM TRONG card (ảnh thumbnail ở trang danh sách) */
 .room-card img:first-child {
-/* 1. Đảm bảo ảnh luôn rộng 100% card */
-width: 100%;
-display: block;
+  /* 1. Đảm bảo ảnh luôn rộng 100% card */
+  width: 100%;
+  display: block;
 
-/* 2. (QUAN TRỌNG) Khóa tỷ lệ khung hình 16:9 */
-/* Bạn có thể đổi thành "4 / 3" nếu muốn ảnh cao hơn (hơi vuông) */
-aspect-ratio: 16 / 9;
+  /* 2. (QUAN TRỌNG) Khóa tỷ lệ khung hình 16:9 */
+  /* Bạn có thể đổi thành "4 / 3" nếu muốn ảnh cao hơn (hơi vuông) */
+  aspect-ratio: 16 / 9;
 
-/* 3. (QUAN TRỌNG NHẤT) Cách ảnh lấp đầy khung */
-/* 'cover' sẽ lấp đầy khung 16:9, chấp nhận cắt xén, không bị méo ảnh */
-object-fit: cover;
+  /* 3. (QUAN TRỌNG NHẤT) Cách ảnh lấp đầy khung */
+  /* 'cover' sẽ lấp đầy khung 16:9, chấp nhận cắt xén, không bị méo ảnh */
+  object-fit: cover;
 
-/* 4. (Bonus) Thêm hiệu ứng zoom khi hover */
-transition: transform 0.3s ease;
+  /* 4. (Bonus) Thêm hiệu ứng zoom khi hover */
+  transition: transform 0.3s ease;
 }
 
 /* Khi di chuột vào card, ảnh bên trong sẽ zoom nhẹ */
 .room-card:hover img:first-child {
-transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 /* =========================================================
@@ -477,4 +477,35 @@ img {
 /* Căn chỉnh riêng cho textarea nếu cần (mặc định đã được form-control override) */
 #description.form-control {
   margin-top: 0.25rem !important;
+}
+
+/* =========================================================
+   POPUP MODAL (Cho confirm)
+   ========================================================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  /* (app-card đã có sẵn, nhưng ghi đè ở đây cho chắc) */
+}
+
+.modal-content p {
+  color: #333; /* Đảm bảo text màu tối */
 }
