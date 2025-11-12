@@ -1,18 +1,18 @@
 // supabase/functions/search-posts/index.ts
+// PHIÊN BẢN V2 (Sửa triệt để lỗi 500 do GET/POST)
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// === PHẦN 1: HÀM LOGIC (Giữ nguyên) ===
+// (Hàm này đã đúng với CSDL V5: dùng RPC 'search_posts_v2' và 'post_id')
 async function searchPosts(searchTerm) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Use the search_posts_v2 RPC function defined in migration 20251110200000_add_fts_v2.sql
+  // 1. Gọi RPC (Full-Text Search)
   const { data, error } = await supabase.rpc("search_posts_v2", {
     search_term: searchTerm,
   });
@@ -20,16 +20,14 @@ async function searchPosts(searchTerm) {
   if (error) {
     throw error;
   }
-
-  // The RPC function returns posts, but we need to fetch reviews and calculate avg_rating
   if (!data || data.length === 0) {
     return [];
   }
 
-  // Get post IDs
+  // 2. Lấy Post IDs (CSDL V5 dùng 'post_id' -> ĐÚNG)
   const postIds = data.map((post) => post.post_id);
 
-  // Fetch reviews for these posts
+  // 3. Lấy Reviews (CSDL V5 có bảng 'reviews' -> ĐÚNG)
   const { data: reviewsData, error: reviewsError } = await supabase
     .from("reviews")
     .select("post_id, rating")
@@ -39,7 +37,7 @@ async function searchPosts(searchTerm) {
     throw reviewsError;
   }
 
-  // Create a map for quick lookup of reviews
+  // 4. Tạo map
   const reviewsMap = new Map();
   reviewsData.forEach((review) => {
     if (!reviewsMap.has(review.post_id)) {
@@ -48,7 +46,7 @@ async function searchPosts(searchTerm) {
     reviewsMap.get(review.post_id).push(review.rating);
   });
 
-  // Calculate average rating for each post
+  // 5. Tính toán và gán 'id' cho frontend
   const postsWithAvgRating = data.map((post) => {
     const reviews = reviewsMap.get(post.post_id) || [];
     let totalRating = 0;
@@ -62,31 +60,41 @@ async function searchPosts(searchTerm) {
     } else {
       post.average_rating = "N/A";
     }
+
+    // (SỬA LỖI: Thêm alias 'id' để frontend 'danhSach.js' hiểu)
+    post.id = post.post_id;
+
     return post;
   });
 
   return postsWithAvgRating;
 }
 
+// === PHẦN 2: DENO.SERVE (Sửa triệt để lỗi GET/POST) ===
 Deno.serve(async (req) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // Xử lý CORS
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, OPTIONS", // <--- SỬA (Chỉ cho phép GET)
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
 
   try {
-    const { searchTerm } = await req.json();
+    // (SỬA LỖI: Đọc tham số từ URL thay vì req.json())
+    const url = new URL(req.url);
+    const searchTerm = url.searchParams.get("q"); // <--- SỬA (Đọc tham số 'q')
+
     if (typeof searchTerm !== "string" || searchTerm.trim() === "") {
-      throw new Error("Missing or invalid searchTerm parameter");
+      throw new Error("Missing or invalid 'q' parameter");
     }
 
     const data = await searchPosts(searchTerm);
+
+    // (SỬA LỖI: Trả về mảng trực tiếp, vì 'danhSach.js' mong đợi 'data' là mảng)
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",
