@@ -1,6 +1,6 @@
 // public/js/main.js
 // === PHIÊN BẢN ĐẦY ĐỦ (V_FINAL) ===
-// ĐÃ CẬP NHẬT ĐỂ PHÂN QUYỀN "ĐĂNG TIN" (LESSOR) vs "TÌM Ở GHÉP" (RENTER)
+// (Đã cập nhật logic theo yêu cầu mới)
 
 // --- Các hàm tiện ích (Giữ nguyên) ---
 window.showAlert = function (message) {
@@ -65,13 +65,10 @@ function setupSearchForm() {
 
   if (searchForm && searchInput) {
     searchForm.addEventListener("submit", (e) => {
-      e.preventDefault(); // Ngăn form tải lại trang
-      const query = searchInput.value.trim(); // Lấy từ khóa
+      e.preventDefault();
+      const query = searchInput.value.trim();
 
       if (query) {
-        // Nếu có từ khóa, chuyển hướng
-        console.log(`Đang tìm kiếm: ${query}`);
-        // Chuyển hướng đến trang danh sách VÀ đính kèm query
         window.location.href = `/public/danhsach.html?q=${encodeURIComponent(
           query
         )}`;
@@ -103,32 +100,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 2. Tải Header VÀ CHẠY LOGIC AUTH (ĐÃ SỬA)
   loadComponent("/public/header.html", "header-placeholder", () => {
-    // Callback này chạy SAU KHI header.html đã được chèn vào DOM
-
     setupNavigation();
-    setupSearchForm(); // (Giữ nguyên)
+    setupSearchForm();
 
-    // (SỬA) Thêm 2 biến link mới
+    // (SỬA) Lấy các element ID mới
     const loginButton = document.getElementById("login-button");
     const adminLink = document.getElementById("admin-link");
     const profileLinkLi = document.getElementById("profile-link");
-    const lessorPostLink = document.getElementById("lessor-post-link"); // <-- BIẾN MỚI
-    const roommateLink = document.getElementById("roommate-link"); // <-- BIẾN MỚI
+    const lessorPostLink = document.getElementById("lessor-post-link"); // "Đăng tin" (chủ trọ)
+    const renterPostLink = document.getElementById("renter-post-link"); // "Đăng tin tìm ở ghép" (người thuê)
 
     const profileLinkA = profileLinkLi
       ? profileLinkLi.querySelector("a")
       : null;
 
-    // (SỬA) Cập nhật kiểm tra lỗi
     if (
       !loginButton ||
       !adminLink ||
       !profileLinkA ||
       !lessorPostLink ||
-      !roommateLink
+      !renterPostLink
     ) {
       console.error(
-        "Lỗi DOM: Không tìm thấy một trong các element điều hướng quan trọng (login, admin, profile, lessor-post, roommate-link)"
+        "Lỗi DOM: Không tìm thấy một trong các element điều hướng (login, admin, profile, lessor-post, renter-post)"
       );
       return;
     }
@@ -153,16 +147,16 @@ document.addEventListener("DOMContentLoaded", function () {
         if (role === "LESSOR") {
           // 1. Cấu hình cho LESSOR (Chủ trọ)
           profileLinkA.href = "/public/profile-lessor.html";
-          roommateLink.style.display = "none"; // Ẩn "Tìm ở ghép"
+          renterPostLink.style.display = "none"; // Ẩn "Đăng tin tìm ở ghép"
           lessorPostLink.style.display = "list-item"; // Hiện "Đăng tin"
         } else {
           // 2. Cấu hình cho RENTER (Người thuê)
           profileLinkA.href = "/public/profile-renter.html";
-          roommateLink.style.display = "list-item"; // Hiện "Tìm ở ghép"
+          renterPostLink.style.display = "list-item"; // Hiện "Đăng tin tìm ở ghép"
           lessorPostLink.style.display = "none"; // Ẩn "Đăng tin"
         }
 
-        profileLinkLi.style.display = "list-item";
+        profileLinkLi.style.display = "list-item"; // Link Hồ sơ luôn hiện khi đăng nhập
 
         // Logic Admin (giữ nguyên, độc lập)
         if (role === "ADMIN") {
@@ -187,7 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // (SỬA) Ẩn tất cả các link động
         adminLink.style.display = "none";
         profileLinkLi.style.display = "none";
-        roommateLink.style.display = "none";
+        renterPostLink.style.display = "none";
         lessorPostLink.style.display = "none";
 
         setupNavigation();
