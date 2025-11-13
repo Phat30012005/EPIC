@@ -509,3 +509,39 @@ img {
 .modal-content p {
   color: #333; /* Đảm bảo text màu tối */
 }
+
+/* Tùy chỉnh Radio Button */
+.radio {
+  display: block;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.radio input {
+  display: none; /* Ẩn radio gốc */
+}
+.radio .custom-radio {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff; /* (Nếu nền tối) hoặc #ccc (nếu nền sáng) */
+  border-radius: 50%;
+  margin-right: 10px;
+  position: relative;
+  vertical-align: middle;
+}
+.radio input:checked + .custom-radio {
+  border-color: var(--primary); /* Màu xanh primary */
+}
+.radio input:checked + .custom-radio::after {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+/* === KẾT THÚC PHẦN DÁN === */
