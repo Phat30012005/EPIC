@@ -3,30 +3,11 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decode } from "https://esm.sh/base64-arraybuffer";
-
+import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 const BUCKET_NAME = "post-images";
 
 // === BEGIN: Hàm Helper Lấy Auth ===
-function getUserIdFromJwt(req: Request): string | null {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      console.warn("Local dev: No auth header found.");
-      return null;
-    }
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      console.warn("Local dev: No token found in header.");
-      return null;
-    }
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.sub || null;
-  } catch (error) {
-    console.error("Local dev: Error parsing JWT:", error.message);
-    return null;
-  }
-}
+
 // === END: Hàm Helper Lấy Auth ===
 
 // === BEGIN: Các hàm Helper Response ===
@@ -75,31 +56,46 @@ Deno.serve(async (req, context) => {
     let userId: string | null = null;
     let userEmail: string | null = null;
 
-    if (context && context.auth) {
-      console.log("Production context detected. Using context.auth.getUser()");
-      const {
-        data: { user },
-        error: authError,
-      } = await context.auth.getUser();
-      if (authError) throw authError;
-      if (!user) throw new Error("User not found (from context)");
-      userId = user.id;
-      userEmail = user.email;
-    } else {
-      console.warn(
-        "Local dev context detected. Falling back to manual JWT parsing."
-      );
-      userId = getUserIdFromJwt(req);
-      if (!userId) {
-        return createErrorResponse(
-          "Unauthorized: Invalid token (local dev)",
-          401
+    try {
+      if (context && context.auth) {
+        console.log(
+          "Production context detected. Using context.auth.getUser()"
         );
+        const {
+          data: { user },
+          error: authError,
+        } = await context.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error("User not found (from context)");
+        userId = user.id;
+        userEmail = user.email;
+      } else {
+        console.warn(
+          "Local dev context detected. Falling back to manual JWT parsing."
+        );
+        // 1. Dùng hàm CHUẨN (sẽ throw nếu lỗi)
+        userId = await getUserIdFromToken(req);
+
+        // 2. Lấy email (logic này vẫn cần)
+        const { data: authData, error: authError } =
+          await serviceRoleClient.auth.admin.getUserById(userId);
+        if (authError) throw authError;
+        userEmail = authData.user.email;
       }
-      const { data: authData, error: authError } =
-        await serviceRoleClient.auth.admin.getUserById(userId);
-      if (authError) throw authError;
-      userEmail = authData.user.email;
+    } catch (authError) {
+      // 3. Bắt lỗi (từ getUserIdFromToken hoặc getUserById)
+      // Đây là cách 7 function kia đang làm, bây giờ create-post cũng làm vậy
+      console.error("Authentication error:", authError.message);
+      return createErrorResponse(
+        authError.message || "User authentication failed",
+        401
+      );
+    }
+
+    // Câu lệnh này bây giờ an toàn vì đã qua try...catch
+    if (!userId) {
+      // Dòng này về lý thuyết không bao giờ chạy, nhưng để an toàn
+      return createErrorResponse("User authentication failed", 401);
     }
 
     if (!userId) {

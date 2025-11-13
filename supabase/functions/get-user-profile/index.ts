@@ -2,28 +2,8 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decode } from "https://esm.sh/base64-arraybuffer";
-
-// SỬA LỖI 2: Thêm hàm helper để parse JWT thủ công
-async function getUserIdFromToken(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    throw new Error("Missing Authorization Header");
-  }
-  const token = authHeader.replace("Bearer ", "");
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    throw new Error("Invalid token format");
-  }
-  const payload = JSON.parse(new TextDecoder().decode(decode(parts[1])));
-  if (!payload.sub) {
-    throw new Error("Invalid token payload (missing sub)");
-  }
-  return payload.sub; // sub is the user ID (UUID)
-}
+import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 
 async function getUserProfile(userId) {
   const supabase = createClient(

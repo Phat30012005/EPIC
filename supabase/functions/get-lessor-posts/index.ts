@@ -3,26 +3,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decode } from "https://esm.sh/base64-arraybuffer";
-
-// === BEGIN: Hàm Helper Lấy Auth (Giống các function khác) ===
-async function getUserIdFromToken(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    throw new Error("Missing Authorization Header");
-  }
-  const token = authHeader.replace("Bearer ", "");
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    throw new Error("Invalid token format");
-  }
-  const payload = JSON.parse(new TextDecoder().decode(decode(parts[1])));
-  if (!payload.sub) {
-    throw new Error("Invalid token payload (missing sub)");
-  }
-  return payload.sub; // sub is the user ID (UUID)
-}
-// === END: Hàm Helper Lấy Auth ===
+import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 
 // Hàm logic (ĐÃ SỬA LỖI SELECT)
 async function getLessorPosts(lessorId) {

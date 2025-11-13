@@ -1,38 +1,15 @@
 // supabase/functions/add-bookmark/index.ts
 // PHIÊN BẢN V2 (Đã dọn dẹp 'post_id')
-
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decode } from "https://esm.sh/base64-arraybuffer";
-
+import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 // SỬA LỖI 2: Thêm hàm helper để parse JWT thủ công
 /**
  * Lấy user ID từ AWT token.
  * Đây là giải pháp dự phòng cho môi trường local dev khi chạy với --no-verify-jwt,
  * vì `context.auth` sẽ bị `undefined`.
  */
-async function getUserIdFromToken(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    throw new Error("Missing Authorization Header");
-  }
-
-  const token = authHeader.replace("Bearer ", "");
-  const parts = token.split(".");
-  if (parts.length !== 3) {
-    throw new Error("Invalid token format");
-  }
-
-  const payload = JSON.parse(new TextDecoder().decode(decode(parts[1])));
-  if (!payload.sub) {
-    throw new Error("Invalid token payload (missing sub)");
-  }
-
-  return payload.sub; // sub is the user ID (UUID)
-}
-
 // (SỬA LỖI: Đổi tên tham số thành 'post_id' (snake_case))
 async function addBookmark(userId, post_id) {
   const supabase = createClient(
