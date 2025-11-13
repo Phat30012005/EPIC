@@ -1,37 +1,30 @@
 // supabase/functions/get-user-profile/index.ts
+// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 
+// (Hàm logic `getUserProfile` giữ nguyên)
 async function getUserProfile(userId) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-
-  // 1. Lấy email từ bảng auth.users
   const { data: authData, error: authError } =
     await supabase.auth.admin.getUserById(userId);
-
   if (authError) {
     throw new Error(`Auth Error: ${authError.message}`);
   }
   const email = authData.user.email;
-
-  // 2. Lấy profile từ bảng public.profiles
   const { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("full_name, phone_number, avatar_url, role")
     .eq("id", userId)
     .single();
-
   if (profileError) {
     throw new Error(`Profile Error: ${profileError.message}`);
   }
-
-  // 3. Gộp 2 kết quả
   return {
     ...profileData,
     email: email,
@@ -40,35 +33,59 @@ async function getUserProfile(userId) {
 }
 
 Deno.serve(async (req, context) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // 1. Xử lý CORS
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        // SỬA LỖI LOGIC: Hàm "get" phải cho phép "GET" (khớp với frontend)
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
 
+  // 2. Block try...catch chính
   try {
-    let userId;
+    let userId: string; // Khai báo userId
 
-    // SỬA LỖI 2: Thêm logic kiểm tra auth cho local dev
+    // --- BƯỚC A: Block Xác thực CHUẨN ---
     try {
-      throw new Error("Force fallback to token parsing");
-    } catch (e) {
-      console.log(
-        "get-user-profile: context.auth failed, falling back to token parsing."
-      );
-      userId = await getUserIdFromToken(req);
+      if (context && context.auth) {
+        console.log(
+          "Production context detected. Using context.auth.getUser()"
+        );
+        const {
+          data: { user },
+          error: authError,
+        } = await context.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error("User not found (from context)");
+        userId = user.id;
+      } else {
+        console.warn(
+          "Local dev context detected. Falling back to manual JWT parsing."
+        );
+        userId = await getUserIdFromToken(req); // Dùng shared helper
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError.message);
+      return new Response(JSON.stringify({ error: authError.message }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
+    // --- KẾT THÚC BƯỚC A ---
 
     if (!userId) {
       throw new Error("User not authenticated");
     }
 
-    // Không cần req.json() vì chúng ta chỉ cần userId từ token
+    // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
+    // (Đây là hàm GET, không cần req.json())
     const data = await getUserProfile(userId);
     return new Response(JSON.stringify(data), {
       headers: {
@@ -76,6 +93,9 @@ Deno.serve(async (req, context) => {
         "Access-Control-Allow-Origin": "*",
       },
     });
+    // --- KẾT THÚC BƯỚC B ---
+
+    // --- BƯỚC C: Block catch ngoài ---
   } catch (error) {
     console.error("Error in get-user-profile function:", error);
     const status = error.message.includes("not authenticated") ? 401 : 500;

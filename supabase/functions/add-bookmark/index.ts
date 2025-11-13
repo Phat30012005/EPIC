@@ -1,50 +1,36 @@
 // supabase/functions/add-bookmark/index.ts
-// PHIÊN BẢN V2 (Đã dọn dẹp 'post_id')
-// Setup type definitions for built-in Supabase Runtime APIs
+// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
-// SỬA LỖI 2: Thêm hàm helper để parse JWT thủ công
-/**
- * Lấy user ID từ AWT token.
- * Đây là giải pháp dự phòng cho môi trường local dev khi chạy với --no-verify-jwt,
- * vì `context.auth` sẽ bị `undefined`.
- */
-// (SỬA LỖI: Đổi tên tham số thành 'post_id' (snake_case))
+
+// (Hàm logic `addBookmark` giữ nguyên)
 async function addBookmark(userId, post_id) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-
-  // Check if bookmark already exists (idempotency)
   const { data: existing, error: checkError } = await supabase
     .from("bookmarks")
     .select("bookmark_id")
     .eq("user_id", userId)
-    .eq("post_id", post_id) // <--- ĐÃ SỬA
+    .eq("post_id", post_id)
     .single();
-
   if (checkError && checkError.code !== "PGRST116") {
-    // ...
     throw checkError;
   }
-
   if (existing) {
-    // Already bookmarked, just return success
     return existing;
   }
-
-  // Insert new bookmark
   const { data, error } = await supabase
     .from("bookmarks")
     .insert({
       user_id: userId,
-      post_id: post_id, // <--- ĐÃ SỬA
+      post_id: post_id,
     })
     .select()
     .single();
-
   if (error) {
     throw error;
   }
@@ -52,7 +38,7 @@ async function addBookmark(userId, post_id) {
 }
 
 Deno.serve(async (req, context) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // 1. Xử lý CORS
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -63,36 +49,60 @@ Deno.serve(async (req, context) => {
     });
   }
 
+  // 2. Block try...catch chính
   try {
-    let userId;
+    let userId: string; // Khai báo userId
 
-    // SỬA LỖI 2: Thêm logic kiểm tra auth cho local dev
+    // --- BƯỚC A: Block Xác thực CHUẨN ---
     try {
-      throw new Error("Force fallback to token parsing"); // Luôn ưu tiên parse token
-    } catch (e) {
-      console.log(
-        "add-bookmark: context.auth failed, falling back to token parsing."
-      );
-      userId = await getUserIdFromToken(req);
+      if (context && context.auth) {
+        console.log(
+          "Production context detected. Using context.auth.getUser()"
+        );
+        const {
+          data: { user },
+          error: authError,
+        } = await context.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error("User not found (from context)");
+        userId = user.id;
+      } else {
+        console.warn(
+          "Local dev context detected. Falling back to manual JWT parsing."
+        );
+        userId = await getUserIdFromToken(req); // Dùng shared helper
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError.message);
+      return new Response(JSON.stringify({ error: authError.message }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
+    // --- KẾT THÚC BƯỚC A ---
 
     if (!userId) {
       throw new Error("User not authenticated");
     }
 
-    // (SỬA LỖI: Nhận 'post_id' (snake_case) từ frontend)
+    // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
     const { post_id } = await req.json();
     if (!post_id) {
       throw new Error("Missing post_id");
     }
-
-    const data = await addBookmark(userId, post_id); // <--- ĐÃ SỬA
+    const data = await addBookmark(userId, post_id);
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
     });
+    // --- KẾT THÚC BƯỚC B ---
+
+    // --- BƯỚC C: Block catch ngoài ---
   } catch (error) {
     console.error("Error in add-bookmark function:", error);
     const status = error.message.includes("not authenticated") ? 401 : 500;

@@ -1,18 +1,16 @@
 // supabase/functions/get-lessor-posts/index.ts
-// PHIÊN BẢN V2 (Sửa lỗi 500, lỗi select CSDL, và lỗi logic Auth)
+// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 
-// Hàm logic (ĐÃ SỬA LỖI SELECT)
+// (Hàm logic `getLessorPosts` giữ nguyên)
 async function getLessorPosts(lessorId) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-
-  // (SỬA LỖI: Bỏ 'districts' và 'wards'. Chỉ select cột có thật trong CSDL V4)
   const { data, error } = await supabase
     .from("posts")
     .select(
@@ -27,16 +25,12 @@ async function getLessorPosts(lessorId) {
     )
     .eq("user_id", lessorId)
     .order("created_at", { ascending: false });
-
   if (error) {
     throw error;
   }
-
-  // Tính toán avg_rating (Giữ nguyên)
   const postsWithAvgRating = data.map((post) => {
     let totalRating = 0;
     const reviewsCount = Array.isArray(post.reviews) ? post.reviews.length : 0;
-
     if (reviewsCount > 0) {
       post.reviews.forEach((review) => {
         totalRating += review.rating;
@@ -48,43 +42,63 @@ async function getLessorPosts(lessorId) {
     delete post.reviews;
     return post;
   });
-
   return postsWithAvgRating;
 }
 
-// Hàm Deno.serve (ĐÃ SỬA LỖI LOGIC AUTH)
 Deno.serve(async (req, context) => {
-  // Xử lý CORS
+  // 1. Xử lý CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS", // Chỉ cho phép GET
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
 
+  // 2. Block try...catch chính
   try {
-    let userId;
-    // (SỬA LỖI: Lấy userId từ token, không phải từ body)
+    let userId: string; // Khai báo userId
+
+    // --- BƯỚC A: Block Xác thực CHUẨN ---
     try {
-      throw new Error("Force fallback to token parsing");
-    } catch (e) {
-      console.log(
-        "get-lessor-posts: context.auth failed, falling back to token parsing."
-      );
-      userId = await getUserIdFromToken(req);
+      if (context && context.auth) {
+        console.log(
+          "Production context detected. Using context.auth.getUser()"
+        );
+        const {
+          data: { user },
+          error: authError,
+        } = await context.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error("User not found (from context)");
+        userId = user.id;
+      } else {
+        console.warn(
+          "Local dev context detected. Falling back to manual JWT parsing."
+        );
+        userId = await getUserIdFromToken(req); // Dùng shared helper
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError.message);
+      return new Response(JSON.stringify({ error: authError.message }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
+    // --- KẾT THÚC BƯỚC A ---
 
     if (!userId) {
       throw new Error("User not authenticated");
     }
 
-    // Gọi hàm logic với userId (lessorId) đã xác thực
+    // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
+    // (Đây là hàm GET, không cần req.json())
     const data = await getLessorPosts(userId);
-
-    // Trả về thành công
     return new Response(JSON.stringify({ data: data }), {
       headers: {
         "Content-Type": "application/json",
@@ -92,11 +106,13 @@ Deno.serve(async (req, context) => {
       },
       status: 200,
     });
+    // --- KẾT THÚC BƯỚC B ---
+
+    // --- BƯỚC C: Block catch ngoài ---
   } catch (error) {
-    console.error("Lỗi trong function get-lessor-posts:", error.message);
+    console.error("Error in get-lessor-posts function:", error.message);
     let status = 500;
     if (error.message.includes("not authenticated")) status = 401;
-
     return new Response(JSON.stringify({ error: error.message }), {
       status: status,
       headers: {

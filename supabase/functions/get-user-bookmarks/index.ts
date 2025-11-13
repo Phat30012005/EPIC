@@ -1,20 +1,16 @@
 // supabase/functions/get-user-bookmarks/index.ts
+// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-// SỬA LỖI 1: Xóa cú pháp Markdown [ ](...) khỏi dòng import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 
+// (Hàm logic `getUserBookmarks` giữ nguyên)
 async function getUserBookmarks(userId) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-
-  // 1. Lấy danh sách bookmarks, join với 'posts'
-  // (Đã SỬA: Bỏ 'districts', 'wards', 'reviews' vì CSDL V3 không có)
   const { data, error } = await supabase
     .from("bookmarks")
     .select(
@@ -35,60 +31,75 @@ async function getUserBookmarks(userId) {
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-
   if (error) {
     throw error;
   }
-
-  // 2. Xử lý dữ liệu (Làm phẳng cấu trúc)
-  // (Tạm thời bỏ qua 'avg_rating' để sửa lỗi 500)
   const simplifiedBookmarks = data.map((bookmark) => {
-    // Đảm bảo `bookmark.posts` không null
     if (!bookmark.posts) {
       return { ...bookmark, post: null };
     }
-
-    // Đổi tên 'posts' (số nhiều) thành 'post' (số ít)
     const post = bookmark.posts;
     delete bookmark.posts;
     return { ...bookmark, post: post };
   });
-
-  // Lọc ra các bookmark mà post đã bị xóa
   const validBookmarks = simplifiedBookmarks.filter((b) => b.post !== null);
-
   return validBookmarks;
 }
 
 Deno.serve(async (req, context) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // 1. Xử lý CORS
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        // SỬA LỖI LOGIC: Hàm "get" phải cho phép "GET"
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
   }
 
+  // 2. Block try...catch chính
   try {
-    let userId;
+    let userId: string; // Khai báo userId
 
-    // SỬA LỖI 2: Thêm logic kiểm tra auth cho local dev
+    // --- BƯỚC A: Block Xác thực CHUẨN ---
     try {
-      throw new Error("Force fallback to token parsing");
-    } catch (e) {
-      console.log(
-        "get-user-bookmarks: context.auth failed, falling back to token parsing."
-      );
-      userId = await getUserIdFromToken(req);
+      if (context && context.auth) {
+        console.log(
+          "Production context detected. Using context.auth.getUser()"
+        );
+        const {
+          data: { user },
+          error: authError,
+        } = await context.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error("User not found (from context)");
+        userId = user.id;
+      } else {
+        console.warn(
+          "Local dev context detected. Falling back to manual JWT parsing."
+        );
+        userId = await getUserIdFromToken(req); // Dùng shared helper
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError.message);
+      return new Response(JSON.stringify({ error: authError.message }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
+    // --- KẾT THÚC BƯỚC A ---
 
     if (!userId) {
       throw new Error("User not authenticated");
     }
 
+    // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
+    // (Đây là hàm GET, không cần req.json())
     const data = await getUserBookmarks(userId);
     return new Response(JSON.stringify(data), {
       headers: {
@@ -96,6 +107,9 @@ Deno.serve(async (req, context) => {
         "Access-Control-Allow-Origin": "*",
       },
     });
+    // --- KẾT THÚC BƯỚC B ---
+
+    // --- BƯỚC C: Block catch ngoài ---
   } catch (error) {
     console.error("Error in get-user-bookmarks function:", error);
     const status = error.message.includes("not authenticated") ? 401 : 500;

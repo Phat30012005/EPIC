@@ -1,39 +1,32 @@
 // supabase/functions/add-review/index.ts
-// PHIÊN BẢN V2 (Đã dọn dẹp 'post_id')
+// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
 
-// Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
-// SỬA LỖI 2: Thêm hàm helper để parse JWT thủ công
 
-// (SỬA LỖI: Đổi tên tham số thành 'post_id' (snake_case))
+// (Hàm logic `addReview` giữ nguyên)
 async function addReview(userId, post_id, rating, comment) {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
-
-  // 1. Check if user is RENTER (Policy RLS sẽ lo việc này, nhưng check ở đây tốt hơn)
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", userId)
     .single();
-
   if (profileError) {
     throw new Error(`Profile check failed: ${profileError.message}`);
   }
   if (profile.role !== "RENTER") {
     throw new Error("Only RENTERs can add reviews.");
   }
-
-  // 2. Insert the review
   const { data, error } = await supabase
     .from("reviews")
     .insert({
       user_id: userId,
-      post_id: post_id, // <--- ĐÃ SỬA
+      post_id: post_id,
       rating: rating,
       comment: comment,
     })
@@ -44,11 +37,8 @@ async function addReview(userId, post_id, rating, comment) {
     `
     )
     .single();
-
   if (error) {
-    // Check for unique constraint violation (user already reviewed this post)
     if (error.code === "23505") {
-      // 23505 is unique_violation
       throw new Error("You have already reviewed this post.");
     }
     throw error;
@@ -57,7 +47,7 @@ async function addReview(userId, post_id, rating, comment) {
 }
 
 Deno.serve(async (req, context) => {
-  // (Hàm này dùng để xử lý lỗi CORS khi gọi từ trình duyệt)
+  // 1. Xử lý CORS
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -68,40 +58,63 @@ Deno.serve(async (req, context) => {
     });
   }
 
+  // 2. Block try...catch chính
   try {
-    let userId;
+    let userId: string; // Khai báo userId
 
-    // SỬA LỖI 2: Thêm logic kiểm tra auth cho local dev
+    // --- BƯỚC A: Block Xác thực CHUẨN ---
     try {
-      throw new Error("Force fallback to token parsing");
-    } catch (e) {
-      console.log(
-        "add-review: context.auth failed, falling back to token parsing."
-      );
-      userId = await getUserIdFromToken(req);
+      if (context && context.auth) {
+        console.log(
+          "Production context detected. Using context.auth.getUser()"
+        );
+        const {
+          data: { user },
+          error: authError,
+        } = await context.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error("User not found (from context)");
+        userId = user.id;
+      } else {
+        console.warn(
+          "Local dev context detected. Falling back to manual JWT parsing."
+        );
+        userId = await getUserIdFromToken(req); // Dùng shared helper
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError.message);
+      return new Response(JSON.stringify({ error: authError.message }), {
+        status: 401,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
+    // --- KẾT THÚC BƯỚC A ---
 
     if (!userId) {
       throw new Error("User not authenticated");
     }
 
-    // (SỬA LỖI: Nhận 'post_id' (snake_case) từ frontend)
+    // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
     const { post_id, rating, comment } = await req.json();
     if (!post_id || !rating) {
-      // <--- ĐÃ SỬA
       throw new Error("Missing post_id or rating");
     }
     if (typeof rating !== "number" || rating < 1 || rating > 5) {
       throw new Error("Rating must be a number between 1 and 5");
     }
-
-    const data = await addReview(userId, post_id, rating, comment); // <--- ĐÃ SỬA
+    const data = await addReview(userId, post_id, rating, comment);
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
     });
+    // --- KẾT THÚC BƯỚC B ---
+
+    // --- BƯỚC C: Block catch ngoài ---
   } catch (error) {
     console.error("Error in add-review function:", error);
     let status = 500;
@@ -112,7 +125,7 @@ Deno.serve(async (req, context) => {
       error.message.includes("already reviewed") ||
       error.message.includes("Only RENTERs")
     ) {
-      status = 403;
+      status = 403; // Lỗi 403 (Forbidden) cho logic nghiệp vụ
     }
     return new Response(JSON.stringify({ error: error.message }), {
       status: status,
