@@ -137,3 +137,20 @@ enabled = true
 verify_jwt = false #true
 import_map = "./functions/create-roommate-posting/deno.json"
 entrypoint = "./functions/create-roommate-posting/index.ts"
+
+# CẤU HÌNH LẤY CHI TIẾT TIN Ở GHÉP
+[functions.get-roommate-posting-detail]
+enabled = true
+verify_jwt = false # Public (ai cũng xem được chi tiết)
+import_map = "./functions/get-roommate-posting-detail/deno.json"
+entrypoint = "./functions/get-roommate-posting-detail/index.ts"
+[functions.get-roomate-posting-detail]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-roomate-posting-detail/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/get-roomate-posting-detail/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/get-roomate-posting-detail/*.html" ]
