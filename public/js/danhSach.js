@@ -109,63 +109,77 @@ function addSaveButtonListeners() {
  */
 function renderRooms(rooms) {
   const roomList = document.getElementById("roomList");
-  roomList.innerHTML = "";
+  roomList.innerHTML = ""; // Xóa nội dung cũ (dòng này an toàn)
+
   if (!rooms || rooms.length === 0) {
     roomList.innerHTML = `<p class="text-center text-gray-500 mt-4 col-span-3">Không có phòng nào phù hợp.</p>`;
     return;
   }
 
   rooms.forEach((room) => {
+    // 1. Tạo các phần tử (KHÔNG dùng chuỗi HTML)
     const div = document.createElement("div");
     div.className = "bg-white rounded shadow p-3 hover:shadow-lg transition";
 
-    // (Lấy ảnh... giống như cũ)
     const imageSrc =
       Array.isArray(room.image_urls) && room.image_urls.length > 0
         ? room.image_urls[0]
         : "/public/assets/logo2.jpg";
 
-    // === LOGIC MỚI (NGÀY 6): KIỂM TRA ĐÃ LƯU HAY CHƯA ===
+    const img = document.createElement("img");
+    img.src = imageSrc;
+    img.alt = room.motelName; // gán alt
+    img.className = "w-full h-40 object-cover mb-3 rounded";
+
+    const title = document.createElement("h5");
+    title.className = "font-bold text-lg mb-1";
+    // .textContent sẽ tự động vô hiệu hóa mọi thẻ <script>
+    title.textContent = room.motelName || "Chưa có tiêu đề";
+
+    const address = document.createElement("p");
+    address.className = "text-gray-600 mb-1";
+    address.textContent = room.address_detail || "Chưa có địa chỉ"; // Sửa: Dùng address_detail cho rõ
+
+    const price = document.createElement("p");
+    price.className = "text-primary font-semibold mb-2";
+    price.textContent = `${room.price?.toLocaleString() || 0} đ/tháng`;
+
+    // 2. Logic Nút (giữ nguyên)
     const isSaved = savedPostIds.has(room.id);
     const saveBtnIcon = isSaved
       ? '<i class="fa-solid fa-heart"></i>' // Icon đặc
       : '<i class="fa-regular fa-heart"></i>'; // Icon rỗng
     const saveBtnClass = isSaved ? "active" : "";
-    // === KẾT THÚC LOGIC MỚI ===
 
-    div.innerHTML = `
-      <img src="${imageSrc}" alt="${
-      room.motelName
-    }" class="w-full h-40 object-cover mb-3 rounded">
-      <h5 class="font-bold text-lg mb-1">${
-        room.motelName || "Chưa có tiêu đề"
-      }</h5>
-      <p class="text-gray-600 mb-1">${room.address || "Chưa có địa chỉ"}</p>
-      <p class="text-primary font-semibold mb-2">${
-        room.price?.toLocaleString() || 0
-      } đ/tháng</p>
-      
-      <!-- === CẬP NHẬT (NGÀY 6): THÊM NÚT LƯU === -->
-      <div class="d-flex align-items-center">
-        <a href="chitiet.html?id=${
-          room.id
-        }" class="btn btn-sm btn-primary">Xem chi tiết</a>
-        
-        <button 
-          class="btn btn-sm btn-outline-danger save-btn ${saveBtnClass}" 
-          data-id="${room.id}" 
-          style="margin-left: 8px; width: 40px;"
-        >
-          ${saveBtnIcon}
-        </button>
-      </div>
-      <!-- === KẾT THÚC CẬP NHẬT === -->
-    `;
+    const buttonWrapper = document.createElement("div");
+    buttonWrapper.className = "d-flex align-items-center";
+
+    // Nút Xem chi tiết (dùng innerHTML vì link này do CHÚNG TA tạo)
+    const detailLink = document.createElement("a");
+    detailLink.href = `chitiet.html?id=${room.id}`;
+    detailLink.className = "btn btn-sm btn-primary";
+    detailLink.textContent = "Xem chi tiết";
+
+    // Nút Lưu tin (dùng innerHTML vì cần thẻ <i>)
+    const saveButton = document.createElement("button");
+    saveButton.className = `btn btn-sm btn-outline-danger save-btn ${saveBtnClass}`;
+    saveButton.dataset.id = room.id; // gán data-id
+    saveButton.style = "margin-left: 8px; width: 40px;";
+    saveButton.innerHTML = saveBtnIcon; // An toàn vì icon này do ta kiểm soát
+
+    // 3. Gắn các phần tử vào
+    buttonWrapper.appendChild(detailLink);
+    buttonWrapper.appendChild(saveButton);
+
+    div.appendChild(img);
+    div.appendChild(title);
+    div.appendChild(address);
+    div.appendChild(price);
+    div.appendChild(buttonWrapper);
+
     roomList.appendChild(div);
   });
-
-  // === GỌI HÀM MỚI (NGÀY 6) ===
-  // Gán sự kiện cho các nút trái tim vừa được render
+  // Gán sự kiện (giữ nguyên)
   addSaveButtonListeners();
 }
 

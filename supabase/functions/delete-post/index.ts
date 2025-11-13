@@ -1,9 +1,9 @@
 // supabase/functions/delete-post/index.ts
-// PHIÊN BẢN V2 (Vá lỗi Auth local và lỗi 'image_url' (số ít))
+// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getUserIdFromToken } from "../_shared/auth-helper.ts";
+import { getUserIdFromToken } from "../_shared/auth-helper.ts"; // Dùng hàm shared
 
 // === BEGIN: Các hằng số (Giữ nguyên) ===
 function createErrorResponse(message: string, status: number) {
@@ -24,14 +24,15 @@ const ADMIN_EMAILS = [
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  // Sửa: Cho phép DELETE
+  "Access-Control-Allow-Methods": "DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
 
 const BUCKET_NAME = "post-images";
 
-console.log("[delete-post] Function (NÂNG CẤP V2) đã sẵn sàng.");
+console.log("[delete-post] Function (ĐÃ CHUẨN HÓA AUTH) đã sẵn sàng.");
 // === END: Các hằng số ===
 
 // Hàm Deno.serve (Entrypoint)
@@ -44,38 +45,55 @@ Deno.serve(async (req, context) => {
   let userId: string; // Biến lưu user ID
   let userEmail: string; // Biến lưu email (cho Admin check)
 
-  // 2. (SỬA LỖI AUTH) Lấy user ID và Email
+  // Khởi tạo Supabase Admin Client
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
+  // --- BƯỚC A: Block Xác thực CHUẨN (Giống create-post) ---
   try {
-    // Logic vá Auth local
-    try {
-      throw new Error("Force fallback to token parsing");
-    } catch (e) {
-      console.log(
-        "delete-post: context.auth failed, falling back to token parsing."
+    if (context && context.auth) {
+      // 1. Logic cho Production (khi deploy)
+      console.log("Production context detected. Using context.auth.getUser()");
+      const {
+        data: { user },
+        error: authError,
+      } = await context.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error("User not found (from context)");
+      userId = user.id;
+      userEmail = user.email; // Lấy email trực tiếp
+    } else {
+      // 2. Logic cho Local (khi chạy --no-verify-jwt)
+      console.warn(
+        "Local dev context detected. Falling back to manual JWT parsing."
       );
-      userId = await getUserIdFromToken(req);
+      userId = await getUserIdFromToken(req); // Dùng shared helper
+      
+      // Lấy email (logic này vẫn cần)
+      const { data: authData, error: authError }_ =
+        await supabaseAdmin.auth.admin.getUserById(userId);
+      if (authError) throw authError;
+      userEmail = authData.user.email;
     }
-
-    if (!userId) {
-      return createErrorResponse("Xác thực thất bại", 401);
-    }
-
-    // Lấy email (cần cho check Admin)
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.getUserById(userId);
-    if (authError) {
-      return createErrorResponse(`Lỗi Auth: ${authError.message}`, 401);
-    }
-    userEmail = authData.user.email;
   } catch (authError) {
-    return createErrorResponse(authError.message, 401);
+    // 3. Nếu cả 2 cách trên lỗi (vd: token sai, hết hạn)
+    console.error("Authentication error:", authError.message);
+    return createErrorResponse(
+      authError.message || "User authentication failed",
+      401
+    );
+  }
+  // --- KẾT THÚC BƯỚC A ---
+
+  if (!userId || !userEmail) {
+    return createErrorResponse("User authentication failed", 401);
   }
 
+  // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
+  // (Phần này giữ nguyên logic của file delete-post gốc)
+  
   // 3. Lấy ID bài đăng từ query param
   const url = new URL(req.url);
   const postId = url.searchParams.get("id");
@@ -86,11 +104,10 @@ Deno.serve(async (req, context) => {
   // 4. Logic bảo mật (QUAN TRỌNG)
   try {
     // 4.1 Lấy thông tin bài đăng
-    // (SỬA LỖI: 'image_url' -> 'image_urls' (số nhiều))
     const { data: post, error: postError } = await supabaseAdmin
       .from("posts")
-      .select("user_id, image_urls") // <-- ĐÃ SỬA (số nhiều)
-      .eq("post_id", postId) // CSDL V5 dùng 'post_id'
+      .select("user_id, image_urls")
+      .eq("post_id", postId)
       .single();
 
     if (postError) {
@@ -109,14 +126,17 @@ Deno.serve(async (req, context) => {
     }
 
     // 4.3 XÓA ẢNH TRONG STORAGE
-    // (SỬA LỖI: 'post.image_url' -> 'post.image_urls' (số nhiều))
     if (post.image_urls && post.image_urls.length > 0) {
       const filePaths = post.image_urls
         .map((url: string) => {
           try {
             const urlObj = new URL(url);
-            const path = urlObj.pathname.split(`/public/${BUCKET_NAME}/`)[1];
-            return path;
+            // Sửa logic parse URL cho local
+            const pathSegments = urlObj.pathname.split(`/${BUCKET_NAME}/`);
+            if (pathSegments.length > 1) {
+                return pathSegments[1];
+            }
+            return null;
           } catch (e) {
             console.warn(`URL ảnh không hợp lệ, bỏ qua: ${url}`);
             return null;
@@ -140,7 +160,7 @@ Deno.serve(async (req, context) => {
     const { error: deleteError } = await supabaseAdmin
       .from("posts")
       .delete()
-      .eq("post_id", postId); // CSDL V5 dùng 'post_id'
+      .eq("post_id", postId);
 
     if (deleteError) {
       throw new Error(`Lỗi CSDL khi xóa: ${deleteError.message}`);
@@ -157,6 +177,7 @@ Deno.serve(async (req, context) => {
         status: 200,
       }
     );
+  // --- BƯỚC C: Block catch ngoài ---
   } catch (err) {
     return createErrorResponse(err.message || "Lỗi không xác định", 500);
   }

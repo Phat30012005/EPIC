@@ -262,31 +262,94 @@ async function loadReviews(postId) {
 }
 
 // Hiển thị review ra HTML
+// === CODE MỚI: THAY THẾ HÀM renderReviews ===
+// (Đã sửa lỗi XSS)
 function renderReviews(reviews) {
   const listEl = document.getElementById("reviews-list");
   listEl.innerHTML = ""; // Xóa nội dung cũ
 
   reviews.forEach((review) => {
+    // 1. Lấy dữ liệu an toàn
+    const reviewerName = review.profiles?.full_name || "Người dùng ẩn danh"; // Sửa: Dùng full_name
+    const reviewDate = new Date(review.created_at).toLocaleDateString("vi-VN");
+    const starsHtml = renderStars(review.rating, "1.25rem"); // Hàm này an toàn
+
+    // 2. Tạo các phần tử
     const reviewDiv = document.createElement("div");
     reviewDiv.className = "border-b pb-4";
 
-    // Lấy tên (fallback)
-    const reviewerName = review.profiles?.contactName || "Người dùng ẩn danh";
-    // Render sao
-    const starsHtml = renderStars(review.rating, "1.25rem");
+    const headerDiv = document.createElement("div");
+    headerDiv.className = "flex justify-between items-center mb-1";
 
-    reviewDiv.innerHTML = `
-      <div class="flex justify-between items-center mb-1">
-        <span class="font-semibold text-gray-800">${reviewerName}</span>
-        <span class="text-sm text-gray-500">${new Date(
-          review.created_at
-        ).toLocaleDateString("vi-VN")}</span>
-      </div>
-      <div class="star-rating mb-2" style="font-size: 1.25rem; color: #f59e0b;">
-        ${starsHtml}
-      </div>
-      <p class="text-gray-700 m-0">${review.comment}</p>
-    `;
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "font-semibold text-gray-800";
+    nameSpan.textContent = reviewerName; // AN TOÀN
+
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "text-sm text-gray-500";
+    dateSpan.textContent = reviewDate; // AN TOÀN
+
+    const starsDiv = document.createElement("div");
+    starsDiv.className = "star-rating mb-2";
+    starsDiv.style = "font-size: 1.25rem; color: #f59e0b;";
+    starsDiv.innerHTML = starsHtml; // AN TOÀN (vì renderStars do ta kiểm soát)
+
+    const commentP = document.createElement("p");
+    commentP.className = "text-gray-700 m-0";
+    commentP.textContent = review.comment; // AN TOÀN
+
+    // 3. Gắn các phần tử vào
+    headerDiv.appendChild(nameSpan);
+    headerDiv.appendChild(dateSpan);
+    reviewDiv.appendChild(headerDiv);
+    reviewDiv.appendChild(starsDiv);
+    reviewDiv.appendChild(commentP);
+
+    listEl.appendChild(reviewDiv);
+  });
+} // === CODE MỚI: THAY THẾ HÀM renderReviews ===
+// (Đã sửa lỗi XSS)
+function renderReviews(reviews) {
+  const listEl = document.getElementById("reviews-list");
+  listEl.innerHTML = ""; // Xóa nội dung cũ
+
+  reviews.forEach((review) => {
+    // 1. Lấy dữ liệu an toàn
+    const reviewerName = review.profiles?.full_name || "Người dùng ẩn danh"; // Sửa: Dùng full_name
+    const reviewDate = new Date(review.created_at).toLocaleDateString("vi-VN");
+    const starsHtml = renderStars(review.rating, "1.25rem"); // Hàm này an toàn
+
+    // 2. Tạo các phần tử
+    const reviewDiv = document.createElement("div");
+    reviewDiv.className = "border-b pb-4";
+
+    const headerDiv = document.createElement("div");
+    headerDiv.className = "flex justify-between items-center mb-1";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "font-semibold text-gray-800";
+    nameSpan.textContent = reviewerName; // AN TOÀN
+
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "text-sm text-gray-500";
+    dateSpan.textContent = reviewDate; // AN TOÀN
+
+    const starsDiv = document.createElement("div");
+    starsDiv.className = "star-rating mb-2";
+    starsDiv.style = "font-size: 1.25rem; color: #f59e0b;";
+    starsDiv.innerHTML = starsHtml; // AN TOÀN (vì renderStars do ta kiểm soát)
+
+    const commentP = document.createElement("p");
+    commentP.className = "text-gray-700 m-0";
+    commentP.textContent = review.comment; // AN TOÀN
+
+    // 3. Gắn các phần tử vào
+    headerDiv.appendChild(nameSpan);
+    headerDiv.appendChild(dateSpan);
+    reviewDiv.appendChild(headerDiv);
+    reviewDiv.appendChild(starsDiv);
+    reviewDiv.appendChild(commentP);
+
     listEl.appendChild(reviewDiv);
   });
 }
