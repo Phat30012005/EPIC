@@ -119,6 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const loginButton = document.getElementById("login-button");
     const adminLink = document.getElementById("admin-link");
     const profileLinkLi = document.getElementById("profile-link");
+    const roommateLink = document.getElementById("roommate-link");
     const profileLinkA = profileLinkLi
       ? profileLinkLi.querySelector("a")
       : null;
@@ -146,8 +147,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const role = session.user.user_metadata.role;
         if (role === "LESSOR") {
           profileLinkA.href = "/public/profile-lessor.html";
+          if (roommateLink) roommateLink.style.display = "none";
         } else {
           profileLinkA.href = "/public/profile-renter.html";
+          if (roommateLink) roommateLink.style.display = "list-item";
         }
         profileLinkLi.style.display = "list-item";
         setupNavigation();
@@ -169,6 +172,7 @@ document.addEventListener("DOMContentLoaded", function () {
         loginButton.onclick = null;
         adminLink.style.display = "none";
         profileLinkLi.style.display = "none";
+        if (roommateLink) roommateLink.style.display = "none";
         setupNavigation();
       }
     });
