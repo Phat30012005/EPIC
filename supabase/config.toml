@@ -34,7 +34,7 @@ entrypoint = "./functions/get-post-detail/index.ts"
 # CẤU HÌNH CHO FUNCTION ĐĂNG TIN
 [functions.create-post]
 enabled = true
-verify_jwt = true 
+verify_jwt = false #true
 import_map = "./functions/create-post/deno.json"
 entrypoint = "./functions/create-post/index.ts"
 
@@ -48,28 +48,28 @@ entrypoint = "./functions/get-posts-list/index.ts"
 # CẤU HÌNH CHO FUNCTION LẤY PROFILE
 [functions.get-user-profile]
 enabled = true
-verify_jwt = true 
+verify_jwt = false #true
 import_map = "./functions/get-user-profile/deno.json"
 entrypoint = "./functions/get-user-profile/index.ts"
 
 # CẤU HÌNH CHO FUNCTION CẬP NHẬT PROFILE
 [functions.update-user-profile]
 enabled = true
-verify_jwt = true  
+verify_jwt = false #true
 import_map = "./functions/update-user-profile/deno.json"
 entrypoint = "./functions/update-user-profile/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY TIN CỦA CHỦ TRỌ
 [functions.get-lessor-posts]
 enabled = true
-verify_jwt = true  
+verify_jwt = false #true 
 import_map = "./functions/get-lessor-posts/deno.json"
 entrypoint = "./functions/get-lessor-posts/index.ts"
 
 # CẤU HÌNH CHO FUNCTION XÓA TIN
 [functions.delete-post]
 enabled = true
-verify_jwt = true # 
+verify_jwt = false #true 
 import_map = "./functions/delete-post/deno.json"
 entrypoint = "./functions/delete-post/index.ts"
 
@@ -83,14 +83,14 @@ entrypoint = "./functions/search-posts/index.ts"
 # CẤU HÌNH CHO BOOKMARKS (THÊM)
 [functions.add-bookmark]
 enabled = true
-verify_jwt = true 
+verify_jwt = false #true
 import_map = "./functions/add-bookmark/deno.json"
 entrypoint = "./functions/add-bookmark/index.ts"
 
 # CẤU HÌNH CHO BOOKMARKS (XÓA)
 [functions.remove-bookmark]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = false # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/remove-bookmark/deno.json"
 entrypoint = "./functions/remove-bookmark/index.ts"
 
@@ -98,14 +98,14 @@ entrypoint = "./functions/remove-bookmark/index.ts"
 # CẤU HÌNH CHO BOOKMARKS (LẤY DANH SÁCH)
 [functions.get-user-bookmarks]
 enabled = true
-verify_jwt = true # <--- true, BẮT BUỘC đăng nhập
+verify_jwt = false # <--- true, BẮT BUỘC đăng nhập
 import_map = "./functions/get-user-bookmarks/deno.json"
 entrypoint = "./functions/get-user-bookmarks/index.ts"
 
 #CAU HINH REVIEW
 [functions.add-review]
 enabled = true
-verify_jwt = true
+verify_jwt = false #true
 import_map = "./functions/add-review/deno.json"
 entrypoint = "./functions/add-review/index.ts"
 
