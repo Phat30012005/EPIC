@@ -41,11 +41,7 @@ CREATE TABLE public.posts (
     ward text,
     address_detail text,
     image_urls text[] NOT NULL,
-    highlights text[],
-
-    "contactName" text,
-    "phone" text,
-    "email" text
+    highlights text[]
 );
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 
