@@ -14,14 +14,6 @@ function createErrorResponse(message: string, status: number) {
   });
 }
 
-const ADMIN_EMAILS = [
-  "phatkimlam2005@gmail.com",
-  "lethanhvy102005@gmail.com",
-  "maib2308257@student.ctu.edu.vn",
-  "ngab2308259@student.ctu.edu.vn",
-  "tamb2308270@student.ctu.edu.vn",
-];
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   // Sửa: Cho phép DELETE
@@ -51,7 +43,7 @@ Deno.serve(async (req, context) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
-  // --- BƯỚC A: Block Xác thực CHUẨN (Giống create-post) ---
+  // --- BƯỚC A: Block Xác thực CHUẨN ---
   try {
     if (context && context.auth) {
       // 1. Logic cho Production (khi deploy)
@@ -72,19 +64,11 @@ Deno.serve(async (req, context) => {
       userId = await getUserIdFromToken(req); // Dùng shared helper
       
       // Lấy email (logic này vẫn cần)
-      const { data: authData, error: authError }_ =
+      const { data: authData, error: authError } =
         await supabaseAdmin.auth.admin.getUserById(userId);
       if (authError) throw authError;
       userEmail = authData.user.email;
     }
-  } catch (authError) {
-    // 3. Nếu cả 2 cách trên lỗi (vd: token sai, hết hạn)
-    console.error("Authentication error:", authError.message);
-    return createErrorResponse(
-      authError.message || "User authentication failed",
-      401
-    );
-  }
   // --- KẾT THÚC BƯỚC A ---
 
   if (!userId || !userEmail) {
@@ -119,7 +103,7 @@ Deno.serve(async (req, context) => {
 
     // 4.2 Kiểm tra quyền
     const isOwner = post.user_id === userId;
-    const isAdmin = ADMIN_EMAILS.includes(userEmail);
+    const isAdmin = (userRole === "ADMIN");
 
     if (!isOwner && !isAdmin) {
       return createErrorResponse("Bạn không có quyền xóa bài đăng này", 403);

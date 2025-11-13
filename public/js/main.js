@@ -130,14 +130,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    const ADMIN_EMAILS = [
-      "phat30012005@gmail.com",
-      "lethanhvy102005@gmail.com",
-      "maib2308257@student.ctu.edu.vn",
-      "ngab2308259@student.ctu.edu.vn",
-      "tamb2308270@student.ctu.edu.vn",
-    ];
-
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || session) {
         // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
@@ -160,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
         profileLinkLi.style.display = "list-item";
         setupNavigation();
 
-        if (ADMIN_EMAILS.includes(session.user.email)) {
+        if (role === "ADMIN") {
           adminLink.style.display = "list-item";
         } else {
           adminLink.style.display = "none";
