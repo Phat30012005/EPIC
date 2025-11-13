@@ -89,9 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (deleteError) {
             console.error("Lỗi khi xóa:", deleteError);
-            alert("Lỗi: " + deleteError.message);
+            showAlert("Lỗi: " + deleteError.message);
           } else {
-            alert("Xóa tin thành công!");
+            showAlert("Xóa tin thành công!");
             // Tải lại bảng
             loadAdminPosts();
           }

@@ -157,11 +157,11 @@ async function submitPost(selectedWardValue) {
   // 1. Lấy file ảnh
   const imageInput = document.getElementById("images");
   if (imageInput.files.length === 0) {
-    alert("Vui lòng chọn ít nhất một ảnh.");
+    showAlert("Vui lòng chọn ít nhất một ảnh.");
     return;
   }
   if (imageInput.files.length > 10) {
-    alert("Bạn chỉ được đăng tối đa 10 ảnh.");
+    showAlert("Bạn chỉ được đăng tối đa 10 ảnh.");
     return;
   }
   const files = Array.from(imageInput.files);
@@ -210,16 +210,16 @@ async function submitPost(selectedWardValue) {
     // KIỂM TRA LỖI QUAN TRỌNG: Lỗi chưa đăng nhập
     if (error.name === "AuthError") {
       // (Lỗi này do 'api-client.js' trả về)
-      alert("Bạn cần đăng nhập để đăng tin!");
+      showAlert("Bạn cần đăng nhập để đăng tin!");
       window.location.href = "/public/login.html";
     } else {
       // Các lỗi khác (từ backend 500, 400...)
-      alert("Lỗi đăng tin: " + error.message);
+      showAlert("Lỗi đăng tin: " + error.message);
     }
   } else {
     // 'data' ở đây là { id: ..., title: ... } do function trả về
     console.log("Đăng tin thành công:", data);
-    alert("Đăng tin thành công!");
+    showAlert("Đăng tin thành công!");
     window.location.href = "/public/danhsach.html";
   }
 }
