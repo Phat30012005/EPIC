@@ -1,4 +1,6 @@
-/ supabase/cfinnostu / get - roommate - postings / index.ts;
+// supabase/functions/get-roommate-postings/index.ts
+// (PHIÊN BẢN V2 - SỬA LỖI 503 CRASH)
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -26,11 +28,10 @@ Deno.serve(async (req) => {
       ward: url.searchParams.get("ward"),
       posting_type: url.searchParams.get("posting_type"),
       gender_preference: url.searchParams.get("gender_preference"),
-      price: url.searchParams.get("price"), // vd: "1-2" hoặc "tren3"
+      price: url.searchParams.get("price"),
     };
 
-    // 3. Xây dựng query
-    // KIỂM TRA DOMINO: JOIN với profiles để lấy tên/avatar người đăng
+    // 3. Xây dựng query (Giữ nguyên)
     let query = supabaseAdmin
       .from("roommate_postings")
       .select(
@@ -39,9 +40,9 @@ Deno.serve(async (req) => {
         profiles:user_id ( full_name, avatar_url )
       `
       )
-      .eq("status", "OPEN"); // Chỉ lấy tin đang mở
+      .eq("status", "OPEN");
 
-    // 4. Áp dụng filter (giống hệt get-posts-list)
+    // 4. Áp dụng filter (Giữ nguyên)
     if (filters.ward) {
       query = query.eq("ward", filters.ward);
     }
@@ -52,30 +53,30 @@ Deno.serve(async (req) => {
       query = query.eq("gender_preference", filters.gender_preference);
     }
 
-    // Logic xử lý giá (copy từ get-posts-list)
+    // 5. (SỬA LỖI 503) Logic xử lý giá (chặt chẽ hơn)
     if (filters.price) {
-      // Ví dụ: "tren3" (trên 3 triệu)
-      if (filters.price.startsWith("tren")) {
-        const amount = Number(filters.price.replace("tren", "")) * 1000000;
-        query = query.gte("price", amount);
+      if (filters.price === "tren3") {
+        // Xử lý 'Trên 3 triệu' (value="tren3")
+        query = query.gte("price", 3000000);
       } else {
-        // Ví dụ: "1-2" (1-2 triệu)
+        // Xử lý '0-2' hoặc '2-3'
         const parts = filters.price.split("-").map(Number);
-        if (parts.length === 2) {
+        // Kiểm tra an toàn
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
           query = query.gte("price", parts[0] * 1000000);
           query = query.lte("price", parts[1] * 1000000);
         }
       }
     }
 
-    // 5. Sắp xếp
+    // 6. Sắp xếp (Giữ nguyên)
     query = query.order("created_at", { ascending: false });
 
-    // 6. Thực thi
+    // 7. Thực thi
     const { data, error } = await query;
     if (error) throw error;
 
-    // 7. Trả về thành công
+    // 8. Trả về thành công
     return new Response(JSON.stringify({ data: data }), {
       headers: {
         "Content-Type": "application/json",
@@ -86,7 +87,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Lỗi trong function get-roommate-postings:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+      status: 500, // Lỗi 500 (Internal Server Error) thay vì 503
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",

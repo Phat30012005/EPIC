@@ -1,7 +1,8 @@
 // public/js/main.js
-// === ĐÃ CẬP NHẬT (NGÀY 6) ĐỂ THÊM LOGIC TÌM KIẾM ===
+// === PHIÊN BẢN ĐẦY ĐỦ (V_FINAL) ===
+// ĐÃ CẬP NHẬT ĐỂ PHÂN QUYỀN "ĐĂNG TIN" (LESSOR) vs "TÌM Ở GHÉP" (RENTER)
 
-// ... (Giữ nguyên các hàm tiện ích showAlert, showConfirm) ...
+// --- Các hàm tiện ích (Giữ nguyên) ---
 window.showAlert = function (message) {
   const modalOverlay = document.createElement("div");
   modalOverlay.className = "modal-overlay";
@@ -36,7 +37,7 @@ window.showConfirm = function (message, onConfirm) {
   };
 };
 
-// ... (Giữ nguyên hàm setupNavigation) ...
+// --- Hàm active link (Giữ nguyên) ---
 window.setupNavigation = function () {
   const path = window.location.pathname.split("/").pop() || "index.html";
   const navLinks = document.querySelectorAll(".nav-link");
@@ -57,11 +58,7 @@ window.setupNavigation = function () {
   });
 };
 
-// === HÀM MỚI (NGÀY 6): GÁN SỰ KIỆN CHO FORM TÌM KIẾM ===
-/**
- * Gán sự kiện submit cho #search-form trong header.
- * Khi submit, chuyển hướng đến trang danhsach.html với query.
- */
+// --- Hàm tìm kiếm (Giữ nguyên) ---
 function setupSearchForm() {
   const searchForm = document.getElementById("search-form");
   const searchInput = document.getElementById("search-input");
@@ -75,7 +72,6 @@ function setupSearchForm() {
         // Nếu có từ khóa, chuyển hướng
         console.log(`Đang tìm kiếm: ${query}`);
         // Chuyển hướng đến trang danh sách VÀ đính kèm query
-        // ví dụ: /public/danhsach.html?q=phòng+trọ
         window.location.href = `/public/danhsach.html?q=${encodeURIComponent(
           query
         )}`;
@@ -83,10 +79,9 @@ function setupSearchForm() {
     });
   }
 }
-// === KẾT THÚC HÀM MỚI ===
 
 // ===========================================
-// 🚀 LOGIC KHỞI ĐỘNG CHÍNH
+// 🚀 LOGIC KHỞI ĐỘNG CHÍNH (ĐÃ CẬP NHẬT)
 // ===========================================
 document.addEventListener("DOMContentLoaded", function () {
   // 1. Hàm tải component (Giữ nguyên)
@@ -106,31 +101,39 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch((error) => console.error(`Lỗi tải component: ${error}`));
   };
 
-  // 2. Tải Header VÀ CHẠY LOGIC AUTH
+  // 2. Tải Header VÀ CHẠY LOGIC AUTH (ĐÃ SỬA)
   loadComponent("/public/header.html", "header-placeholder", () => {
     // Callback này chạy SAU KHI header.html đã được chèn vào DOM
 
     setupNavigation();
+    setupSearchForm(); // (Giữ nguyên)
 
-    // === GỌI HÀM MỚI (NGÀY 6) ===
-    setupSearchForm();
-    // === KẾT THÚC ===
-
+    // (SỬA) Thêm 2 biến link mới
     const loginButton = document.getElementById("login-button");
     const adminLink = document.getElementById("admin-link");
     const profileLinkLi = document.getElementById("profile-link");
-    const roommateLink = document.getElementById("roommate-link");
+    const lessorPostLink = document.getElementById("lessor-post-link"); // <-- BIẾN MỚI
+    const roommateLink = document.getElementById("roommate-link"); // <-- BIẾN MỚI
+
     const profileLinkA = profileLinkLi
       ? profileLinkLi.querySelector("a")
       : null;
 
-    if (!loginButton || !adminLink || !profileLinkA) {
+    // (SỬA) Cập nhật kiểm tra lỗi
+    if (
+      !loginButton ||
+      !adminLink ||
+      !profileLinkA ||
+      !lessorPostLink ||
+      !roommateLink
+    ) {
       console.error(
-        "Không tìm thấy #login-button, #admin-link hoặc #profile-link a"
+        "Lỗi DOM: Không tìm thấy một trong các element điều hướng quan trọng (login, admin, profile, lessor-post, roommate-link)"
       );
       return;
     }
 
+    // (SỬA) Cập nhật onAuthStateChange
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || session) {
         // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
@@ -145,21 +148,31 @@ document.addEventListener("DOMContentLoaded", function () {
         };
 
         const role = session.user.user_metadata.role;
-        if (role === "LESSOR") {
-          profileLinkA.href = "/public/profile-lessor.html";
-          if (roommateLink) roommateLink.style.display = "none";
-        } else {
-          profileLinkA.href = "/public/profile-renter.html";
-          if (roommateLink) roommateLink.style.display = "list-item";
-        }
-        profileLinkLi.style.display = "list-item";
-        setupNavigation();
 
+        // === (SỬA) LOGIC PHÂN QUYỀN MỚI ===
+        if (role === "LESSOR") {
+          // 1. Cấu hình cho LESSOR (Chủ trọ)
+          profileLinkA.href = "/public/profile-lessor.html";
+          roommateLink.style.display = "none"; // Ẩn "Tìm ở ghép"
+          lessorPostLink.style.display = "list-item"; // Hiện "Đăng tin"
+        } else {
+          // 2. Cấu hình cho RENTER (Người thuê)
+          profileLinkA.href = "/public/profile-renter.html";
+          roommateLink.style.display = "list-item"; // Hiện "Tìm ở ghép"
+          lessorPostLink.style.display = "none"; // Ẩn "Đăng tin"
+        }
+
+        profileLinkLi.style.display = "list-item";
+
+        // Logic Admin (giữ nguyên, độc lập)
         if (role === "ADMIN") {
           adminLink.style.display = "list-item";
         } else {
           adminLink.style.display = "none";
         }
+        // === KẾT THÚC LOGIC MỚI ===
+
+        setupNavigation(); // Chạy lại để active link
       } else if (
         event === "SIGNED_OUT" ||
         (event === "INITIAL_SESSION" && !session)
@@ -170,13 +183,17 @@ document.addEventListener("DOMContentLoaded", function () {
         loginButton.classList.remove("btn-outline-danger");
         loginButton.classList.add("btn-primary");
         loginButton.onclick = null;
+
+        // (SỬA) Ẩn tất cả các link động
         adminLink.style.display = "none";
         profileLinkLi.style.display = "none";
-        if (roommateLink) roommateLink.style.display = "none";
+        roommateLink.style.display = "none";
+        lessorPostLink.style.display = "none";
+
         setupNavigation();
       }
     });
-  });
+  }); // Kết thúc loadComponent
 
   // 3. Tải Footer (Giữ nguyên)
   loadComponent("/public/footer.html", "footer-placeholder");
