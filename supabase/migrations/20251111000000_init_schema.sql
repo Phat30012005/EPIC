@@ -69,6 +69,21 @@ CREATE TABLE public.reviews (
 );
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
+-- Bảng (5): ROOMMATE_POSTINGS (CHO TÍNH NĂNG Ở GHÉP)
+CREATE TABLE public.roommate_postings (
+    posting_id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+
+    title text NOT NULL,
+    description text,
+    posting_type text, -- 'OFFERING' hoặc 'SEEKING'
+    ward text NOT NULL,
+    price bigint NOT NULL,
+    gender_preference text, -- 'Nam', 'Nữ', 'Không yêu cầu'
+    status text DEFAULT 'OPEN'::text -- 'OPEN' hoặc 'CLOSED'
+);
+ALTER TABLE public.roommate_postings ENABLE ROW LEVEL SECURITY;
 
 -- === PHẦN 4: TRIGGER (TỰ ĐỘNG SAO CHÉP USER MỚI) ===
 -- (Không thay đổi)
@@ -134,6 +149,21 @@ CREATE POLICY "Users can update their own reviews" ON public.reviews
 CREATE POLICY "Users can delete their own reviews" ON public.reviews
   FOR DELETE USING (auth.uid() = user_id);
 
+-- Policies cho ROOMMATE_POSTINGS:
+CREATE POLICY "Public can read roommate postings" ON public.roommate_postings
+  FOR SELECT USING (true);
+
+CREATE POLICY "RENTERs can insert roommate postings" ON public.roommate_postings
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'RENTER'
+  );
+
+CREATE POLICY "Users/Admins can delete roommate postings" ON public.roommate_postings
+  FOR DELETE USING (
+    (auth.uid() = user_id) OR
+    ((SELECT role FROM public.profiles WHERE id = auth.uid()) = 'ADMIN'::text)
+  );
 
 -- === PHẦN 6: TÌM KIẾM (ÁP DỤNG) ===
 -- (Không thay đổi)
@@ -165,6 +195,12 @@ CREATE INDEX posts_fts_idx ON public.posts USING GIN (fts);
 
 -- === PHẦN 7: STORAGE POLICIES ===
 -- (Không thay đổi)
+
+-- === TẠO BUCKET (TỰ ĐỘNG) ===
+-- (Tên 'post-images' phải khớp với các policy bên dưới và code function của bạn)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('post-images', 'post-images', true)
+ON CONFLICT (id) DO NOTHING; -- Bỏ qua nếu bucket đã tồn tại
 
 CREATE POLICY "Allow public read on post-images"
   ON "storage"."objects"
