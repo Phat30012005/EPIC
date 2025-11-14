@@ -145,3 +145,24 @@ verify_jwt = false # Public (ai cũng xem được chi tiết)
 import_map = "./functions/get-roommate-posting-detail/deno.json"
 entrypoint = "./functions/get-roommate-posting-detail/index.ts"
 
+
+[functions.add-roommate-bookmark]
+enabled = true
+verify_jwt = true
+import_map = "./functions/add-roommate-bookmark/deno.json"
+entrypoint = "./functions/add-roommate-bookmark/index.ts"
+
+
+[functions.remove-roommate-bookmark]
+enabled = true
+verify_jwt = true
+import_map = "./functions/remove-roommate-bookmark/deno.json"
+entrypoint = "./functions/remove-roommate-bookmark/index.ts"
+
+
+[functions.get-user-roommate-bookmarks]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-user-roommate-bookmarks/deno.json"
+entrypoint = "./functions/get-user-roommate-bookmarks/index.ts"
+
