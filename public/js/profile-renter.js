@@ -1,5 +1,5 @@
 // public/js/profile-renter.js
-// (PHIÊN BẢN V4 - Thêm logic "Quản lý/Xóa tin ở ghép")
+// (PHIÊN BẢN V4.1 - Sửa lỗi logic data.data)
 
 // ===========================================
 // PHẦN XỬ LÝ HỒ SƠ (Giữ nguyên)
@@ -61,14 +61,14 @@ function renderMyRoommatePosts(posts) {
   const postsList = document.getElementById("my-roommate-posts-list");
   const loadingDiv = document.getElementById("my-roommate-posts-loading");
 
-  postsList.innerHTML = ""; // Xóa
+  postsList.innerHTML = "";
 
   if (!posts || posts.length === 0) {
     loadingDiv.textContent = "Bạn chưa đăng tin tìm ở ghép nào.";
     return;
   }
 
-  loadingDiv.style.display = "none"; // Ẩn loading
+  loadingDiv.style.display = "none";
 
   posts.forEach((post) => {
     const postDiv = document.createElement("div");
@@ -77,7 +77,7 @@ function renderMyRoommatePosts(posts) {
     postDiv.innerHTML = `
       <div>
         <a href="/public/oghep-chitiet.html?id=${
-          post.posting_id // (SỬA) Dùng posting_id
+          post.posting_id
         }" class="fw-bold text-primary" target="_blank">${post.title}</a>
         <p class="mb-0 text-muted">${post.price.toLocaleString()} đ/người - ${
       post.ward
@@ -86,14 +86,13 @@ function renderMyRoommatePosts(posts) {
       </div>
       <div>
         <button class="btn btn-sm btn-danger delete-roommate-post-btn" data-id="${
-          post.posting_id // (SỬA) Dùng posting_id
+          post.posting_id
         }">Xóa</button>
       </div>
     `;
     postsList.appendChild(postDiv);
   });
 
-  // Gán sự kiện cho các nút Xóa
   addDeleteRoommateListeners();
 }
 
@@ -102,15 +101,14 @@ function addDeleteRoommateListeners() {
 
   postsList.querySelectorAll(".delete-roommate-post-btn").forEach((button) => {
     button.addEventListener("click", async (e) => {
-      const postingId = e.target.dataset.id; // Lấy 'posting_id'
+      const postingId = e.target.dataset.id;
 
       showConfirm("Bạn có chắc muốn xóa tin (ở ghép) này?", async () => {
-        // (SỬA) Gọi API 'delete-roommate-posting'
         const { data, error } = await callEdgeFunction(
           "delete-roommate-posting",
           {
             method: "DELETE",
-            params: { id: postingId }, // (Backend này nhận 'id')
+            params: { id: postingId },
           }
         );
 
@@ -126,7 +124,6 @@ function addDeleteRoommateListeners() {
 }
 
 async function loadMyRoommatePosts() {
-  // (SỬA) Gọi API 'get-my-roommate-postings'
   const { data, error } = await callEdgeFunction("get-my-roommate-postings", {
     method: "GET",
   });
@@ -136,8 +133,11 @@ async function loadMyRoommatePosts() {
     document.getElementById("my-roommate-posts-loading").textContent =
       "Lỗi khi tải tin đăng.";
   } else {
-    // (SỬA) Gọi hàm render MỚI
-    renderMyRoommatePosts(data.data); // (API này trả về {data: [...]})
+    // === (SỬA LỖI) ===
+    // 'data' TỪ api-client LUÔN LÀ MẢNG
+    // Xóa '.data' ở đây
+    renderMyRoommatePosts(data);
+    // === KẾT THÚC SỬA LỖI ===
   }
 }
 
@@ -217,7 +217,7 @@ async function loadSavedPosts() {
     document.getElementById("saved-posts-loading").textContent =
       "Lỗi khi tải tin (phòng trọ) đã lưu.";
   } else {
-    renderSavedPosts(data);
+    renderSavedPosts(data); // (Dòng này đã đúng, data là mảng)
   }
 }
 
@@ -303,12 +303,12 @@ async function loadSavedRoommatePosts() {
     document.getElementById("saved-roommate-posts-loading").textContent =
       "Lỗi khi tải tin (ở ghép) đã lưu.";
   } else {
-    renderSavedRoommatePosts(data);
+    renderSavedRoommatePosts(data); // (Dòng này đã đúng, data là mảng)
   }
 }
 
 // ===========================================
-// HÀM CHẠY CHÍNH (ĐÃ SỬA)
+// HÀM CHẠY CHÍNH (Giữ nguyên)
 // ===========================================
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. Tải Profile (Giữ nguyên)
@@ -317,7 +317,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   if (error) {
-    // ... (Xử lý lỗi profile giữ nguyên)
     console.error("Lỗi tải profile:", error);
     alert("Không thể tải hồ sơ: " + error.message);
     document.getElementById("profile-loading").textContent = "Lỗi tải hồ sơ.";
@@ -333,10 +332,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const profileForm = document.getElementById("profile-form");
   profileForm.addEventListener("submit", handleProfileUpdate);
 
-  // 3. (SỬA) Tải CẢ BA danh sách song song
+  // 3. Tải CẢ BA danh sách song song (Giữ nguyên)
   await Promise.all([
-    loadMyRoommatePosts(), // (MỚI) Tải tin (ở ghép) CỦA TÔI
-    loadSavedPosts(), // Tải tin (phòng trọ) đã lưu
-    loadSavedRoommatePosts(), // Tải tin (ở ghép) đã lưu
+    loadMyRoommatePosts(),
+    loadSavedPosts(),
+    loadSavedRoommatePosts(),
   ]);
 });
