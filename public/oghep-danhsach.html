@@ -18,6 +18,32 @@
 
     <link rel="stylesheet" href="/public/css/style.css" />
     <link rel="stylesheet" href="/public/css/chatbox.css" />
+    <style>
+      .save-roommate-btn {
+        /* (Đổi tên class một chút cho rõ) */
+        transition: all 0.2s ease;
+      }
+      /* Trạng thái chưa lưu (mặc định) */
+      .save-roommate-btn {
+        color: #dc3545; /* Màu đỏ (outline) */
+        background-color: #fff;
+      }
+      .save-roommate-btn:hover {
+        color: #fff;
+        background-color: #dc3545;
+      }
+      /* Trạng thái đã lưu (active) */
+      .save-roommate-btn.active {
+        color: #fff;
+        background-color: #dc3545; /* Màu đỏ (solid) */
+        border-color: #dc3545;
+      }
+      .save-roommate-btn.active .fa-regular {
+        /* Đổi icon rỗng thành đặc */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+      }
+    </style>
   </head>
 
   <body class="bg-gray-100 flex flex-col min-h-screen">

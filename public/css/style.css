@@ -511,27 +511,50 @@ img {
 }
 
 /* Tùy chỉnh Radio Button */
+/* =========================================================
+   DÁN VÀO CUỐI FILE: public/css/style.css
+   (CSS cho Radio Button tùy chỉnh - ĐÃ SỬA LỖI HIỂN THỊ)
+   ========================================================= */
+
 .radio {
   display: block;
   margin-bottom: 10px;
   cursor: pointer;
+
+  /* (SỬA) Dùng màu chữ xám chuẩn, 
+     trình duyệt Dark Mode sẽ tự động đổi sang màu sáng */
+  color: var(--gray-500);
+  font-weight: 500;
 }
+
 .radio input {
   display: none; /* Ẩn radio gốc */
 }
+
 .radio .custom-radio {
   display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2px solid #fff; /* (Nếu nền tối) hoặc #ccc (nếu nền sáng) */
+  width: 20px;
+  height: 20px;
+
+  /* === (SỬA LỖI CHÍNH) === */
+  /* Đổi viền từ #fff (trắng) sang màu xám của theme */
+  border: 2px solid var(--gray-400);
+
   border-radius: 50%;
   margin-right: 10px;
   position: relative;
   vertical-align: middle;
+  transition: all 0.2s ease;
 }
+
+.radio:hover .custom-radio {
+  border-color: var(--primary);
+}
+
 .radio input:checked + .custom-radio {
   border-color: var(--primary); /* Màu xanh primary */
 }
+
 .radio input:checked + .custom-radio::after {
   content: "";
   display: block;
@@ -544,4 +567,3 @@ img {
   left: 50%;
   transform: translate(-50%, -50%);
 }
-/* === KẾT THÚC PHẦN DÁN === */

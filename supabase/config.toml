@@ -166,3 +166,10 @@ verify_jwt = true
 import_map = "./functions/get-user-roommate-bookmarks/deno.json"
 entrypoint = "./functions/get-user-roommate-bookmarks/index.ts"
 
+
+[functions.get-my-roommate-postings]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-my-roommate-postings/deno.json"
+entrypoint = "./functions/get-my-roommate-postings/index.ts"
+
