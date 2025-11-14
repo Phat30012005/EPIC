@@ -1,8 +1,8 @@
 // public/js/profile-renter.js
-// PHIÊN BẢN V2 (Đã đồng bộ toàn bộ lỗi logic từ lessor)
+// (PHIÊN BẢN V3 - Thêm logic "Tin Ở Ghép Đã Lưu")
 
 // ===========================================
-// PHẦN XỬ LÝ HỒ SƠ (ĐÃ SỬA LỖI 1 & 2)
+// PHẦN XỬ LÝ HỒ SƠ (Giữ nguyên)
 // ===========================================
 
 function populateProfileForm(profile) {
@@ -13,10 +13,9 @@ function populateProfileForm(profile) {
   const loadingDiv = document.getElementById("profile-loading");
   const profileForm = document.getElementById("profile-form");
 
-  // (SỬA LỖI 2: Đọc 'full_name' và 'phone_number' từ CSDL V5/function V2)
   emailInput.value = profile.email || "Đang tải...";
-  nameInput.value = profile.full_name || ""; // <--- ĐÃ SỬA
-  phoneInput.value = profile.phone_number || ""; // <--- ĐÃ SỬA
+  nameInput.value = profile.full_name || "";
+  phoneInput.value = profile.phone_number || "";
 
   if (profile.role === "RENTER") {
     roleInput.value = "Người thuê";
@@ -40,12 +39,11 @@ async function handleProfileUpdate(e) {
   const newName = nameInput.value;
   const newPhone = phoneInput.value;
 
-  // (SỬA LỖI 2: Gửi JSON khớp với Backend 'update-user-profile' V2)
   const { data, error } = await callEdgeFunction("update-user-profile", {
     method: "POST",
     body: {
-      full_name: newName, // <--- ĐÃ SỬA
-      phone_number: newPhone, // <--- ĐÃ SỬA
+      full_name: newName,
+      phone_number: newPhone,
     },
   });
 
@@ -54,8 +52,7 @@ async function handleProfileUpdate(e) {
     console.error("Lỗi cập nhật:", error);
   } else {
     alert("Cập nhật hồ sơ thành công!");
-    // (SỬA LỖI 1: 'data' trả về là profile, không phải 'data.data')
-    populateProfileForm(data); // <--- ĐÃ SỬA
+    populateProfileForm(data);
   }
 
   updateButton.disabled = false;
@@ -63,33 +60,26 @@ async function handleProfileUpdate(e) {
 }
 
 // ===========================================
-// PHẦN XỬ LÝ TIN ĐÃ LƯU (ĐÃ SỬA LỖI 3 & 4)
+// PHẦN XỬ LÝ TIN (PHÒNG TRỌ) ĐÃ LƯU (Giữ nguyên)
 // ===========================================
 
-/**
- * Render danh sách tin đã lưu
- * (Đã sửa lỗi 'posts' (số nhiều) và 'post.id')
- */
 function renderSavedPosts(bookmarks) {
   const postsList = document.getElementById("saved-posts-list");
   const loadingDiv = document.getElementById("saved-posts-loading");
 
-  postsList.innerHTML = ""; // Xóa
+  postsList.innerHTML = "";
 
   if (!bookmarks || bookmarks.length === 0) {
-    loadingDiv.textContent = "Bạn chưa lưu tin nào.";
+    loadingDiv.textContent = "Bạn chưa lưu tin phòng trọ nào.";
     return;
   }
 
-  loadingDiv.style.display = "none"; // Ẩn loading
+  loadingDiv.style.display = "none";
 
   bookmarks.forEach((bookmark) => {
-    // (SỬA LỖI 3: Backend trả về 'post' (số ít))
     const post = bookmark.post;
-
-    // Xử lý nếu tin gốc đã bị xóa
     if (!post) {
-      postsList.innerHTML += `<p class="text-muted">Một tin đã lưu không còn tồn tại (có thể đã bị xóa).</p>`;
+      postsList.innerHTML += `<p class="text-muted">Một tin (phòng trọ) đã lưu không còn tồn tại.</p>`;
       return;
     }
 
@@ -99,7 +89,7 @@ function renderSavedPosts(bookmarks) {
     postDiv.innerHTML = `
       <div>
         <a href="/public/chitiet.html?id=${
-          post.post_id // (SỬA LỖI 4: CSDL V5 dùng 'post_id')
+          post.post_id
         }" class="fw-bold text-primary" target="_blank">${post.title}</a>
         <p class="mb-0 text-muted">${post.price.toLocaleString()} đ/tháng - ${
       post.ward
@@ -107,7 +97,7 @@ function renderSavedPosts(bookmarks) {
       </div>
       <div>
         <button class="btn btn-sm btn-outline-danger unsave-post-btn" data-id="${
-          post.post_id // (SỬA LỖI 4: CSDL V5 dùng 'post_id')
+          post.post_id
         }">
           Bỏ lưu
         </button>
@@ -116,14 +106,9 @@ function renderSavedPosts(bookmarks) {
     postsList.appendChild(postDiv);
   });
 
-  // Gán sự kiện cho các nút "Bỏ lưu"
   addUnsaveListeners();
 }
 
-/**
- * Gán sự kiện click cho các nút "Bỏ lưu"
- * (Đã kiểm tra: code này gửi 'post_id', khớp với backend V2)
- */
 function addUnsaveListeners() {
   const postsList = document.getElementById("saved-posts-list");
 
@@ -131,12 +116,114 @@ function addUnsaveListeners() {
     button.addEventListener("click", async (e) => {
       const postId = e.target.dataset.id;
 
-      showConfirm("Bạn có chắc muốn bỏ lưu tin này?", async () => {
-        // Gọi API 'remove-bookmark'
+      showConfirm("Bạn có chắc muốn bỏ lưu tin (phòng trọ) này?", async () => {
+        // Gọi API 'remove-bookmark' (cũ)
         const { data, error } = await callEdgeFunction("remove-bookmark", {
           method: "DELETE",
-          params: { post_id: postId }, // (Đã nhất quán)
+          params: { post_id: postId },
         });
+
+        if (error) {
+          alert("Lỗi khi bỏ lưu: " + error.message);
+        } else {
+          alert("Bỏ lưu thành công!");
+          e.target.closest(".d-flex").remove();
+        }
+      });
+    });
+  });
+}
+
+async function loadSavedPosts() {
+  // Gọi API 'get-user-bookmarks' (cũ)
+  const { data, error } = await callEdgeFunction("get-user-bookmarks", {
+    method: "GET",
+  });
+
+  if (error) {
+    console.error("Lỗi tải tin (phòng trọ) đã lưu:", error);
+    document.getElementById("saved-posts-loading").textContent =
+      "Lỗi khi tải tin (phòng trọ) đã lưu.";
+  } else {
+    renderSavedPosts(data);
+  }
+}
+
+// ===========================================
+// (SỬA) PHẦN MỚI: XỬ LÝ TIN (Ở GHÉP) ĐÃ LƯU
+// ===========================================
+
+/**
+ * Render danh sách tin "ở ghép" đã lưu
+ */
+function renderSavedRoommatePosts(bookmarks) {
+  const postsList = document.getElementById("saved-roommate-posts-list");
+  const loadingDiv = document.getElementById("saved-roommate-posts-loading");
+
+  postsList.innerHTML = ""; // Xóa
+
+  if (!bookmarks || bookmarks.length === 0) {
+    loadingDiv.textContent = "Bạn chưa lưu tin 'tìm ở ghép' nào.";
+    return;
+  }
+
+  loadingDiv.style.display = "none"; // Ẩn loading
+
+  bookmarks.forEach((bookmark) => {
+    // Backend trả về 'posting' (như chúng ta định nghĩa ở P2)
+    const post = bookmark.posting;
+
+    if (!post) {
+      postsList.innerHTML += `<p class="text-muted">Một tin (ở ghép) đã lưu không còn tồn tại.</p>`;
+      return;
+    }
+
+    const postDiv = document.createElement("div");
+    postDiv.className =
+      "d-flex justify-content-between align-items-center p-3 border rounded";
+    postDiv.innerHTML = `
+      <div>
+        <a href="/public/oghep-chitiet.html?id=${
+          post.posting_id // CSDL dùng 'posting_id'
+        }" class="fw-bold text-primary" target="_blank">${post.title}</a>
+        <p class="mb-0 text-muted">${post.price.toLocaleString()} đ/người - ${
+      post.ward
+    }</p>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-outline-danger unsave-roommate-post-btn" data-id="${
+          post.posting_id // CSDL dùng 'posting_id'
+        }">
+          Bỏ lưu
+        </button>
+      </div>
+    `;
+    postsList.appendChild(postDiv);
+  });
+
+  // Gán sự kiện cho các nút "Bỏ lưu" MỚI
+  addUnsaveRoommateListeners();
+}
+
+/**
+ * Gán sự kiện click cho các nút "Bỏ lưu" (Ở GHÉP)
+ */
+function addUnsaveRoommateListeners() {
+  const postsList = document.getElementById("saved-roommate-posts-list");
+
+  postsList.querySelectorAll(".unsave-roommate-post-btn").forEach((button) => {
+    button.addEventListener("click", async (e) => {
+      const postingId = e.target.dataset.id; // Lấy 'posting_id'
+
+      showConfirm("Bạn có chắc muốn bỏ lưu tin (ở ghép) này?", async () => {
+        // (SỬA) Gọi API 'remove-roommate-bookmark' MỚI
+        const { data, error } = await callEdgeFunction(
+          "remove-roommate-bookmark",
+          {
+            method: "DELETE",
+            params: { posting_id: postingId }, // Gửi 'posting_id'
+          }
+        );
 
         if (error) {
           alert("Lỗi khi bỏ lưu: " + error.message);
@@ -151,30 +238,32 @@ function addUnsaveListeners() {
 }
 
 /**
- * Tải danh sách tin đã lưu của user
- * (Đã sửa lỗi 'data.data')
+ * Tải danh sách tin "ở ghép" đã lưu của user
  */
-async function loadSavedPosts() {
-  // (SỬA LỖI 1: 'data' trả về là mảng, không phải 'data.data')
-  const { data, error } = await callEdgeFunction("get-user-bookmarks", {
-    method: "GET",
-  });
+async function loadSavedRoommatePosts() {
+  // (SỬA) Gọi API 'get-user-roommate-bookmarks' MỚI
+  const { data, error } = await callEdgeFunction(
+    "get-user-roommate-bookmarks",
+    {
+      method: "GET",
+    }
+  );
 
   if (error) {
-    console.error("Lỗi tải tin đã lưu:", error);
-    document.getElementById("saved-posts-loading").textContent =
-      "Lỗi khi tải tin đã lưu.";
+    console.error("Lỗi tải tin (ở ghép) đã lưu:", error);
+    document.getElementById("saved-roommate-posts-loading").textContent =
+      "Lỗi khi tải tin (ở ghép) đã lưu.";
   } else {
-    renderSavedPosts(data); // <--- ĐÃ SỬA
+    // (SỬA) Gọi hàm render MỚI
+    renderSavedRoommatePosts(data);
   }
 }
 
 // ===========================================
-// HÀM CHẠY CHÍNH (ĐÃ SỬA LỖI 1)
+// HÀM CHẠY CHÍNH (ĐÃ SỬA)
 // ===========================================
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. Tải Profile
-  // (SỬA LỖI 1: 'data' trả về là profile, không phải 'data.data')
+  // 1. Tải Profile (Giữ nguyên)
   const { data, error } = await callEdgeFunction("get-user-profile", {
     method: "GET",
   });
@@ -186,15 +275,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const userProfile = data; // <--- ĐÃ SỬA
+  const userProfile = data;
   if (userProfile) {
     populateProfileForm(userProfile);
   }
 
-  // 2. Gán sự kiện submit
+  // 2. Gán sự kiện submit (Giữ nguyên)
   const profileForm = document.getElementById("profile-form");
   profileForm.addEventListener("submit", handleProfileUpdate);
 
-  // 3. Tải tin đã lưu
-  await loadSavedPosts();
+  // 3. (SỬA) Tải CẢ HAI danh sách đã lưu song song
+  await Promise.all([
+    loadSavedPosts(), // Tải tin (phòng trọ) đã lưu
+    loadSavedRoommatePosts(), // Tải tin (ở ghép) đã lưu
+  ]);
 });
