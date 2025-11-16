@@ -1,7 +1,6 @@
 /* =========================================================
    🌟 CHICKY.STU - STYLE DÙNG CHUNG CHO TOÀN WEBSITE
-   Kết hợp Bootstrap + TailwindCSS
-   Tác giả: Võ Thanh Tâm
+   (PHIÊN BẢN ĐÃ SỬA LỖI INPUT-GROUP VÀ RADIO)
    ========================================================= */
 
 /* === Biến màu === */
@@ -34,8 +33,6 @@ a:hover {
   text-decoration: none;
 }
 
-/* Đảm bảo các thành phần form luôn kéo dài và được bọc đúng */
-/* LƯU Ý: Đây là một class utility, không phải thuộc tính CSS của a:hover */
 .form-group-wrapper {
   display: flex;
   flex-direction: column;
@@ -82,7 +79,6 @@ header {
   color: var(--primary) !important;
 }
 
-/* Hiệu ứng gạch chân */
 .nav-link::after {
   content: "";
   position: absolute;
@@ -140,7 +136,6 @@ h5 {
   vertical-align: middle;
 }
 
-/* Card hiển thị phòng */
 .room-card {
   background: #fff;
   border: 1px solid var(--gray-300);
@@ -153,25 +148,13 @@ h5 {
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
-/* Định dạng cho ảnh NẰM TRONG card (ảnh thumbnail ở trang danh sách) */
 .room-card img:first-child {
-  /* 1. Đảm bảo ảnh luôn rộng 100% card */
   width: 100%;
   display: block;
-
-  /* 2. (QUAN TRỌNG) Khóa tỷ lệ khung hình 16:9 */
-  /* Bạn có thể đổi thành "4 / 3" nếu muốn ảnh cao hơn (hơi vuông) */
   aspect-ratio: 16 / 9;
-
-  /* 3. (QUAN TRỌNG NHẤT) Cách ảnh lấp đầy khung */
-  /* 'cover' sẽ lấp đầy khung 16:9, chấp nhận cắt xén, không bị méo ảnh */
   object-fit: cover;
-
-  /* 4. (Bonus) Thêm hiệu ứng zoom khi hover */
   transition: transform 0.3s ease;
 }
-
-/* Khi di chuột vào card, ảnh bên trong sẽ zoom nhẹ */
 .room-card:hover img:first-child {
   transform: scale(1.05);
 }
@@ -180,44 +163,41 @@ h5 {
    🔹 FORM CONTROLS (INPUTS, SELECTS, TEXTAREAS)
    ========================================================= */
 
-/* Định nghĩa lại style cho form-control của Bootstrap */
-input,
+/* (Đã SỬA) Quy tắc này KHÔNG áp dụng cho radio/checkbox */
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
 select,
 textarea,
 .form-control,
 .form-select {
-  /* 1. Hình thức */
   border-radius: 8px !important;
   padding: 0.75rem 1rem !important;
   font-size: 1rem !important;
-
-  /* 2. Quy tắc layout quan trọng */
   display: block !important;
   width: 100% !important;
-  margin-top: 0.25rem !important; /* Dùng !important để đảm bảo ghi đè Tailwind/Bootstrap */
-
-  /* 3. Màu sắc và tương tác (Tùy chọn bổ sung) */
+  margin-top: 0.25rem !important;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-/* Hiệu ứng khi focus */
+/* Hiệu ứng khi focus (Giữ nguyên) */
 .form-control:focus,
 .form-select:focus,
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #0d6efd !important; /* Màu xanh dương (Bootstrap Primary) */
+  border-color: #0d6efd !important;
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
 }
 
-/* Căn chỉnh Input Group (dùng cho Giá/Diện tích) */
+/* === (SỬA LỖI TRIỆT ĐỂ) === */
+/* Thêm "width: auto !important" để sửa lỗi "vnđ" bị rớt hàng */
 .input-group .form-control {
-  /* Loại bỏ margin-top khi nằm trong input-group vì nó đã có class .form-label */
+  width: auto !important; /* <-- THÊM DÒNG NÀY */
   margin-top: 0 !important;
-  /* Loại bỏ border-radius bên cạnh span đơn vị */
   border-top-right-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
 }
+/* === KẾT THÚC SỬA LỖI === */
+
 .input-group .input-group-text {
   border-radius: 8px !important;
   border-top-left-radius: 0 !important;
@@ -228,38 +208,31 @@ textarea:focus {
 }
 
 /* =========================================================
-   🔸 BUTTONS
+   🔸 BUTTONS (Giữ nguyên)
    ========================================================= */
-
-/* Tùy chỉnh cơ bản cho nút để đồng bộ với form-control */
 .btn {
   border-radius: 8px !important;
   padding: 0.75rem 1rem !important;
   font-size: 1rem !important;
   transition: all 0.15s ease-in-out;
 }
-
-/* Ví dụ: Điều chỉnh nút Primary */
 .btn-primary {
   background-color: #0d6efd !important;
   border-color: #0d6efd !important;
 }
-
 .btn-primary:hover {
   background-color: #0b5ed7 !important;
   border-color: #0a58ca !important;
 }
-
-/* Nút Submit lớn */
 .btn-lg {
   padding: 0.75rem 2rem !important;
   font-size: 1.125rem !important;
-  font-weight: 600 !important; /* Tăng độ đậm */
+  font-weight: 600 !important;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* =========================================================
-   🔹 FOOTER
+   🔹 FOOTER (Giữ nguyên)
    ========================================================= */
 footer {
   font-size: 14px;
@@ -268,34 +241,28 @@ footer {
   margin-top: auto;
   padding: 3rem 0 2rem;
 }
-
 footer h3 {
   color: #fff;
 }
-
 footer a {
   color: var(--gray-400);
 }
-
 footer a:hover {
   color: #fff;
 }
-
 footer ul {
   list-style: none;
   padding: 0;
 }
-
 footer li {
   margin-bottom: 8px;
 }
-
 footer .border-t {
   border-top: 1px solid #374151 !important;
 }
 
 /* =========================================================
-   🔹 TRẠNG THÁI VÀ HIỂN THỊ
+   🔹 TRẠNG THÁI VÀ HIỂN THỊ (Giữ nguyên)
    ========================================================= */
 .text-muted {
   color: var(--gray-500) !important;
@@ -309,13 +276,12 @@ footer .border-t {
 .text-gray-500 {
   color: var(--gray-500) !important;
 }
-
 #emptyState {
   font-style: italic;
 }
 
 /* =========================================================
-   🔹 HIỆU ỨNG VÀ TIỆN ÍCH
+   🔹 HIỆU ỨNG VÀ TIỆN ÍCH (Giữ nguyên)
    ========================================================= */
 .shadow-sm {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
@@ -329,7 +295,6 @@ footer .border-t {
 .transition {
   transition: all 0.3s ease;
 }
-
 img {
   max-width: 100%;
   height: auto;
@@ -337,16 +302,14 @@ img {
 }
 
 /* =========================================================
-   🔹 CUSTOM UTILITY CLASSES (Đăng tin)
+   🔹 CUSTOM UTILITY CLASSES (Đăng tin) (Giữ nguyên)
    ========================================================= */
 .app-card {
   background: #fff;
-  /* Đã tối ưu border và shadow */
   border: 1px solid var(--gray-200);
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
-
 .section-title {
   font-size: 1.125rem;
   font-weight: 600;
@@ -356,14 +319,12 @@ img {
 }
 
 /* =========================================================
-   ✅ SỬA LỖI HIỂN THỊ CHECKBOX/HIGHLIGHT VÀ CĂN CHỈNH
+   ✅ SỬA LỖI HIỂN THỊ CHECKBOX/HIGHLIGHT (Giữ nguyên)
    ========================================================= */
-
 .highlight-label {
-  /* Đảm bảo flex và padding cho cả khu vực chọn */
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* Cố định căn trái */
+  justify-content: flex-start;
   cursor: pointer;
   padding: 1rem;
   border: 1px solid var(--gray-300);
@@ -371,50 +332,36 @@ img {
   background-color: #fff;
   transition: all 0.2s ease;
 }
-
 .highlight-label:hover {
-  border-color: #3b82f6; /* Màu xanh nhẹ khi hover */
+  border-color: #3b82f6;
   background-color: #f9fafb;
 }
-
 .highlight-checkbox {
-  /* QUAN TRỌNG: Ẩn checkbox gốc và đảm bảo không bị ghi đè thành input text */
-  /* Sử dụng appearance và opacity để chắc chắn ẩn đi */
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
-
-  /* Tạo box tùy chỉnh (Hình vuông rỗng) */
   width: 20px !important;
   height: 20px !important;
   border: 2px solid var(--gray-400) !important;
   border-radius: 4px !important;
   margin-right: 1rem !important;
-  flex-shrink: 0 !important; /* Ngăn nó co lại */
+  flex-shrink: 0 !important;
   position: relative !important;
-
-  /* Ghi đè các quy tắc form-control: */
   padding: 0 !important;
   background-color: #fff !important;
   box-shadow: none !important;
-  display: block !important; /* Vẫn phải là block để tạo hình vuông */
+  display: block !important;
 }
-
 .highlight-content {
-  /* Nội dung label */
   font-size: 1rem;
   font-weight: 500;
   color: var(--gray-500);
   transition: color 0.2s ease;
 }
-
-/* Khi được chọn */
 .highlight-checkbox:checked {
   border-color: #0d6efd !important;
   background-color: #0d6efd !important;
 }
-
-/* Icon checkmark (✔) */
 .highlight-checkbox:checked::after {
   content: "✓" !important;
   color: white !important;
@@ -426,29 +373,26 @@ img {
   line-height: 1 !important;
   font-weight: bold !important;
 }
-
-/* Hiệu ứng khi label được chọn */
 .highlight-checkbox:checked + .highlight-content {
   color: #0d6efd !important;
 }
 
 /* -------------------------------------------------------- */
 
-/* Custom select (Đã căn chỉnh lại margin-top) */
+/* Custom select (Giữ nguyên) */
 .custom-select-trigger {
   display: block;
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--gray-300); /* Dùng biến màu */
+  border: 1px solid var(--gray-300);
   border-radius: 8px !important;
-  margin-top: 0.25rem !important; /* Đồng bộ với các form-control khác */
+  margin-top: 0.25rem !important;
   background: #fff
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E")
     no-repeat right 0.75rem center / 1.5em;
   cursor: pointer;
   position: relative;
 }
-
 .custom-dropdown {
   position: absolute;
   width: 100%;
@@ -463,24 +407,20 @@ img {
   list-style: none;
   padding: 0;
 }
-
 .custom-dropdown li {
-  padding: 0.75rem 1rem; /* Tăng padding */
+  padding: 0.75rem 1rem;
   cursor: pointer;
   transition: background-color 0.1s ease;
 }
-
 .custom-dropdown li:hover {
   background: var(--gray-200);
 }
-
-/* Căn chỉnh riêng cho textarea nếu cần (mặc định đã được form-control override) */
 #description.form-control {
   margin-top: 0.25rem !important;
 }
 
 /* =========================================================
-   POPUP MODAL (Cho confirm)
+   POPUP MODAL (Giữ nguyên)
    ========================================================= */
 .modal-overlay {
   position: fixed;
@@ -494,7 +434,6 @@ img {
   align-items: center;
   z-index: 1000;
 }
-
 .modal-content {
   background: #fff;
   padding: 2rem;
@@ -503,58 +442,44 @@ img {
   text-align: center;
   max-width: 400px;
   width: 90%;
-  /* (app-card đã có sẵn, nhưng ghi đè ở đây cho chắc) */
 }
-
 .modal-content p {
-  color: #333; /* Đảm bảo text màu tối */
+  color: #333;
 }
 
-/* Tùy chỉnh Radio Button */
 /* =========================================================
-   DÁN VÀO CUỐI FILE: public/css/style.css
-   (CSS cho Radio Button tùy chỉnh - ĐÃ SỬA LỖI HIỂN THỊ)
+   CSS CHO RADIO BUTTON (Đã sửa lỗi)
    ========================================================= */
-
 .radio {
   display: block;
   margin-bottom: 10px;
   cursor: pointer;
-
-  /* (SỬA) Dùng màu chữ xám chuẩn, 
-     trình duyệt Dark Mode sẽ tự động đổi sang màu sáng */
   color: var(--gray-500);
   font-weight: 500;
 }
 
 .radio input {
-  display: none; /* Ẩn radio gốc */
+  /* (ĐÃ SỬA) Thêm !important để thắng quy tắc global */
+  display: none !important;
 }
 
 .radio .custom-radio {
   display: inline-block;
   width: 20px;
   height: 20px;
-
-  /* === (SỬA LỖI CHÍNH) === */
-  /* Đổi viền từ #fff (trắng) sang màu xám của theme */
   border: 2px solid var(--gray-400);
-
   border-radius: 50%;
   margin-right: 10px;
   position: relative;
   vertical-align: middle;
   transition: all 0.2s ease;
 }
-
 .radio:hover .custom-radio {
   border-color: var(--primary);
 }
-
 .radio input:checked + .custom-radio {
-  border-color: var(--primary); /* Màu xanh primary */
+  border-color: var(--primary);
 }
-
 .radio input:checked + .custom-radio::after {
   content: "";
   display: block;
