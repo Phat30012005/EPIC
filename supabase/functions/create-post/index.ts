@@ -56,6 +56,9 @@ Deno.serve(async (req, context) => {
     let userId: string | null = null;
     let userEmail: string | null = null;
 
+    // Lấy URL cơ sở và loại bỏ dấu '/' ở cuối (nếu có)
+    const BASE_URL = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "") ?? "";
+
     try {
       if (context && context.auth) {
         console.log(
@@ -171,10 +174,8 @@ Deno.serve(async (req, context) => {
       }
 
       // (SỬA LỖI TRIỆT ĐỂ 'kong:8000' V5)
-      // Chúng ta sẽ HARDCODE URL public-facing (mà trình duyệt thấy)
-      // Dựa trên file supabase-config.js của bạn.
-      const publicSupabaseUrl = "http://127.0.0.1:54321";
-      const publicUrl = `${publicSupabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${imagePath}`;
+      // Sử dụng BASE_URL động để đảm bảo hoạt động trên cả Local và Production
+      const publicUrl = `${BASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${imagePath}`;
 
       console.log(`[create-post] Generated Public URL (V5 Fix): ${publicUrl}`);
       publicImageUrls.push(publicUrl);
