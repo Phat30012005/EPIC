@@ -187,3 +187,10 @@ verify_jwt = false #true
 import_map = "./functions/admin-update-status/deno.json"
 entrypoint = "./functions/admin-update-status/index.ts"
 
+
+[functions.posts-api]
+enabled = true
+verify_jwt = false #true
+import_map = "./functions/posts-api/deno.json"
+entrypoint = "./functions/posts-api/index.ts"
+
