@@ -1,100 +1,182 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
+/* =======================================
+   LOGIN / SIGNUP STYLES (REFACTORED)
+   ======================================= */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap");
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: "Montserrat", sans-serif;
 }
+
 body {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: black;
+  /* Nền Gradient nhẹ nhàng, chuyên nghiệp hơn màu đen */
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   background-size: cover;
-  background-position: center;
 }
+
 .wrapper {
   width: 420px;
-  background-color: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 10px;
-  padding: 30px 40px;
+  background: #fff;
+  border-radius: 16px;
+  /* Bóng đổ mềm mại */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  color: #333; /* Chữ màu tối cho dễ đọc trên nền trắng */
 }
+
 .wrapper h1 {
-  font-size: 36px;
+  font-size: 28px;
   text-align: center;
+  margin-bottom: 30px;
+  color: #007bff; /* Màu chủ đạo của brand */
+  font-weight: 700;
 }
-.wrapper .input-box {
+
+.input-box {
+  position: relative;
   width: 100%;
   height: 50px;
-  margin: 30px 0;
+  margin-bottom: 20px;
 }
+
 .input-box input {
   width: 100%;
   height: 100%;
-  background: transparent;
-  border: none;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px; /* Bo góc giống web chính */
+  font-size: 15px;
+  color: #333;
+  padding: 15px 45px 15px 15px;
   outline: none;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 40px;
-  font-size: 16px;
-  color: #fff;
-  padding: 20px 45px 20px 20px;
+  transition: all 0.3s ease;
 }
+
+.input-box input:focus {
+  border-color: #007bff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
 .input-box input::placeholder {
-  color: #fff;
+  color: #9ca3af;
 }
-.input-box i {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 20px;
-}
-.wrapper .remember-forgot {
+
+.remember-forgot {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
-  margin: -15px 0 15px;
+  font-size: 13px;
+  margin-bottom: 20px;
+  color: #666;
 }
-.remember-forgot label input {
-  accent-color: #fff;
-  margin-right: 3px;
-}
+
 .remember-forgot a {
-  color: #fff;
+  color: #007bff;
+  font-weight: 600;
   text-decoration: none;
 }
+
 .remember-forgot a:hover {
   text-decoration: underline;
 }
-.wrapper .btn {
+
+.btn {
   width: 100%;
-  height: 45px;
-  background: #fff;
+  height: 48px;
+  background: #007bff;
   border: none;
-  outline: none;
-  border-radius: 40px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
-  color: #333;
-  font-weight: 600;
+  color: #fff;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
 }
-.wrapper .register-link {
+
+.btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 10px rgba(0, 123, 255, 0.3);
+}
+
+.btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.register-link {
   font-size: 14px;
   text-align: center;
-  margin: 20px 0 15px;
+  margin-top: 25px;
+  color: #666;
 }
-.register-link p a {
-  color: #fff;
+
+.register-link a {
+  color: #007bff;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
+  margin-left: 5px;
 }
-.register-link p a:hover {
+
+.register-link a:hover {
   text-decoration: underline;
+}
+
+.backtoindex {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+.backtoindex a {
+  color: #6b7280;
+  text-decoration: none;
+}
+.backtoindex a:hover {
+  color: #007bff;
+}
+
+/* Style riêng cho Radio buttons (Chọn vai trò) */
+.radio {
+  display: block;
+  margin-bottom: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #555;
+}
+.custom-radio {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: sub;
+  position: relative;
+}
+input[type="radio"]:checked + .custom-radio {
+  border-color: #007bff;
+}
+input[type="radio"]:checked + .custom-radio::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: #007bff;
+  border-radius: 50%;
+}
+input[type="radio"] {
+  display: none;
 }
