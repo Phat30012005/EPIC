@@ -23,27 +23,6 @@ verify_jwt = false
 import_map = "./functions/user-login/deno.json" 
 entrypoint = "./functions/user-login/index.ts"
 
-# CẤU HÌNH CHO FUNCTION LẤY CHI TIẾT BÀI ĐĂNG
-[functions.get-post-detail]
-enabled = true
-verify_jwt = false
-# SỬA LẠI ĐƯỜNG DẪN NÀY
-import_map = "./functions/get-post-detail/deno.json" 
-entrypoint = "./functions/get-post-detail/index.ts"
-
-# CẤU HÌNH CHO FUNCTION ĐĂNG TIN
-[functions.create-post]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/create-post/deno.json"
-entrypoint = "./functions/create-post/index.ts"
-
-# CẤU HÌNH CHO FUNCTION LẤY DANH SÁCH TIN
-[functions.get-posts-list]
-enabled = true
-verify_jwt = false 
-import_map = "./functions/get-posts-list/deno.json"
-entrypoint = "./functions/get-posts-list/index.ts"
 
 # CẤU HÌNH CHO FUNCTION LẤY PROFILE
 [functions.get-user-profile]
@@ -65,13 +44,6 @@ enabled = true
 verify_jwt = false #true 
 import_map = "./functions/get-lessor-posts/deno.json"
 entrypoint = "./functions/get-lessor-posts/index.ts"
-
-# CẤU HÌNH CHO FUNCTION XÓA TIN
-[functions.delete-post]
-enabled = true
-verify_jwt = false #true 
-import_map = "./functions/delete-post/deno.json"
-entrypoint = "./functions/delete-post/index.ts"
 
 # CẤU HÌNH CHO FUNCTION TÌM KIẾM
 [functions.search-posts]
