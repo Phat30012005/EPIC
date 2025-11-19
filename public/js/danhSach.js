@@ -150,8 +150,32 @@ function addSaveButtonListeners() {
 /**
  * 4. Hàm Lọc & Tìm kiếm (Dùng posts-api)
  */
+// 1. Thêm hàm render Skeleton
+function renderSkeletons() {
+  const roomList = document.getElementById("roomList");
+  roomList.innerHTML = "";
+  // Tạo 6 khung xương giả
+  for (let i = 0; i < 6; i++) {
+    roomList.innerHTML += `
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-img"></div>
+        <div class="skeleton skeleton-text md"></div>
+        <div class="skeleton skeleton-text sm"></div>
+        <div class="skeleton skeleton-text sm"></div>
+        <div style="margin-top: 12px; display: flex; gap: 10px;">
+           <div class="skeleton skeleton-text" style="width: 70%"></div>
+           <div class="skeleton skeleton-text" style="width: 20%"></div>
+        </div>
+      </div>
+    `;
+  }
+}
+
 async function handleFilter() {
   console.log("[danhSach.js] Đang lọc...");
+
+  renderSkeletons();
+
   const roomList = document.getElementById("roomList");
 
   // Reset giao diện tìm kiếm nếu đang dùng bộ lọc
@@ -204,7 +228,7 @@ async function handleFilter() {
 
 async function handleSearch(searchQuery) {
   console.log(`[danhSach.js] Tìm kiếm: "${searchQuery}"`);
-
+  renderSkeletons();
   const searchResultsTitle = document.getElementById("search-results-title");
   const defaultTitle = document.getElementById("default-title");
   const desktopFilters = document.getElementById("desktopFilters");
