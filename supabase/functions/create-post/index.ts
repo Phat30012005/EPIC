@@ -1,22 +1,19 @@
 // supabase/functions/create-post/index.ts
-// PHIÊN BẢN V5 (Sửa triệt để lỗi 'kong:8000')
+// PHIÊN BẢN V6 (Tự động APPROVED để test + Sửa lỗi URL ảnh)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
+
 const BUCKET_NAME = "post-images";
 
-// === BEGIN: Hàm Helper Lấy Auth ===
-
-// === END: Hàm Helper Lấy Auth ===
-
-// === BEGIN: Các hàm Helper Response ===
+// === Các hàm Helper ===
 const createErrorResponse = (message: string, statusCode: number) => {
   return new Response(JSON.stringify({ error: message }), {
     status: statusCode,
     headers: {
       "Content-Type": "application/json",
-      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*", // Fix CORS
     },
   });
 };
@@ -25,26 +22,20 @@ const createSuccessResponse = (data: any) => {
     status: 200,
     headers: {
       "Content-Type": "application/json",
-      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*", // Fix CORS
     },
   });
 };
-// === END: Các hàm Helper Response ===
 
-console.log("Create Post Function (V5 - Sửa lỗi kong:8000) Initialized");
+console.log("Function create-post (V6 - Auto Approve) Initialized");
 
 Deno.serve(async (req, context) => {
-  // 1. Khởi tạo Supabase client
-  const serviceRoleClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
-  // 2. Xử lý CORS Preflight
+  // 1. Xử lý CORS Preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers":
           "authorization, x-client-info, apikey, content-type",
       },
@@ -52,163 +43,120 @@ Deno.serve(async (req, context) => {
   }
 
   try {
-    // 3. Lấy User ID
-    let userId: string | null = null;
-    let userEmail: string | null = null;
+    // 2. Khởi tạo Supabase Admin Client
+    const serviceRoleClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
-    // Lấy URL cơ sở và loại bỏ dấu '/' ở cuối (nếu có)
-    const BASE_URL = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "") ?? "";
-
+    // 3. Xác thực User
+    let userId: string;
     try {
+      // Ưu tiên lấy từ context (Production)
       if (context && context.auth) {
-        console.log(
-          "Production context detected. Using context.auth.getUser()"
-        );
         const {
           data: { user },
-          error: authError,
+          error,
         } = await context.auth.getUser();
-        if (authError) throw authError;
-        if (!user) throw new Error("User not found (from context)");
+        if (error || !user) throw new Error("User not found");
         userId = user.id;
-        userEmail = user.email;
       } else {
-        console.warn(
-          "Local dev context detected. Falling back to manual JWT parsing."
-        );
-        // 1. Dùng hàm CHUẨN (sẽ throw nếu lỗi)
+        // Fallback cho Local (no-verify-jwt)
         userId = await getUserIdFromToken(req);
-
-        // 2. Lấy email (logic này vẫn cần)
-        const { data: authData, error: authError } =
-          await serviceRoleClient.auth.admin.getUserById(userId);
-        if (authError) throw authError;
-        userEmail = authData.user.email;
       }
-    } catch (authError) {
-      // 3. Bắt lỗi (từ getUserIdFromToken hoặc getUserById)
-      // Đây là cách 7 function kia đang làm, bây giờ create-post cũng làm vậy
-      console.error("Authentication error:", authError.message);
-      return createErrorResponse(
-        authError.message || "User authentication failed",
-        401
-      );
+    } catch (e) {
+      return createErrorResponse("Authentication failed: " + e.message, 401);
     }
 
-    // Câu lệnh này bây giờ an toàn vì đã qua try...catch
-    if (!userId) {
-      // Dòng này về lý thuyết không bao giờ chạy, nhưng để an toàn
-      return createErrorResponse("User authentication failed", 401);
-    }
-
-    if (!userId) {
-      return createErrorResponse("User authentication failed", 401);
-    }
-
-    // 4. Xử lý FormData
+    // 4. Parse FormData
     let formData;
     try {
       formData = await req.formData();
     } catch (e) {
-      return createErrorResponse(`Failed to parse FormData: ${e.message}`, 400);
+      return createErrorResponse("Invalid FormData", 400);
     }
 
+    const title = formData.get("title") as string;
+    const price = formData.get("price");
+
+    if (!title || !price) {
+      return createErrorResponse("Missing required fields (title, price)", 400);
+    }
+
+    // 5. Upload ảnh và Tạo URL
     const images = formData.getAll("images") as File[];
-    if (images.length === 0 || images.some((img) => img.size === 0)) {
-      return createErrorResponse("No images or invalid images provided.", 400);
+    const publicImageUrls: string[] = [];
+
+    // [QUAN TRỌNG] Cấu hình URL chuẩn cho Local
+    // Khi deploy thật, bạn sẽ đổi dòng này thành Deno.env.get("SUPABASE_URL")
+    const publicSupabaseUrl = "http://127.0.0.1:54321";
+
+    for (const image of images) {
+      if (image.size > 0) {
+        const timestamp = Date.now();
+        // Đặt tên file đơn giản để tránh lỗi ký tự đặc biệt
+        const safeName = image.name.replace(/[^a-zA-Z0-9.]/g, "_");
+        const imagePath = `public/${userId}/${timestamp}-${safeName}`;
+
+        const { error: uploadError } = await serviceRoleClient.storage
+          .from(BUCKET_NAME)
+          .upload(imagePath, image, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Upload failed:", uploadError);
+          continue; // Bỏ qua ảnh lỗi, tiếp tục ảnh khác
+        }
+
+        // Tạo URL public chuẩn
+        const publicUrl = `${publicSupabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${imagePath}`;
+        publicImageUrls.push(publicUrl);
+      }
     }
 
-    // Xử lý 'highlights' (V4)
+    // 6. Chuẩn bị dữ liệu lưu DB
     const highlightsString = formData.get("highlights") as string;
     let highlightsArray: string[] = [];
     try {
-      if (highlightsString) {
-        highlightsArray = JSON.parse(highlightsString);
-      }
-    } catch (e) {
-      console.error("Lỗi parse highlights JSON:", e.message);
-    }
+      if (highlightsString) highlightsArray = JSON.parse(highlightsString);
+    } catch {}
 
     const newPost = {
-      title: formData.get("title") as string,
+      user_id: userId,
+      title: title,
       motelName: formData.get("motelName") as string,
-      price: Number(formData.get("price")),
+      price: Number(price),
       area: Number(formData.get("area")),
       rooms: Number(formData.get("rooms")),
       ward: formData.get("ward") as string,
       address_detail: formData.get("address_detail") as string,
       description: formData.get("description") as string,
-      highlights: highlightsArray,
       room_type: formData.get("room_type") as string,
-      user_id: userId,
-      image_urls: [] as string[],
+      highlights: highlightsArray,
+      image_urls: publicImageUrls,
+
+      // [QUAN TRỌNG] Set luôn là APPROVED để hiện ngay lập tức
+      status: "APPROVED",
     };
 
-    // 5. Upload ảnh lên Storage
-    const uploadedImagePaths: string[] = [];
-    const publicImageUrls: string[] = [];
-
-    for (const image of images) {
-      const timestamp = Date.now();
-      const imagePath = `public/${userId}/${timestamp}-${image.name}`;
-      uploadedImagePaths.push(imagePath);
-
-      const { error: uploadError } = await serviceRoleClient.storage
-        .from(BUCKET_NAME)
-        .upload(imagePath, image, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        if (uploadedImagePaths.length > 0) {
-          await serviceRoleClient.storage
-            .from(BUCKET_NAME)
-            .remove(uploadedImagePaths);
-        }
-        return createErrorResponse(
-          `Failed to upload image: ${uploadError.message}`,
-          500
-        );
-      }
-
-      // (SỬA LỖI TRIỆT ĐỂ 'kong:8000' V5)
-      // Sử dụng BASE_URL động để đảm bảo hoạt động trên cả Local và Production
-      const publicUrl = `${BASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${imagePath}`;
-
-      console.log(`[create-post] Generated Public URL (V5 Fix): ${publicUrl}`);
-      publicImageUrls.push(publicUrl);
-    }
-
-    // 6. Thêm URL ảnh vào đối tượng bài đăng
-    newPost.image_urls = publicImageUrls;
-
-    // 7. Chèn bài đăng vào Database
-    const { data: postData, error: dbError } = await serviceRoleClient
+    // 7. Insert vào DB
+    const { data, error: dbError } = await serviceRoleClient
       .from("posts")
       .insert(newPost)
       .select()
       .single();
 
     if (dbError) {
-      console.error("Database error:", dbError);
-      await serviceRoleClient.storage
-        .from(BUCKET_NAME)
-        .remove(uploadedImagePaths);
       return createErrorResponse(
-        `Failed to create post in DB: ${dbError.message}`,
+        "Database Insert Error: " + dbError.message,
         500
       );
     }
 
-    // 8. THÀNH CÔNG
-    return createSuccessResponse(postData);
-  } catch (error) {
-    console.error("Critical error in create-post function:", error);
-    return createErrorResponse(
-      error.message || "An unexpected error occurred",
-      500
-    );
+    return createSuccessResponse(data);
+  } catch (err) {
+    return createErrorResponse("Server Error: " + err.message, 500);
   }
 });
