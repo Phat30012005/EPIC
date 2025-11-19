@@ -173,3 +173,17 @@ verify_jwt = true
 import_map = "./functions/get-my-roommate-postings/deno.json"
 entrypoint = "./functions/get-my-roommate-postings/index.ts"
 
+
+[functions.admin-get-posts]
+enabled = true
+verify_jwt = false #true
+import_map = "./functions/admin-get-posts/deno.json"
+entrypoint = "./functions/admin-get-posts/index.ts"
+
+
+[functions.admin-update-status]
+enabled = true
+verify_jwt = false #true
+import_map = "./functions/admin-update-status/deno.json"
+entrypoint = "./functions/admin-update-status/index.ts"
+
