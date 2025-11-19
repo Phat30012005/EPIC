@@ -176,6 +176,8 @@ async function submitPost(selectedWardValue) {
   formData.append("price", document.getElementById("price").value);
   formData.append("area", document.getElementById("area").value);
   formData.append("rooms", document.getElementById("rooms").value);
+  const roomTypeVal = document.getElementById("roomType").value;
+  formData.append("room_type", roomTypeVal);
   formData.append("ward", selectedWardValue); // Giá trị từ dropdown
   formData.append("address_detail", document.getElementById("address").value);
   formData.append("description", document.getElementById("description").value);
@@ -198,11 +200,11 @@ async function submitPost(selectedWardValue) {
   console.log("Đã tạo FormData. Chuẩn bị gọi Edge Function 'create-post'...");
 
   // 6. GỌI EDGE FUNCTION (đã xóa toàn bộ logic supabase cũ)
-  const { data, error } = await callEdgeFunction("create-post", {
+  const { data, error } = await callEdgeFunction("posts-api", {
+    // Đổi tên function
     method: "POST",
-    body: formData, // 'api-client.js' sẽ tự động xử lý FormData
+    body: formData,
   });
-
   // 7. Xử lý kết quả
   if (error) {
     console.error("Lỗi khi gọi create-post:", error);

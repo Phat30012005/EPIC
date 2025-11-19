@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 1. === REFACTOR: Gọi Edge Function "get-posts-list" ===
     // Thay thế cho 'supabase.from('posts').select('*')'
     // Chúng ta tái sử dụng function này, không cần filter
-    const { data, error } = await callEdgeFunction("get-posts-list", {
+    const { data, error } = await callEdgeFunction("posts-api", {
       method: "GET",
     });
     // === KẾT THÚC REFACTOR ===
@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // === REFACTOR: Gọi Edge Function "delete-post" ===
           // Thay thế cho 'supabase.from('posts').delete()'
           const { data, error: deleteError } = await callEdgeFunction(
-            "delete-post",
+            "posts-api",
             {
               method: "DELETE",
               params: { id: postId },

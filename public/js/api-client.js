@@ -40,6 +40,7 @@ async function callEdgeFunction(
     "get-post-detail",
     "user-login",
     "user-signup",
+    "posts-api",
   ];
   if (!publicFunctions.includes(functionName) && !session) {
     console.error(
