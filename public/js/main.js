@@ -127,9 +127,10 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // (SỬA) Cập nhật onAuthStateChange
+    // (SỬA) Cập nhật onAuthStateChange trong public/js/main.js
     supabase.auth.onAuthStateChange(async (event, session) => {
-      // Thêm async
+      const heroBtn = document.getElementById("hero-post-btn");
+
       if (event === "SIGNED_IN" || session) {
         // 1. Xử lý giao diện Đăng nhập/Đăng xuất
         loginButton.textContent = "🚪 Đăng xuất";
@@ -142,38 +143,44 @@ document.addEventListener("DOMContentLoaded", function () {
           window.location.reload();
         };
 
-        // 2. LẤY ROLE MỚI NHẤT TỪ DATABASE (Thay vì lấy từ session cũ)
-        let role = session.user.user_metadata.role; // Mặc định lấy từ session
+        // 2. LẤY ROLE MỚI NHẤT TỪ DATABASE
+        let role = session.user.user_metadata.role;
         try {
-          // Gọi API để lấy role chính xác nhất từ bảng profiles
           const { data: profile } = await callEdgeFunction("get-user-profile", {
             method: "GET",
           });
           if (profile && profile.role) {
             role = profile.role;
-            console.log("Role thực tế từ DB:", role);
           }
         } catch (err) {
           console.error("Lỗi kiểm tra role:", err);
         }
 
-        // 3. Phân quyền Menu
-        const heroBtn = document.getElementById("hero-post-btn");
+        // 3. Phân quyền Menu & Nút Hero (Trang chủ)
         if (role === "LESSOR") {
           profileLinkA.href = "/public/profile-lessor.html";
           renterPostLink.style.display = "none";
           lessorPostLink.style.display = "list-item";
-          if (heroBtn) heroBtn.href = "/public/dangtin.html";
+
+          // Logic cho nút Hero
+          if (heroBtn) {
+            heroBtn.href = "/public/dangtin.html";
+            heroBtn.style.display = "inline-block"; // Hiện nút
+          }
         } else {
           profileLinkA.href = "/public/profile-renter.html";
           renterPostLink.style.display = "list-item";
           lessorPostLink.style.display = "none";
-          if (heroBtn) heroBtn.href = "/public/oghep-dangtin.html";
+
+          // Logic cho nút Hero
+          if (heroBtn) {
+            heroBtn.href = "/public/oghep-dangtin.html";
+            heroBtn.style.display = "inline-block"; // Hiện nút
+          }
         }
 
         profileLinkLi.style.display = "list-item";
 
-        // Hiển thị menu Admin nếu đúng quyền
         if (role === "ADMIN") {
           adminLink.style.display = "list-item";
         } else {
@@ -196,6 +203,13 @@ document.addEventListener("DOMContentLoaded", function () {
         profileLinkLi.style.display = "none";
         renterPostLink.style.display = "none";
         lessorPostLink.style.display = "none";
+
+        // Nếu chưa đăng nhập, hiện nút và dẫn tới trang Login
+        if (heroBtn) {
+          heroBtn.href = "/public/login.html";
+          heroBtn.style.display = "inline-block";
+        }
+
         setupNavigation();
       }
     });

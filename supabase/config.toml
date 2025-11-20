@@ -1,114 +1,66 @@
 # supabase/config.toml
 
-[functions.hello-world]
-enabled = true
-verify_jwt = true
-import_map = "./functions/hello-world/deno.json"
-entrypoint = "./functions/hello-world/index.ts"
+# --- 1. NHÓM XÁC THỰC & PROFILE ---
 
-
-# CẤU HÌNH CHO FUNCTION ĐĂNG KÝ MỚI
 [functions.user-signup]
 enabled = true
 verify_jwt = false
-# SỬA LẠI ĐƯỜNG DẪN NÀY
-import_map = "./functions/user-signup/deno.json" 
+import_map = "./functions/user-signup/deno.json"
 entrypoint = "./functions/user-signup/index.ts"
 
-# CẤU HÌNH CHO FUNCTION ĐĂNG NHẬP MỚI
 [functions.user-login]
 enabled = true
 verify_jwt = false
-# SỬA LẠI ĐƯỜNG DẪN NÀY
-import_map = "./functions/user-login/deno.json" 
+import_map = "./functions/user-login/deno.json"
 entrypoint = "./functions/user-login/index.ts"
 
-
-# CẤU HÌNH CHO FUNCTION LẤY PROFILE
 [functions.get-user-profile]
 enabled = true
-verify_jwt = false #true
+verify_jwt = false
 import_map = "./functions/get-user-profile/deno.json"
 entrypoint = "./functions/get-user-profile/index.ts"
 
-# CẤU HÌNH CHO FUNCTION CẬP NHẬT PROFILE
 [functions.update-user-profile]
 enabled = true
-verify_jwt = false #true
+verify_jwt = false
 import_map = "./functions/update-user-profile/deno.json"
 entrypoint = "./functions/update-user-profile/index.ts"
 
-# CẤU HÌNH CHO FUNCTION LẤY TIN CỦA CHỦ TRỌ
-[functions.get-lessor-posts]
+[functions.get-public-profile]
 enabled = true
-verify_jwt = false #true 
-import_map = "./functions/get-lessor-posts/deno.json"
-entrypoint = "./functions/get-lessor-posts/index.ts"
+verify_jwt = false
+import_map = "./functions/get-public-profile/deno.json"
+entrypoint = "./functions/get-public-profile/index.ts"
 
-# CẤU HÌNH CHO FUNCTION TÌM KIẾM
+
+# --- 2. NHÓM API TRUNG TÂM (CORE) ---
+
+[functions.posts-api]
+enabled = true
+verify_jwt = false
+import_map = "./functions/posts-api/deno.json"
+entrypoint = "./functions/posts-api/index.ts"
+
+[functions.roommate-api]
+enabled = true
+verify_jwt = false
+import_map = "./functions/roommate-api/deno.json"
+entrypoint = "./functions/roommate-api/index.ts"
+
+
+# --- 3. NHÓM TÌM KIẾM & QUẢN LÝ TIN CÁ NHÂN ---
+
 [functions.search-posts]
 enabled = true
 verify_jwt = false 
 import_map = "./functions/search-posts/deno.json"
 entrypoint = "./functions/search-posts/index.ts"
 
-# CẤU HÌNH CHO BOOKMARKS (THÊM)
-[functions.add-bookmark]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/add-bookmark/deno.json"
-entrypoint = "./functions/add-bookmark/index.ts"
-
-# CẤU HÌNH CHO BOOKMARKS (XÓA)
-[functions.remove-bookmark]
-enabled = true
-verify_jwt = false # <--- true, BẮT BUỘC đăng nhập
-import_map = "./functions/remove-bookmark/deno.json"
-entrypoint = "./functions/remove-bookmark/index.ts"
-
-
-# CẤU HÌNH CHO BOOKMARKS (LẤY DANH SÁCH)
-[functions.get-user-bookmarks]
-enabled = true
-verify_jwt = false # <--- true, BẮT BUỘC đăng nhập
-import_map = "./functions/get-user-bookmarks/deno.json"
-entrypoint = "./functions/get-user-bookmarks/index.ts"
-
-#CAU HINH REVIEW
-[functions.add-review]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/add-review/deno.json"
-entrypoint = "./functions/add-review/index.ts"
-
-
-# CẤU HÌNH CHO REVIEWS (LẤY DANH SÁCH)
-[functions.get-reviews-for-post]
+[functions.get-lessor-posts]
 enabled = true
 verify_jwt = false 
-import_map = "./functions/get-reviews-for-post/deno.json"
-entrypoint = "./functions/get-reviews-for-post/index.ts"
-
-[functions.add-roommate-bookmark]
-enabled = true
-verify_jwt = true
-import_map = "./functions/add-roommate-bookmark/deno.json"
-entrypoint = "./functions/add-roommate-bookmark/index.ts"
-
-
-[functions.remove-roommate-bookmark]
-enabled = true
-verify_jwt = true
-import_map = "./functions/remove-roommate-bookmark/deno.json"
-entrypoint = "./functions/remove-roommate-bookmark/index.ts"
-
-
-[functions.get-user-roommate-bookmarks]
-enabled = true
-verify_jwt = true
-import_map = "./functions/get-user-roommate-bookmarks/deno.json"
-entrypoint = "./functions/get-user-roommate-bookmarks/index.ts"
-
+import_map = "./functions/get-lessor-posts/deno.json"
+entrypoint = "./functions/get-lessor-posts/index.ts"
 
 [functions.get-my-roommate-postings]
 enabled = true
@@ -117,36 +69,55 @@ import_map = "./functions/get-my-roommate-postings/deno.json"
 entrypoint = "./functions/get-my-roommate-postings/index.ts"
 
 
-[functions.admin-get-posts]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/admin-get-posts/deno.json"
-entrypoint = "./functions/admin-get-posts/index.ts"
+# --- 4. NHÓM BOOKMARK (LƯU TIN) ---
 
-
-[functions.admin-update-status]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/admin-update-status/deno.json"
-entrypoint = "./functions/admin-update-status/index.ts"
-
-
-[functions.posts-api]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/posts-api/deno.json"
-entrypoint = "./functions/posts-api/index.ts"
-
-
-[functions.roommate-api]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/roommate-api/deno.json"
-entrypoint = "./functions/roommate-api/index.ts"
-
-[functions.get-public-profile]
+[functions.add-bookmark]
 enabled = true
 verify_jwt = false
-import_map = "./functions/get-public-profile/deno.json"
-entrypoint = "./functions/get-public-profile/index.ts"
+import_map = "./functions/add-bookmark/deno.json"
+entrypoint = "./functions/add-bookmark/index.ts"
 
+[functions.remove-bookmark]
+enabled = true
+verify_jwt = false
+import_map = "./functions/remove-bookmark/deno.json"
+entrypoint = "./functions/remove-bookmark/index.ts"
+
+[functions.get-user-bookmarks]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-user-bookmarks/deno.json"
+entrypoint = "./functions/get-user-bookmarks/index.ts"
+
+[functions.add-roommate-bookmark]
+enabled = true
+verify_jwt = true
+import_map = "./functions/add-roommate-bookmark/deno.json"
+entrypoint = "./functions/add-roommate-bookmark/index.ts"
+
+[functions.remove-roommate-bookmark]
+enabled = true
+verify_jwt = true
+import_map = "./functions/remove-roommate-bookmark/deno.json"
+entrypoint = "./functions/remove-roommate-bookmark/index.ts"
+
+[functions.get-user-roommate-bookmarks]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-user-roommate-bookmarks/deno.json"
+entrypoint = "./functions/get-user-roommate-bookmarks/index.ts"
+
+
+# --- 5. NHÓM ĐÁNH GIÁ (REVIEWS) ---
+
+[functions.add-review]
+enabled = true
+verify_jwt = false
+import_map = "./functions/add-review/deno.json"
+entrypoint = "./functions/add-review/index.ts"
+
+[functions.get-reviews-for-post]
+enabled = true
+verify_jwt = false 
+import_map = "./functions/get-reviews-for-post/deno.json"
+entrypoint = "./functions/get-reviews-for-post/index.ts"
