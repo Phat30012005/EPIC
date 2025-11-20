@@ -57,7 +57,7 @@ function renderPostings(postings) {
     const priceFormatted = Utils.formatCurrencyShort(post.price);
 
     // Thông tin người đăng
-    const avatarSrc = post.profiles?.avatar_url || "/assets/logo2.jpg";
+    const avatarSrc = post.profiles?.avatar_url || "/assets/logo1.png";
     const profileName = post.profiles?.full_name || "Ẩn danh";
 
     // --- TẠO LINK PROFILE ---

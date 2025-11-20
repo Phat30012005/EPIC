@@ -87,7 +87,7 @@ async function loadUserRentals(userId) {
     const img =
       post.image_urls && post.image_urls[0]
         ? post.image_urls[0]
-        : "/assets/logo2.jpg";
+        : "/assets/logo1.png";
 
     div.innerHTML = `
             <img src="${img}" class="w-full h-40 object-cover rounded mb-2">

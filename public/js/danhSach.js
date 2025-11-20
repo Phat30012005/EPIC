@@ -56,7 +56,7 @@ function renderRooms(inputData) {
     const imageSrc =
       Array.isArray(room.image_urls) && room.image_urls.length > 0
         ? room.image_urls[0]
-        : "/assets/logo2.jpg"; // Dùng đường dẫn assets chuẩn Vercel
+        : "/assets/logo1.png"; // Dùng đường dẫn assets chuẩn Vercel
 
     const priceFormatted = Utils.formatCurrencyShort(room.price);
 
@@ -68,7 +68,7 @@ function renderRooms(inputData) {
     const saveBtnClass = isSaved ? "active" : "";
 
     // --- THÔNG TIN NGƯỜI ĐĂNG ---
-    const avatarSrc = room.profiles?.avatar_url || "/assets/logo2.jpg";
+    const avatarSrc = room.profiles?.avatar_url || "/assets/logo2.png";
     const profileName = room.profiles?.full_name || "Ẩn danh";
     // Tạo link đến Public Profile
     const profileUrl = `/profile.html?user_id=${room.user_id}`;

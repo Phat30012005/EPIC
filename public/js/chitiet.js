@@ -350,7 +350,7 @@ function renderImages(imageUrls, postTitle) {
     }
   } else {
     imagesDisplay.innerHTML =
-      '<img src="/assets/logo2.jpg" alt="Mặc định" class="main-image w-full aspect-video object-cover block rounded-lg"/>';
+      '<img src="/assets/logo1.png" alt="Mặc định" class="main-image w-full aspect-video object-cover block rounded-lg"/>';
     prevBtn.style.display = "none";
     nextBtn.style.display = "none";
     thumbnailsContainer.style.display = "none";
