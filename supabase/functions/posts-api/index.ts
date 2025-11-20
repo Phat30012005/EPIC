@@ -186,7 +186,7 @@ Deno.serve(async (req, context) => {
 
       const images = formData.getAll("images") as File[];
       const publicImageUrls: string[] = [];
-      const publicSupabaseUrl = "http://127.0.0.1:54321"; // Local URL
+      const publicSupabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 
       for (const image of images) {
         if (image.size > 0) {

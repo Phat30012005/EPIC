@@ -74,10 +74,18 @@ Deno.serve(async (req, context) => {
       // === [FIX LỖI KONG:8000] ===
       // Khi chạy local, Supabase trả về URL nội bộ docker (kong:8000)
       // Trình duyệt không hiểu 'kong', nên ta phải đổi thành localhost (127.0.0.1:54321)
+      // Lấy URL public gốc
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
       let finalUrl = publicUrl;
+
+      // Chỉ sửa lỗi kong nếu đang chạy Local (khi URL chứa 'kong')
+      // Khi lên Cloud, URL sẽ là 'supabase.co' nên dòng này sẽ tự động bị bỏ qua -> Đúng logic
       if (finalUrl.includes("kong:8000")) {
         finalUrl = finalUrl.replace(
-          "http://kong:8000",
+          "http://kong:8000/",
           "http://127.0.0.1:54321"
         );
       }
