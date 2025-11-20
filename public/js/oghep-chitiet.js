@@ -26,10 +26,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function loadPostDetails(postId) {
-  const { data: responseData, error } = await callEdgeFunction(
-    "get-roommate-posting-detail",
-    { params: { id: postId }, method: "GET" }
-  );
+  const { data: responseData, error } = await callEdgeFunction("roommate-api", {
+    params: { id: postId },
+    method: "GET",
+  });
 
   if (error) {
     console.error("Lỗi tải chi tiết:", error);

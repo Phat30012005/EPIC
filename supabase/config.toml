@@ -89,35 +89,6 @@ verify_jwt = false
 import_map = "./functions/get-reviews-for-post/deno.json"
 entrypoint = "./functions/get-reviews-for-post/index.ts"
 
-# CẤU HÌNH LẤY DANH SÁCH BẠN Ở GHÉP
-[functions.get-roommate-postings]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/get-roommate-postings/deno.json"
-entrypoint = "./functions/get-roommate-postings/index.ts"
-
-# CẤU HÌNH LẤY DANH SÁCH BẠN Ở GHÉP
-[functions.delete-roommate-posting]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/delete-roommate-posting/deno.json"
-entrypoint = "./functions/delete-roommate-posting/index.ts"
-
-# CẤU HÌNH LẤY DANH SÁCH BẠN Ở GHÉP
-[functions.create-roommate-posting]
-enabled = true
-verify_jwt = false #true
-import_map = "./functions/create-roommate-posting/deno.json"
-entrypoint = "./functions/create-roommate-posting/index.ts"
-
-# CẤU HÌNH LẤY CHI TIẾT TIN Ở GHÉP
-[functions.get-roommate-posting-detail]
-enabled = true
-verify_jwt = false # Public (ai cũng xem được chi tiết)
-import_map = "./functions/get-roommate-posting-detail/deno.json"
-entrypoint = "./functions/get-roommate-posting-detail/index.ts"
-
-
 [functions.add-roommate-bookmark]
 enabled = true
 verify_jwt = true
@@ -166,3 +137,9 @@ verify_jwt = false #true
 import_map = "./functions/posts-api/deno.json"
 entrypoint = "./functions/posts-api/index.ts"
 
+
+[functions.roommate-api]
+enabled = true
+verify_jwt = false #true
+import_map = "./functions/roommate-api/deno.json"
+entrypoint = "./functions/roommate-api/index.ts"

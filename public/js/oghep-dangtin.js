@@ -135,12 +135,10 @@ function setupDangTinPage() {
 }
 
 /**
- * Xử lý logic submit (ĐÃ REFACTOR CHO TÌM Ở GHÉP - DÙNG JSON)
+ * Xử lý logic submit (ĐÃ CẬP NHẬT DÙNG roommate-api)
  */
 async function submitPost() {
-  // 1. (XÓA) Logic lấy file ảnh
-
-  // 2. Thu thập và kiểm tra dữ liệu
+  // 1. Thu thập và kiểm tra dữ liệu
   const postingTypeInput = document.querySelector(
     'input[name="posting_type"]:checked'
   );
@@ -150,68 +148,56 @@ async function submitPost() {
   // Kiểm tra các trường bắt buộc
   if (!postingTypeInput) {
     showAlert("Vui lòng chọn bạn 'Cần người' hay 'Tìm phòng'.");
-    return; // Dừng hàm
+    return;
   }
   if (!wardValue) {
     showAlert("Vui lòng chọn Phường/Xã.");
-    return; // Dừng hàm
+    return;
   }
   if (!priceValue || Number(priceValue) <= 0) {
     showAlert("Vui lòng nhập giá mong muốn hợp lệ.");
-    return; // Dừng hàm
+    return;
   }
 
-  // 3. Tạo đối tượng JSON body
-  // (KHÔNG DÙNG FORMDATA)
+  // 2. Tạo đối tượng JSON body
   const body = {
     title: document.getElementById("title").value,
     price: Number(priceValue),
     ward: wardValue,
     address_detail: document.getElementById("address").value,
     description: document.getElementById("description").value,
-    posting_type: postingTypeInput.value, // 'OFFERING' hoặc 'SEEKING'
+    posting_type: postingTypeInput.value,
     gender_preference: document.getElementById("gender_preference").value,
   };
 
-  // 4. (XÓA) Logic Highlights
+  console.log("Đang gọi roommate-api (POST)...", body);
 
-  // 5. (XÓA) Logic thêm file ảnh
-
-  console.log(
-    "Đã tạo JSON body. Chuẩn bị gọi Edge Function 'create-roommate-posting'..."
-  );
-  console.log(body); // In ra để debug
-
-  // 6. GỌI EDGE FUNCTION MỚI
-  const { data, error } = await callEdgeFunction("create-roommate-posting", {
+  // 3. GỌI API MỚI: roommate-api
+  const { data, error } = await callEdgeFunction("roommate-api", {
     method: "POST",
-    body: body, // 'api-client.js' sẽ tự động xử lý JSON
+    body: body,
   });
 
-  // 7. Xử lý kết quả
+  // 4. Xử lý kết quả
   if (error) {
-    console.error("Lỗi khi gọi create-roommate-posting:", error);
-
-    // Kiểm tra các lỗi cụ thể
-    if (
-      error.name === "AuthError" ||
-      error.message.includes("not authenticated")
-    ) {
+    console.error("Lỗi đăng tin:", error);
+    if (error.message.includes("not authenticated")) {
       showAlert("Bạn cần đăng nhập để đăng tin!");
       window.location.href = "/public/login.html";
     } else if (error.message.includes("Only RENTERs")) {
       showAlert("Lỗi: Chỉ có Người Thuê (RENTER) mới được đăng tin này.");
-    } else if (error.message.includes("Missing required fields")) {
-      showAlert("Lỗi: Vui lòng điền đầy đủ các trường bắt buộc.");
     } else {
       showAlert("Lỗi đăng tin: " + error.message);
     }
   } else {
-    // Thành công
-    console.log("Đăng tin ở ghép thành công:", data);
-    showAlert("Đăng tin tìm người ở ghép thành công!");
-    // Chuyển đến trang danh sách mới
-    window.location.href = "/public/oghep-danhsach.html";
+    console.log("Đăng tin thành công:", data);
+    // Thông báo rõ ràng về quy trình duyệt
+    showAlert(
+      "Đăng tin thành công! Tin của bạn đang chờ Admin duyệt trước khi hiển thị."
+    );
+    setTimeout(() => {
+      window.location.href = "/public/oghep-danhsach.html";
+    }, 2000);
   }
 }
 

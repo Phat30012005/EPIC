@@ -149,10 +149,13 @@ function addRoommateSaveButtonListeners() {
 }
 
 // 4. Hàm Lọc chính
+// Trong hàm handleFilter (public/js/oghep-danhsach.js)
+
 async function handleFilter() {
   console.log("[oghep] Đang lọc...");
   const roomList = document.getElementById("roomList");
 
+  // ... (Phần lấy giá trị từ input giữ nguyên) ...
   const filterPrice = document.getElementById("filterPrice")?.value;
   const filterLocal = document.getElementById("local-desktop")?.value;
   const filterPostingType = document.getElementById("filterPostingType")?.value;
@@ -164,7 +167,9 @@ async function handleFilter() {
   if (filterPostingType) paramsObject.posting_type = filterPostingType;
   if (filterGender) paramsObject.gender_preference = filterGender;
 
-  const { data, error } = await callEdgeFunction("get-roommate-postings", {
+  // === THAY THẾ ĐOẠN NÀY ===
+  const { data, error } = await callEdgeFunction("roommate-api", {
+    // Đổi tên API
     method: "GET",
     params: paramsObject,
   });
@@ -175,6 +180,7 @@ async function handleFilter() {
     return;
   }
 
+  // renderPostings đã có logic phòng thủ (Array check) nên gọi trực tiếp ok
   renderPostings(data);
 }
 

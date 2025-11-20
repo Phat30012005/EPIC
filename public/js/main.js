@@ -128,9 +128,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // (SỬA) Cập nhật onAuthStateChange
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      // Thêm async
       if (event === "SIGNED_IN" || session) {
-        // 1. Trường hợp: ĐÃ ĐĂNG NHẬP
+        // 1. Xử lý giao diện Đăng nhập/Đăng xuất
         loginButton.textContent = "🚪 Đăng xuất";
         loginButton.href = "#";
         loginButton.classList.remove("btn-primary");
@@ -141,49 +142,57 @@ document.addEventListener("DOMContentLoaded", function () {
           window.location.reload();
         };
 
-        const role = session.user.user_metadata.role;
-
-        // === (SỬA) LOGIC PHÂN QUYỀN MỚI ===
-        if (role === "LESSOR") {
-          // 1. Cấu hình cho LESSOR (Chủ trọ)
-          profileLinkA.href = "/public/profile-lessor.html";
-          renterPostLink.style.display = "none"; // Ẩn "Đăng tin tìm ở ghép"
-          lessorPostLink.style.display = "list-item"; // Hiện "Đăng tin"
-        } else {
-          // 2. Cấu hình cho RENTER (Người thuê)
-          profileLinkA.href = "/public/profile-renter.html";
-          renterPostLink.style.display = "list-item"; // Hiện "Đăng tin tìm ở ghép"
-          lessorPostLink.style.display = "none"; // Ẩn "Đăng tin"
+        // 2. LẤY ROLE MỚI NHẤT TỪ DATABASE (Thay vì lấy từ session cũ)
+        let role = session.user.user_metadata.role; // Mặc định lấy từ session
+        try {
+          // Gọi API để lấy role chính xác nhất từ bảng profiles
+          const { data: profile } = await callEdgeFunction("get-user-profile", {
+            method: "GET",
+          });
+          if (profile && profile.role) {
+            role = profile.role;
+            console.log("Role thực tế từ DB:", role);
+          }
+        } catch (err) {
+          console.error("Lỗi kiểm tra role:", err);
         }
 
-        profileLinkLi.style.display = "list-item"; // Link Hồ sơ luôn hiện khi đăng nhập
+        // 3. Phân quyền Menu
+        if (role === "LESSOR") {
+          profileLinkA.href = "/public/profile-lessor.html";
+          renterPostLink.style.display = "none";
+          lessorPostLink.style.display = "list-item";
+        } else {
+          profileLinkA.href = "/public/profile-renter.html";
+          renterPostLink.style.display = "list-item";
+          lessorPostLink.style.display = "none";
+        }
 
-        // Logic Admin (giữ nguyên, độc lập)
+        profileLinkLi.style.display = "list-item";
+
+        // Hiển thị menu Admin nếu đúng quyền
         if (role === "ADMIN") {
           adminLink.style.display = "list-item";
         } else {
           adminLink.style.display = "none";
         }
-        // === KẾT THÚC LOGIC MỚI ===
 
-        setupNavigation(); // Chạy lại để active link
+        setupNavigation();
       } else if (
         event === "SIGNED_OUT" ||
         (event === "INITIAL_SESSION" && !session)
       ) {
-        // 2. Trường hợp: ĐÃ ĐĂNG XUẤT
+        // ... (Giữ nguyên logic đăng xuất cũ) ...
         loginButton.textContent = "🔑 Đăng nhập";
         loginButton.href = "/public/login.html";
         loginButton.classList.remove("btn-outline-danger");
         loginButton.classList.add("btn-primary");
         loginButton.onclick = null;
 
-        // (SỬA) Ẩn tất cả các link động
         adminLink.style.display = "none";
         profileLinkLi.style.display = "none";
         renterPostLink.style.display = "none";
         lessorPostLink.style.display = "none";
-
         setupNavigation();
       }
     });

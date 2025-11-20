@@ -1,5 +1,5 @@
 // supabase/functions/posts-api/index.ts
-// (PHIÊN BẢN V2 - ĐÃ FIX LOGIC GET DETAIL)
+// (PHIÊN BẢN V3 - THÊM DUYỆT TIN PATCH & PENDING DEFAULT)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,7 +9,7 @@ const BUCKET_NAME = "post-images";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS", // Thêm PATCH
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -30,9 +30,8 @@ const createSuccessResponse = (data: any) => {
 };
 
 Deno.serve(async (req, context) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
-  }
 
   try {
     const supabase = createClient(
@@ -41,25 +40,24 @@ Deno.serve(async (req, context) => {
     );
     const url = new URL(req.url);
 
-    // ============================================================
-    // 1. XỬ LÝ GET (Chi tiết HOẶC Danh sách)
-    // ============================================================
+    // ---------------------------------------------------------
+    // 1. GET (Lấy danh sách hoặc Chi tiết)
+    // ---------------------------------------------------------
     if (req.method === "GET") {
       const id = url.searchParams.get("id");
 
-      // A. NẾU CÓ ID -> LẤY CHI TIẾT (Logic cũ của get-post-detail)
       if (id) {
+        // Lấy chi tiết
         const { data, error } = await supabase
           .from("posts")
           .select(`*, profiles:user_id (full_name, phone_number, email)`)
           .eq("post_id", id)
           .single();
-
         if (error) return createErrorResponse(error.message, 404);
         return createSuccessResponse(data);
       }
 
-      // B. NẾU KHÔNG CÓ ID -> LẤY DANH SÁCH (Logic cũ của get-posts-list)
+      // Lấy danh sách
       const filters = {
         ward: url.searchParams.get("ward"),
         type: url.searchParams.get("type"),
@@ -67,6 +65,7 @@ Deno.serve(async (req, context) => {
         size: url.searchParams.get("size"),
         page: url.searchParams.get("page"),
         limit: url.searchParams.get("limit"),
+        status: url.searchParams.get("status"), // Admin có thể lọc theo status
       };
 
       let query = supabase
@@ -76,7 +75,14 @@ Deno.serve(async (req, context) => {
           { count: "exact" }
         );
 
-      query = query.eq("status", "APPROVED");
+      // Logic lọc Status:
+      // Nếu có filter status (thường dùng cho Admin) thì lấy theo status đó
+      // Nếu không (User thường), mặc định chỉ lấy APPROVED
+      if (filters.status) {
+        query = query.eq("status", filters.status);
+      } else {
+        query = query.eq("status", "APPROVED");
+      }
 
       if (filters.ward) query = query.ilike("ward", `%${filters.ward}%`);
       if (
@@ -84,9 +90,9 @@ Deno.serve(async (req, context) => {
         filters.type !== "undefined" &&
         filters.type.trim() !== ""
       ) {
-        // Dùng ilike để tìm không phân biệt hoa thường (Căn hộ == căn hộ)
         query = query.ilike("room_type", filters.type.trim());
       }
+
       if (filters.price) {
         if (filters.price === "tren6") query = query.gte("price", 6000000);
         else {
@@ -116,6 +122,7 @@ Deno.serve(async (req, context) => {
       const { data, error, count } = await query;
       if (error) throw error;
 
+      // Tính rating trung bình
       const postsWithAvgRating = data?.map((post: any) => {
         let totalRating = 0;
         const reviewsCount = Array.isArray(post.reviews)
@@ -142,11 +149,10 @@ Deno.serve(async (req, context) => {
       });
     }
 
-    // ============================================================
-    // 2. XỬ LÝ POST (Tạo mới)
-    // ============================================================
+    // ---------------------------------------------------------
+    // 2. POST (Tạo bài đăng)
+    // ---------------------------------------------------------
     if (req.method === "POST") {
-      // ... (Giữ nguyên logic xác thực và xử lý form data như phiên bản trước)
       let userId: string;
       try {
         if (context && context.auth) {
@@ -177,7 +183,7 @@ Deno.serve(async (req, context) => {
 
       const images = formData.getAll("images") as File[];
       const publicImageUrls: string[] = [];
-      const publicSupabaseUrl = "http://127.0.0.1:54321";
+      const publicSupabaseUrl = "http://127.0.0.1:54321"; // Local URL
 
       for (const image of images) {
         if (image.size > 0) {
@@ -213,7 +219,10 @@ Deno.serve(async (req, context) => {
         room_type: formData.get("room_type") as string,
         highlights: highlightsArray,
         image_urls: publicImageUrls,
-        status: "APPROVED",
+
+        // === [UPDATE QUAN TRỌNG] ===
+        // Đổi thành PENDING để chờ Admin duyệt
+        status: "PENDING",
       };
 
       const { data, error } = await supabase
@@ -225,25 +234,74 @@ Deno.serve(async (req, context) => {
       return createSuccessResponse(data);
     }
 
-    // ============================================================
-    // 3. XỬ LÝ DELETE (Xóa)
-    // ============================================================
-    if (req.method === "DELETE") {
-      // ... (Giữ nguyên logic xác thực và xóa như phiên bản trước)
+    // ---------------------------------------------------------
+    // 3. PATCH (Cập nhật trạng thái - Chỉ Admin)
+    // ---------------------------------------------------------
+    if (req.method === "PATCH") {
+      // Xác thực User
       let userId: string;
       try {
         if (context && context.auth) {
           const {
             data: { user },
-            error,
           } = await context.auth.getUser();
-          if (error || !user) throw new Error("User not found");
-          userId = user.id;
+          userId = user?.id || "";
         } else {
           userId = await getUserIdFromToken(req);
         }
       } catch (e: any) {
-        return createErrorResponse("Auth failed: " + e.message, 401);
+        return createErrorResponse("Auth failed", 401);
+      }
+
+      // Kiểm tra quyền Admin
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+      if (profile?.role !== "ADMIN") {
+        return createErrorResponse(
+          "Forbidden: Only Admin can update status",
+          403
+        );
+      }
+
+      // Lấy dữ liệu body
+      const { id, status } = await req.json();
+      if (!id || !status)
+        return createErrorResponse("Missing id or status", 400);
+      if (!["APPROVED", "REJECTED", "PENDING"].includes(status))
+        return createErrorResponse("Invalid status", 400);
+
+      // Update Database
+      const { data, error } = await supabase
+        .from("posts")
+        .update({ status: status })
+        .eq("post_id", id)
+        .select()
+        .single();
+
+      if (error) return createErrorResponse(error.message, 500);
+      return createSuccessResponse(data);
+    }
+
+    // ---------------------------------------------------------
+    // 4. DELETE (Xóa tin)
+    // ---------------------------------------------------------
+    if (req.method === "DELETE") {
+      // (Logic giữ nguyên như cũ)
+      let userId: string;
+      try {
+        if (context && context.auth) {
+          const {
+            data: { user },
+          } = await context.auth.getUser();
+          userId = user?.id || "";
+        } else {
+          userId = await getUserIdFromToken(req);
+        }
+      } catch (e: any) {
+        return createErrorResponse("Auth failed", 401);
       }
 
       const postId = url.searchParams.get("id");
