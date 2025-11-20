@@ -59,6 +59,31 @@ async function handleProfileUpdate(e) {
   updateButton.textContent = "Lưu thay đổi";
 }
 
+function addDeleteRoommateListeners() {
+  document.querySelectorAll(".delete-roommate-post-btn").forEach((button) => {
+    button.addEventListener("click", async (e) => {
+      const postingId = button.dataset.id;
+
+      showConfirm("Bạn có chắc muốn xóa tin này?", async () => {
+        // === SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ===
+        // Cũ: callEdgeFunction("delete-roommate-posting", ...)
+        // Mới: Dùng roommate-api với method DELETE
+
+        const { error } = await callEdgeFunction("roommate-api", {
+          method: "DELETE",
+          params: { id: postingId }, // Lưu ý: API mới dùng param 'id', không phải 'posting_id'
+        });
+
+        if (error) {
+          alert("Lỗi: " + error.message);
+        } else {
+          alert("Xóa thành công!");
+          button.closest(".d-flex").remove();
+        }
+      });
+    });
+  });
+}
 // 2. My Roommate Posts (Tin ở ghép của tôi)
 function renderMyRoommatePosts(posts) {
   const postsList = document.getElementById("my-roommate-posts-list");
@@ -92,25 +117,7 @@ function renderMyRoommatePosts(posts) {
   addDeleteRoommateListeners();
 }
 
-function addDeleteRoommateListeners() {
-  document.querySelectorAll(".delete-roommate-post-btn").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      const postingId = button.dataset.id;
-      showConfirm("Bạn có chắc muốn xóa tin này?", async () => {
-        const { error } = await callEdgeFunction("delete-roommate-posting", {
-          method: "DELETE",
-          params: { id: postingId },
-        });
-        if (error) {
-          alert("Lỗi: " + error.message);
-        } else {
-          alert("Xóa thành công!");
-          button.closest(".d-flex").remove();
-        }
-      });
-    });
-  });
-}
+f;
 
 async function loadMyRoommatePosts() {
   const { data, error } = await callEdgeFunction("get-my-roommate-postings", {

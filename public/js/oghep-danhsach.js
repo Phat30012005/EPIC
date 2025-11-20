@@ -61,7 +61,7 @@ function renderPostings(postings) {
     const profileName = post.profiles?.full_name || "Ẩn danh";
 
     // --- TẠO LINK PROFILE ---
-    const profileUrl = `/-profile.html?user_id=${post.user_id}`;
+    const profileUrl = `/public-profile.html?user_id=${post.user_id}`;
 
     const isSaved = savedRoommatePostIds.has(post.posting_id);
     const saveIcon = isSaved
