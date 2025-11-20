@@ -121,3 +121,10 @@ enabled = true
 verify_jwt = false 
 import_map = "./functions/get-reviews-for-post/deno.json"
 entrypoint = "./functions/get-reviews-for-post/index.ts"
+
+[functions.create-conversation]
+enabled = true
+verify_jwt = false
+import_map = "./functions/create-conversation/deno.json"
+entrypoint = "./functions/create-conversation/index.ts"
+
