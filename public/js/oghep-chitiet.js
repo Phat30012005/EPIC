@@ -73,7 +73,7 @@ async function loadPostDetails(postId) {
 
   if (post.profiles) {
     // --- TẠO LINK PROFILE ---
-    const profileUrl = `/-profile.html?user_id=${post.user_id}`;
+    const profileUrl = `/profile.html?user_id=${post.user_id}`;
 
     const contactNameEl = document.getElementById("detail-contact-name");
     if (contactNameEl) {

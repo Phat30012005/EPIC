@@ -81,7 +81,7 @@ async function loadPostDetails(postId) {
   // --- THÔNG TIN LIÊN HỆ (CÓ LINK PROFILE) ---
   if (post.profiles) {
     // Tạo link đến trang profile
-    const profileUrl = `/public-profile.html?user_id=${post.user_id}`;
+    const profileUrl = `/profile.html?user_id=${post.user_id}`;
 
     // Thay thế setText bằng innerHTML để chèn thẻ <a>
     const contactNameEl = document.getElementById("detail-contact-name");

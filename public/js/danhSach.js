@@ -71,7 +71,7 @@ function renderRooms(inputData) {
     const avatarSrc = room.profiles?.avatar_url || "/assets/logo2.jpg";
     const profileName = room.profiles?.full_name || "Ẩn danh";
     // Tạo link đến Public Profile
-    const profileUrl = `/public-profile.html?user_id=${room.user_id}`;
+    const profileUrl = `/profile.html?user_id=${room.user_id}`;
 
     div.innerHTML = `
       <img src="${imageSrc}" alt="${
