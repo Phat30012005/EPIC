@@ -1,4 +1,5 @@
 // supabase/functions/roommate-api/index.ts
+// (PHIÊN BẢN FIX: BỔ SUNG USER_ID VÀO SELECT)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -26,9 +27,8 @@ const createSuccessResponse = (data: any) => {
 };
 
 Deno.serve(async (req, context) => {
-  if (req.method === "OPTIONS") {
+  if (req.method === "OPTIONS")
     return new Response(null, { status: 204, headers: corsHeaders });
-  }
 
   try {
     const supabase = createClient(
@@ -63,19 +63,20 @@ Deno.serve(async (req, context) => {
         posting_type: url.searchParams.get("posting_type"),
         gender_preference: url.searchParams.get("gender_preference"),
         price: url.searchParams.get("price"),
-        status: url.searchParams.get("status"), // Cho Admin lọc
+        status: url.searchParams.get("status"),
         page: url.searchParams.get("page"),
         limit: url.searchParams.get("limit"),
         user_id: url.searchParams.get("user_id"),
       };
 
+      // === [FIX QUAN TRỌNG] ===
+      // Thêm user_id vào select
       let query = supabase
         .from("roommate_postings")
-        .select(`*, profiles:user_id (full_name, avatar_url)`, {
+        .select(`*, user_id, profiles:user_id (full_name, avatar_url)`, {
           count: "exact",
         });
 
-      // Logic Status (Mặc định chỉ lấy APPROVED nếu không phải Admin lọc)
       if (filters.status) {
         query = query.eq("status", filters.status);
       } else {
@@ -84,16 +85,13 @@ Deno.serve(async (req, context) => {
       if (filters.user_id) {
         query = query.eq("user_id", filters.user_id);
       }
-      // Các bộ lọc khác
       if (filters.ward) query = query.ilike("ward", `%${filters.ward}%`);
       if (filters.posting_type)
         query = query.eq("posting_type", filters.posting_type);
-
       if (
         filters.gender_preference &&
         filters.gender_preference !== "Không yêu cầu"
       ) {
-        // Nếu FE gửi "Nam" hoặc "Nữ" thì lọc chính xác
         query = query.eq("gender_preference", filters.gender_preference);
       }
 
@@ -108,7 +106,6 @@ Deno.serve(async (req, context) => {
         }
       }
 
-      // Phân trang
       query = query.order("created_at", { ascending: false });
       const page = filters.page ? parseInt(filters.page) : 1;
       const limit = filters.limit ? parseInt(filters.limit) : 12;
@@ -159,7 +156,6 @@ Deno.serve(async (req, context) => {
         return createErrorResponse("Only RENTERs can post here", 403);
 
       const body = await req.json();
-      // Validate cơ bản
       if (!body.title || !body.ward || !body.price || !body.posting_type) {
         return createErrorResponse("Missing required fields", 400);
       }
@@ -172,7 +168,7 @@ Deno.serve(async (req, context) => {
         ward: body.ward,
         price: Number(body.price),
         gender_preference: body.gender_preference,
-        status: "PENDING", // Mặc định chờ duyệt
+        status: "PENDING",
       };
 
       const { data, error } = await supabase
@@ -181,12 +177,11 @@ Deno.serve(async (req, context) => {
         .select()
         .single();
       if (error) return createErrorResponse(error.message, 500);
-
       return createSuccessResponse(data);
     }
 
     // ============================================================
-    // 3. PATCH (Duyệt tin - Admin)
+    // 3. PATCH (Duyệt tin)
     // ============================================================
     if (req.method === "PATCH") {
       let userId: string;
@@ -203,7 +198,6 @@ Deno.serve(async (req, context) => {
         return createErrorResponse("Auth failed", 401);
       }
 
-      // Check Admin
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
@@ -218,11 +212,10 @@ Deno.serve(async (req, context) => {
 
       const { data, error } = await supabase
         .from("roommate_postings")
-        .update({ status: status })
+        .update({ status })
         .eq("posting_id", id)
         .select()
         .single();
-
       if (error) return createErrorResponse(error.message, 500);
       return createSuccessResponse(data);
     }
@@ -248,7 +241,6 @@ Deno.serve(async (req, context) => {
       const postingId = url.searchParams.get("id");
       if (!postingId) return createErrorResponse("Missing id", 400);
 
-      // Check Owner or Admin
       const { data: post, error: pError } = await supabase
         .from("roommate_postings")
         .select("user_id")
@@ -271,7 +263,6 @@ Deno.serve(async (req, context) => {
         .delete()
         .eq("posting_id", postingId);
       if (dError) return createErrorResponse(dError.message, 500);
-
       return createSuccessResponse({ id: postingId, status: "deleted" });
     }
 

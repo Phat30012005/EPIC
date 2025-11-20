@@ -1,5 +1,5 @@
 // supabase/functions/posts-api/index.ts
-// (PHIÊN BẢN V4 - BỔ SUNG AVATAR & PROFILE DATA)
+// (PHIÊN BẢN FIX: BỔ SUNG USER_ID VÀO SELECT)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -46,7 +46,7 @@ Deno.serve(async (req, context) => {
     if (req.method === "GET") {
       const id = url.searchParams.get("id");
 
-      // A. Lấy chi tiết (Thêm avatar_url)
+      // A. Lấy chi tiết
       if (id) {
         const { data, error } = await supabase
           .from("posts")
@@ -59,7 +59,7 @@ Deno.serve(async (req, context) => {
         return createSuccessResponse(data);
       }
 
-      // B. Lấy danh sách (Thêm JOIN profiles để lấy tên và avatar)
+      // B. Lấy danh sách
       const filters = {
         ward: url.searchParams.get("ward"),
         type: url.searchParams.get("type"),
@@ -71,9 +71,12 @@ Deno.serve(async (req, context) => {
         user_id: url.searchParams.get("user_id"),
       };
 
+      // === [FIX QUAN TRỌNG] ===
+      // Thêm user_id vào danh sách select
       let query = supabase.from("posts").select(
         `
-          id:post_id, post_id, title, motelName, price, area, 
+          id:post_id, post_id, user_id, 
+          title, motelName, price, area, 
           image_urls, address_detail, ward, room_type, created_at, status, 
           reviews:reviews(rating),
           profiles:user_id ( full_name, avatar_url )
@@ -81,7 +84,6 @@ Deno.serve(async (req, context) => {
         { count: "exact" }
       );
 
-      // Logic lọc (Giữ nguyên)
       if (filters.status) {
         query = query.eq("status", filters.status);
       } else {
@@ -152,7 +154,7 @@ Deno.serve(async (req, context) => {
     }
 
     // ---------------------------------------------------------
-    // 2. POST (Tạo mới - Cập nhật URL chuẩn Cloud)
+    // 2. POST
     // ---------------------------------------------------------
     if (req.method === "POST") {
       let userId: string;
@@ -185,7 +187,6 @@ Deno.serve(async (req, context) => {
 
       const images = formData.getAll("images") as File[];
       const publicImageUrls: string[] = [];
-      // Sửa lại URL chuẩn lấy từ biến môi trường
       const publicSupabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 
       for (const image of images) {
@@ -235,10 +236,9 @@ Deno.serve(async (req, context) => {
     }
 
     // ---------------------------------------------------------
-    // 3. PATCH & DELETE (Giữ nguyên logic, chỉ update CORS)
+    // 3. PATCH & DELETE
     // ---------------------------------------------------------
     if (req.method === "PATCH") {
-      // ... (Logic PATCH giữ nguyên như cũ)
       let userId: string;
       try {
         if (context && context.auth) {
@@ -275,7 +275,6 @@ Deno.serve(async (req, context) => {
     }
 
     if (req.method === "DELETE") {
-      // ... (Logic DELETE giữ nguyên như cũ)
       let userId: string;
       try {
         if (context && context.auth) {
