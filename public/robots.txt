@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://epic-teal.vercel.app/sitemap.xml
