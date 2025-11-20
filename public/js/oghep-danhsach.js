@@ -1,6 +1,6 @@
 /* =======================================
    --- FILE: public/js/oghep-danhsach.js ---
-   (PHIÊN BẢN V_FINAL - TÍCH HỢP UTILS)
+   (PHIÊN BẢN V4 - TÍCH HỢP PUBLIC PROFILE LINK)
    ======================================= */
 
 let savedRoommatePostIds = new Set();
@@ -33,7 +33,6 @@ function renderPostings(postings) {
   const roomList = document.getElementById("roomList");
   roomList.innerHTML = "";
 
-  // Logic phòng thủ: Chấp nhận cả Array và Object {data: []}
   let list = [];
   if (Array.isArray(postings)) {
     list = postings;
@@ -55,14 +54,15 @@ function renderPostings(postings) {
     const typeBadgeClass = isOffering ? "bg-success" : "bg-info";
     const typeText = isOffering ? "Cần tìm người" : "Cần tìm phòng";
 
-    // Dùng Utils format giá
     const priceFormatted = Utils.formatCurrencyShort(post.price);
 
     // Thông tin người đăng
     const avatarSrc = post.profiles?.avatar_url || "/public/assets/logo2.jpg";
     const profileName = post.profiles?.full_name || "Ẩn danh";
 
-    // Nút Lưu
+    // --- TẠO LINK PROFILE ---
+    const profileUrl = `/public/public-profile.html?user_id=${post.user_id}`;
+
     const isSaved = savedRoommatePostIds.has(post.posting_id);
     const saveIcon = isSaved
       ? '<i class="fa-solid fa-heart"></i>'
@@ -83,10 +83,11 @@ function renderPostings(postings) {
       }</p>
 
       <div class="mt-auto pt-3 border-t flex items-center">
-         <img src="${avatarSrc}" alt="ava" class="rounded-circle border" style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;">
-         <span class="text-sm text-gray-500 truncate">${profileName}</span>
+         <a href="${profileUrl}" class="flex items-center text-decoration-none group" target="_blank">
+             <img src="${avatarSrc}" alt="ava" class="rounded-circle border group-hover:border-primary transition" style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;">
+             <span class="text-sm text-gray-500 truncate group-hover:text-primary transition font-medium">${profileName}</span>
+         </a>
       </div>
-
       <div class="flex items-center mt-3 justify-content-between">
         <a href="/public/oghep-chitiet.html?id=${
           post.posting_id
@@ -149,13 +150,10 @@ function addRoommateSaveButtonListeners() {
 }
 
 // 4. Hàm Lọc chính
-// Trong hàm handleFilter (public/js/oghep-danhsach.js)
-
 async function handleFilter() {
   console.log("[oghep] Đang lọc...");
   const roomList = document.getElementById("roomList");
 
-  // ... (Phần lấy giá trị từ input giữ nguyên) ...
   const filterPrice = document.getElementById("filterPrice")?.value;
   const filterLocal = document.getElementById("local-desktop")?.value;
   const filterPostingType = document.getElementById("filterPostingType")?.value;
@@ -167,9 +165,7 @@ async function handleFilter() {
   if (filterPostingType) paramsObject.posting_type = filterPostingType;
   if (filterGender) paramsObject.gender_preference = filterGender;
 
-  // === THAY THẾ ĐOẠN NÀY ===
   const { data, error } = await callEdgeFunction("roommate-api", {
-    // Đổi tên API
     method: "GET",
     params: paramsObject,
   });
@@ -180,7 +176,6 @@ async function handleFilter() {
     return;
   }
 
-  // renderPostings đã có logic phòng thủ (Array check) nên gọi trực tiếp ok
   renderPostings(data);
 }
 

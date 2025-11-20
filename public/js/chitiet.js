@@ -1,6 +1,6 @@
 /* =======================================
    --- FILE: /public/js/chitiet.js ---
-   (PHIÊN BẢN V3 - REFACTORED WITH UTILS)
+   (PHIÊN BẢN V4 - TÍCH HỢP PUBLIC PROFILE LINK)
    ======================================= */
 
 // --- Biến toàn cục ---
@@ -13,7 +13,6 @@ let currentRating = 0;
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("Trang chi tiết đã tải. Bắt đầu lấy dữ liệu...");
 
-  // Dùng Utils để lấy param an toàn
   const postId = Utils.getParam("id");
   currentPostId = postId;
 
@@ -57,7 +56,7 @@ async function loadPostDetails(postId) {
   const post = responseData;
   if (!post) return;
 
-  // --- Render dữ liệu dùng Utils ---
+  // --- Render dữ liệu ---
   document.title = `${post.title || "Chi tiết"} | Chicky.stu`;
 
   Utils.setText("detail-title", post.title);
@@ -66,13 +65,10 @@ async function loadPostDetails(postId) {
     "detail-date",
     `Đăng ngày: ${Utils.formatDate(post.created_at)}`
   );
-
-  // Format giá đẹp (VD: 3.5 triệu/tháng)
   Utils.setText(
     "detail-price",
     `${Utils.formatCurrencyShort(post.price)}/tháng`
   );
-
   Utils.setText("detail-area", `${post.area} m²`);
   Utils.setText("detail-rooms", post.rooms || "Không rõ");
   Utils.setText("detail-ward", post.ward);
@@ -82,12 +78,19 @@ async function loadPostDetails(postId) {
   if (descriptionEl)
     descriptionEl.textContent = post.description || "Không có mô tả chi tiết.";
 
-  // Thông tin liên hệ
+  // --- THÔNG TIN LIÊN HỆ (CÓ LINK PROFILE) ---
   if (post.profiles) {
-    Utils.setText(
-      "detail-contact-name",
-      post.profiles.full_name || "Chưa cập nhật"
-    );
+    // Tạo link đến trang profile
+    const profileUrl = `/public/public-profile.html?user_id=${post.user_id}`;
+
+    // Thay thế setText bằng innerHTML để chèn thẻ <a>
+    const contactNameEl = document.getElementById("detail-contact-name");
+    if (contactNameEl) {
+      contactNameEl.innerHTML = `<a href="${profileUrl}" class="text-primary hover:underline font-bold" target="_blank">${
+        post.profiles.full_name || "Chưa cập nhật"
+      }</a>`;
+    }
+
     Utils.setText(
       "detail-phone",
       post.profiles.phone_number || "Chưa cập nhật"
@@ -135,16 +138,14 @@ async function loadSavedStatus(postId) {
     { method: "GET" }
   );
   if (error) {
-    console.error("Lỗi lấy bookmarks:", error);
+    console.error("Lỗi bookmarks:", error);
     return;
   }
 
   const bookmarks = responseData.data || responseData || [];
-  const isSaved = bookmarks.some((b) => {
-    // Kiểm tra cả 2 trường hợp ID (do backend trả về có thể khác nhau)
-    const bPostId = b.post?.id || b.post?.post_id;
-    return bPostId === postId;
-  });
+  const isSaved = bookmarks.some(
+    (b) => (b.post?.id || b.post?.post_id) === postId
+  );
 
   updateSaveButtonUI(isSaved);
   setupSaveButton(postId, isSaved);
@@ -160,6 +161,7 @@ function updateSaveButtonUI(isSaved) {
     saveBtn.innerHTML = '<i class="far fa-heart mr-2"></i> Lưu tin';
     saveBtn.classList.remove("active");
   }
+  saveBtn.disabled = false;
 }
 
 function setupSaveButton(postId, isCurrentlySaved) {
@@ -209,12 +211,12 @@ async function loadReviews(postId) {
     return;
   }
 
-  if (responseData.length === 0) {
+  if (!responseData || responseData.length === 0) {
     loadingEl.innerHTML = "<p>Chưa có đánh giá nào.</p>";
   } else {
     loadingEl.style.display = "none";
   }
-  renderReviews(responseData);
+  renderReviews(responseData || []);
 }
 
 function renderReviews(reviews) {
@@ -223,9 +225,7 @@ function renderReviews(reviews) {
 
   reviews.forEach((review) => {
     const reviewerName = review.profiles?.full_name || "Ẩn danh";
-    // Dùng Utils để format ngày
     const reviewDate = Utils.formatDate(review.created_at);
-    // Dùng Utils để render sao
     const starsHtml = Utils.renderStars(review.rating, "1.25rem");
 
     const reviewDiv = document.createElement("div");
@@ -298,11 +298,8 @@ async function setupReviewForm(postId) {
       stars.forEach((s) => s.classList.remove("selected"));
       loadReviews(postId);
     } catch (error) {
-      // Kiểm tra thông báo lỗi từ Backend
       if (error.message && error.message.includes("already reviewed")) {
-        alert(
-          "Bạn đã đánh giá phòng trọ này rồi! Mỗi người chỉ được đánh giá 1 lần."
-        );
+        alert("Bạn đã đánh giá phòng trọ này rồi!");
       } else {
         alert(`Lỗi: ${error.message}`);
       }
@@ -312,9 +309,6 @@ async function setupReviewForm(postId) {
   });
 }
 
-/**
- * 5. HELPER: RENDER HÌNH ẢNH
- */
 function renderImages(imageUrls, postTitle) {
   const imagesDisplay = document.getElementById("detail-images-display");
   const thumbnailsContainer = document.getElementById("detail-thumbnails");

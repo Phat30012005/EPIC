@@ -65,6 +65,7 @@ Deno.serve(async (req, context) => {
         status: url.searchParams.get("status"), // Cho Admin lọc
         page: url.searchParams.get("page"),
         limit: url.searchParams.get("limit"),
+        user_id: url.searchParams.get("user_id"),
       };
 
       let query = supabase
@@ -79,7 +80,9 @@ Deno.serve(async (req, context) => {
       } else {
         query = query.eq("status", "APPROVED");
       }
-
+      if (filters.user_id) {
+        query = query.eq("user_id", filters.user_id);
+      }
       // Các bộ lọc khác
       if (filters.ward) query = query.ilike("ward", `%${filters.ward}%`);
       if (filters.posting_type)

@@ -65,7 +65,8 @@ Deno.serve(async (req, context) => {
         size: url.searchParams.get("size"),
         page: url.searchParams.get("page"),
         limit: url.searchParams.get("limit"),
-        status: url.searchParams.get("status"), // Admin có thể lọc theo status
+        status: url.searchParams.get("status"),
+        user_id: url.searchParams.get("user_id"),
       };
 
       let query = supabase
@@ -83,7 +84,9 @@ Deno.serve(async (req, context) => {
       } else {
         query = query.eq("status", "APPROVED");
       }
-
+      if (filters.user_id) {
+        query = query.eq("user_id", filters.user_id);
+      }
       if (filters.ward) query = query.ilike("ward", `%${filters.ward}%`);
       if (
         filters.type &&

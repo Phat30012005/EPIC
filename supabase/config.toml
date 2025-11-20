@@ -143,3 +143,10 @@ enabled = true
 verify_jwt = false #true
 import_map = "./functions/roommate-api/deno.json"
 entrypoint = "./functions/roommate-api/index.ts"
+
+[functions.get-public-profile]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-public-profile/deno.json"
+entrypoint = "./functions/get-public-profile/index.ts"
+

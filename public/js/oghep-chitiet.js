@@ -1,6 +1,6 @@
 /* =======================================
    --- FILE: /public/js/oghep-chitiet.js ---
-   (PHIÊN BẢN V_FINAL - TÍCH HỢP UTILS)
+   (PHIÊN BẢN V4 - TÍCH HỢP PUBLIC PROFILE LINK)
    ======================================= */
 
 let currentPostId = null;
@@ -50,7 +50,6 @@ async function loadPostDetails(postId) {
   Utils.setText("detail-title", post.title);
   Utils.setText("detail-page-title", "Chi tiết tin tìm ở ghép");
 
-  // Dùng Utils
   Utils.setText(
     "detail-date",
     `Đăng ngày: ${Utils.formatDate(post.created_at)}`
@@ -73,10 +72,16 @@ async function loadPostDetails(postId) {
     descriptionEl.textContent = post.description || "Không có mô tả.";
 
   if (post.profiles) {
-    Utils.setText(
-      "detail-contact-name",
-      post.profiles.full_name || "Chưa cập nhật"
-    );
+    // --- TẠO LINK PROFILE ---
+    const profileUrl = `/public/public-profile.html?user_id=${post.user_id}`;
+
+    const contactNameEl = document.getElementById("detail-contact-name");
+    if (contactNameEl) {
+      contactNameEl.innerHTML = `<a href="${profileUrl}" class="text-primary hover:underline font-bold" target="_blank">${
+        post.profiles.full_name || "Chưa cập nhật"
+      }</a>`;
+    }
+
     Utils.setText(
       "detail-phone",
       post.profiles.phone_number || "Chưa cập nhật"
@@ -97,6 +102,7 @@ async function loadSavedStatus(postId) {
   } = await supabase.auth.getSession();
   if (!session) {
     saveBtn.innerHTML = '<i class="far fa-heart mr-2"></i> Đăng nhập để lưu';
+    saveBtn.classList.remove("active");
     saveBtn.onclick = () => (window.location.href = "/public/login.html");
     return;
   }
