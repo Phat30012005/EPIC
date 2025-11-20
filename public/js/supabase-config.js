@@ -1,29 +1,19 @@
 // public/js/supabase-config.js
-// CẤU HÌNH ĐỂ CHẠY LOCAL (NGÀY 2)
-// === ĐÃ SỬA LỖI "Cannot access 'supabase' before initialization" ===
+// CẤU HÌNH PRODUCTION (CHẠY TRÊN MẠNG)
 
-// === KHÓA PRODUCTION (TẠM ẨN ĐI) ===
-// const SUPABASE_URL = 'https://dqjjvfsoxuhaykomyzwe.supabase.co';
-// const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxamp2ZnNveHVoYXlrb215endlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0MTU3NzEsImV4cCI6MjA3Nzk5MTc3MX0.GpLoCw9DuHSchofL7XMAlB8eWroJCm7AGWokkxFIVKQ';
+// 1. Dán URL dự án Supabase của bạn vào đây
+const SUPABASE_URL = "https://utlqebvridpmsxpgbmcg.supabase.co";
 
-// === KHÓA LOCAL (BẮT BUỘC DÙNG KHI TEST VỚI 'supabase start') ===
-// URL này được cung cấp khi bạn chạy 'supabase start'
-const SUPABASE_URL = "http://127.0.0.1:54321";
-// Đây là key anon MẶC ĐỊNH cho local, an toàn để sử dụng
+// 2. Dán khóa 'anon' (public) của bạn vào đây
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIZDAiLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bHFlYnZyaWRwbXN4cGdibWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2Mjg1NjUsImV4cCI6MjA3OTIwNDU2NX0.PIjL1FF3fViZhwuM7rELJXxDSVbCEKSz18m7CW_Xo7A";
 
-// === PHẦN SỬA LỖI ===
-// 1. Lấy hàm 'createClient' từ thư viện 'supabase' global (đã được tải từ CDN)
-// Dùng 'globalSupabase' để tránh xung đột tên
+// 3. Khởi tạo client
+// (Giữ nguyên logic này để tránh lỗi 'cannot access before init')
 const globalSupabase = window.supabase;
 const { createClient } = globalSupabase;
 
-// 2. Khởi tạo client VÀ GHI ĐÈ biến global 'supabase'
-// KHÔNG DÙNG 'const' hay 'let' để đảm bảo ta đang thay đổi biến global,
-// chứ không phải tạo ra một biến local mới.
+// Ghi đè biến global supabase
 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// === KẾT THÚC PHẦN SỬA LỖI ===
 
-// In ra Console để kiểm tra xem đã kết nối thành công chưa
-console.log("✅ Supabase CLIENT INSTANCE ĐÃ KHỞI TẠO (LOCAL)!");
+console.log("✅ Supabase CLIENT ĐÃ KẾT NỐI TỚI CLOUD!");
