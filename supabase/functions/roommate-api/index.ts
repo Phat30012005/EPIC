@@ -26,8 +26,9 @@ const createSuccessResponse = (data: any) => {
 };
 
 Deno.serve(async (req, context) => {
-  if (req.method === "OPTIONS")
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
 
   try {
     const supabase = createClient(
