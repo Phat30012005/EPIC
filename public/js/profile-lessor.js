@@ -89,7 +89,7 @@ function renderMyPosts(posts) {
       "d-flex justify-content-between align-items-center p-3 border rounded bg-white mb-2 shadow-sm";
     postDiv.innerHTML = `
       <div>
-        <a href="/public/chitiet.html?id=${
+        <a href="/chitiet.html?id=${
           post.id || post.post_id
         }" class="fw-bold text-primary text-decoration-none" target="_blank">
           ${post.title}
@@ -169,7 +169,7 @@ function renderSavedPosts(bookmarks) {
       "d-flex justify-content-between align-items-center p-3 border rounded bg-white mb-2 shadow-sm";
     postDiv.innerHTML = `
       <div>
-        <a href="/public/chitiet.html?id=${
+        <a href="/chitiet.html?id=${
           post.post_id || post.id
         }" class="fw-bold text-primary text-decoration-none" target="_blank">
           ${post.title}

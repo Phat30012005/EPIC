@@ -57,7 +57,7 @@ function renderRooms(inputData) {
     const imageSrc =
       Array.isArray(room.image_urls) && room.image_urls.length > 0
         ? room.image_urls[0]
-        : "/public/assets/logo2.jpg";
+        : "/assets/logo2.jpg";
 
     // Format giá dùng Utils (VD: 3.5 triệu/tháng)
     const priceFormatted = Utils.formatCurrencyShort(room.price);
@@ -113,7 +113,7 @@ function addSaveButtonListeners() {
 
       if (!session) {
         alert("Vui lòng đăng nhập để lưu tin!");
-        window.location.href = "/public/login.html";
+        window.location.href = "/login.html";
         return;
       }
 

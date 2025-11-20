@@ -78,7 +78,7 @@ function renderMyRoommatePosts(posts) {
       "d-flex justify-content-between align-items-center p-3 border rounded bg-white mb-2";
     postDiv.innerHTML = `
       <div>
-        <a href="/public/oghep-chitiet.html?id=${post.posting_id}" class="fw-bold text-primary text-decoration-none" target="_blank">${post.title}</a>
+        <a href="/oghep-chitiet.html?id=${post.posting_id}" class="fw-bold text-primary text-decoration-none" target="_blank">${post.title}</a>
         <p class="mb-0 text-muted small">${price}/người - ${post.ward}</p>
         <span class="badge bg-secondary text-xs">${post.status}</span>
       </div>
@@ -147,7 +147,7 @@ function renderSavedPosts(bookmarks) {
       "d-flex justify-content-between align-items-center p-3 border rounded bg-white mb-2";
     postDiv.innerHTML = `
       <div>
-        <a href="/public/chitiet.html?id=${
+        <a href="/chitiet.html?id=${
           post.post_id || post.id
         }" class="fw-bold text-primary text-decoration-none" target="_blank">${
       post.title
@@ -211,7 +211,7 @@ function renderSavedRoommatePosts(bookmarks) {
       "d-flex justify-content-between align-items-center p-3 border rounded bg-white mb-2";
     postDiv.innerHTML = `
       <div>
-        <a href="/public/oghep-chitiet.html?id=${post.posting_id}" class="fw-bold text-primary text-decoration-none" target="_blank">${post.title}</a>
+        <a href="/oghep-chitiet.html?id=${post.posting_id}" class="fw-bold text-primary text-decoration-none" target="_blank">${post.title}</a>
         <p class="mb-0 text-muted small">${price}/người - ${post.ward}</p>
       </div>
       <div>

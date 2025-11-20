@@ -1,5 +1,5 @@
 /* =======================================
-   --- FILE: /public/js/oghep-chitiet.js ---
+   --- FILE: /js/oghep-chitiet.js ---
    (PHIÊN BẢN V4 - TÍCH HỢP PUBLIC PROFILE LINK)
    ======================================= */
 
@@ -73,7 +73,7 @@ async function loadPostDetails(postId) {
 
   if (post.profiles) {
     // --- TẠO LINK PROFILE ---
-    const profileUrl = `/public/public-profile.html?user_id=${post.user_id}`;
+    const profileUrl = `/public-profile.html?user_id=${post.user_id}`;
 
     const contactNameEl = document.getElementById("detail-contact-name");
     if (contactNameEl) {
@@ -103,7 +103,7 @@ async function loadSavedStatus(postId) {
   if (!session) {
     saveBtn.innerHTML = '<i class="far fa-heart mr-2"></i> Đăng nhập để lưu';
     saveBtn.classList.remove("active");
-    saveBtn.onclick = () => (window.location.href = "/public/login.html");
+    saveBtn.onclick = () => (window.location.href = "/login.html");
     return;
   }
 

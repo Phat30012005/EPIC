@@ -87,7 +87,7 @@ async function loadUserRentals(userId) {
     const img =
       post.image_urls && post.image_urls[0]
         ? post.image_urls[0]
-        : "/public/assets/logo2.jpg";
+        : "/assets/logo2.jpg";
 
     div.innerHTML = `
             <img src="${img}" class="w-full h-40 object-cover rounded mb-2">
@@ -95,7 +95,7 @@ async function loadUserRentals(userId) {
             <p class="text-sm text-gray-600 mb-1 truncate"><i class="fa-solid fa-location-dot"></i> ${post.ward}</p>
             <div class="flex justify-between items-center">
                 <span class="text-primary font-bold">${price}/tháng</span>
-                <a href="/public/chitiet.html?id=${post.post_id}" class="btn btn-sm btn-outline-primary">Xem</a>
+                <a href="/chitiet.html?id=${post.post_id}" class="btn btn-sm btn-outline-primary">Xem</a>
             </div>
         `;
     listContainer.appendChild(div);
@@ -137,7 +137,7 @@ async function loadUserRoommates(userId) {
             <p class="text-sm text-gray-600 mb-1 truncate"><i class="fa-solid fa-location-dot"></i> ${post.ward}</p>
             <div class="flex justify-between items-center mt-2">
                 <span class="text-primary font-bold">${price}/người</span>
-                <a href="/public/oghep-chitiet.html?id=${post.posting_id}" class="btn btn-sm btn-outline-primary">Xem</a>
+                <a href="/oghep-chitiet.html?id=${post.posting_id}" class="btn btn-sm btn-outline-primary">Xem</a>
             </div>
         `;
     listContainer.appendChild(div);

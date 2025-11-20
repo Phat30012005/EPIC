@@ -12,6 +12,6 @@
       alert("Bạn cần đăng nhập để truy cập trang này.");
     }
     // Chuyển hướng về trang đăng nhập
-    window.location.href = "/public/login.html";
+    window.location.href = "/login.html";
   }
 })();

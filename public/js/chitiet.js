@@ -1,5 +1,5 @@
 /* =======================================
-   --- FILE: /public/js/chitiet.js ---
+   --- FILE: /js/chitiet.js ---
    (PHIÊN BẢN V4 - TÍCH HỢP PUBLIC PROFILE LINK)
    ======================================= */
 
@@ -81,7 +81,7 @@ async function loadPostDetails(postId) {
   // --- THÔNG TIN LIÊN HỆ (CÓ LINK PROFILE) ---
   if (post.profiles) {
     // Tạo link đến trang profile
-    const profileUrl = `/public/public-profile.html?user_id=${post.user_id}`;
+    const profileUrl = `/public-profile.html?user_id=${post.user_id}`;
 
     // Thay thế setText bằng innerHTML để chèn thẻ <a>
     const contactNameEl = document.getElementById("detail-contact-name");
@@ -129,7 +129,7 @@ async function loadSavedStatus(postId) {
   if (!session) {
     saveBtn.innerHTML = '<i class="far fa-heart mr-2"></i> Đăng nhập để lưu';
     saveBtn.classList.remove("active");
-    saveBtn.onclick = () => (window.location.href = "/public/login.html");
+    saveBtn.onclick = () => (window.location.href = "/login.html");
     return;
   }
 
@@ -350,7 +350,7 @@ function renderImages(imageUrls, postTitle) {
     }
   } else {
     imagesDisplay.innerHTML =
-      '<img src="/public/assets/logo2.jpg" alt="Mặc định" class="main-image w-full aspect-video object-cover block rounded-lg"/>';
+      '<img src="/assets/logo2.jpg" alt="Mặc định" class="main-image w-full aspect-video object-cover block rounded-lg"/>';
     prevBtn.style.display = "none";
     nextBtn.style.display = "none";
     thumbnailsContainer.style.display = "none";

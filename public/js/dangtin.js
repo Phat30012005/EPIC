@@ -213,7 +213,7 @@ async function submitPost(selectedWardValue) {
     if (error.name === "AuthError") {
       // (Lỗi này do 'api-client.js' trả về)
       showAlert("Bạn cần đăng nhập để đăng tin!");
-      window.location.href = "/public/login.html";
+      window.location.href = "/login.html";
     } else {
       // Các lỗi khác (từ backend 500, 400...)
       showAlert("Lỗi đăng tin: " + error.message);
@@ -222,7 +222,7 @@ async function submitPost(selectedWardValue) {
     // 'data' ở đây là { id: ..., title: ... } do function trả về
     console.log("Đăng tin thành công:", data);
     showAlert("Đăng tin thành công!");
-    window.location.href = "/public/danhsach.html";
+    window.location.href = "/danhsach.html";
   }
 }
 

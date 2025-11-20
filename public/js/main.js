@@ -69,9 +69,7 @@ function setupSearchForm() {
       const query = searchInput.value.trim();
 
       if (query) {
-        window.location.href = `/public/danhsach.html?q=${encodeURIComponent(
-          query
-        )}`;
+        window.location.href = `/danhsach.html?q=${encodeURIComponent(query)}`;
       }
     });
   }
@@ -99,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   // 2. Tải Header VÀ CHẠY LOGIC AUTH (ĐÃ SỬA)
-  loadComponent("/public/header.html", "header-placeholder", () => {
+  loadComponent("/header.html", "header-placeholder", () => {
     setupNavigation();
     setupSearchForm();
 
@@ -158,23 +156,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // 3. Phân quyền Menu & Nút Hero (Trang chủ)
         if (role === "LESSOR") {
-          profileLinkA.href = "/public/profile-lessor.html";
+          profileLinkA.href = "/profile-lessor.html";
           renterPostLink.style.display = "none";
           lessorPostLink.style.display = "list-item";
 
           // Logic cho nút Hero
           if (heroBtn) {
-            heroBtn.href = "/public/dangtin.html";
+            heroBtn.href = "/dangtin.html";
             heroBtn.style.display = "inline-block"; // Hiện nút
           }
         } else {
-          profileLinkA.href = "/public/profile-renter.html";
+          profileLinkA.href = "/profile-renter.html";
           renterPostLink.style.display = "list-item";
           lessorPostLink.style.display = "none";
 
           // Logic cho nút Hero
           if (heroBtn) {
-            heroBtn.href = "/public/oghep-dangtin.html";
+            heroBtn.href = "/oghep-dangtin.html";
             heroBtn.style.display = "inline-block"; // Hiện nút
           }
         }
@@ -194,7 +192,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ) {
         // ... (Giữ nguyên logic đăng xuất cũ) ...
         loginButton.textContent = "🔑 Đăng nhập";
-        loginButton.href = "/public/login.html";
+        loginButton.href = "/login.html";
         loginButton.classList.remove("btn-outline-danger");
         loginButton.classList.add("btn-primary");
         loginButton.onclick = null;
@@ -206,7 +204,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Nếu chưa đăng nhập, hiện nút và dẫn tới trang Login
         if (heroBtn) {
-          heroBtn.href = "/public/login.html";
+          heroBtn.href = "/login.html";
           heroBtn.style.display = "inline-block";
         }
 
@@ -216,10 +214,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }); // Kết thúc loadComponent
 
   // 3. Tải Footer (Giữ nguyên)
-  loadComponent("/public/footer.html", "footer-placeholder");
+  loadComponent("/footer.html", "footer-placeholder");
 
   // 4. Tải và kích hoạt Chatbox (Giữ nguyên)
-  fetch("/public/chatbox.html")
+  fetch("/chatbox.html")
     .then((res) => res.text())
     .then((html) => {
       document.body.insertAdjacentHTML("beforeend", html);

@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Đăng nhập thành công (qua Edge Function):", data.user.email);
       alert("Đăng nhập thành công! Đang chuyển về trang chủ...");
       // Chuyển hướng về trang chủ
-      window.location.href = "/public/index.html";
+      window.location.href = "/index.html";
     } catch (exception) {
       // Bắt tất cả các lỗi (từ fetch, setSession, hoặc throw)
       console.error("Lỗi hệ thống khi đăng nhập:", exception);

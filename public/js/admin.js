@@ -95,8 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Tạo link xem chi tiết đúng loại
       const detailLink =
         currentType === "rental"
-          ? `/public/chitiet.html?id=${postId}`
-          : `/public/oghep-chitiet.html?id=${postId}`;
+          ? `/chitiet.html?id=${postId}`
+          : `/oghep-chitiet.html?id=${postId}`;
 
       // Badge trạng thái & Nút bấm
       let statusBadge = "";

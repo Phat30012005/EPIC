@@ -57,11 +57,11 @@ function renderPostings(postings) {
     const priceFormatted = Utils.formatCurrencyShort(post.price);
 
     // Thông tin người đăng
-    const avatarSrc = post.profiles?.avatar_url || "/public/assets/logo2.jpg";
+    const avatarSrc = post.profiles?.avatar_url || "/assets/logo2.jpg";
     const profileName = post.profiles?.full_name || "Ẩn danh";
 
     // --- TẠO LINK PROFILE ---
-    const profileUrl = `/public/public-profile.html?user_id=${post.user_id}`;
+    const profileUrl = `/public-profile.html?user_id=${post.user_id}`;
 
     const isSaved = savedRoommatePostIds.has(post.posting_id);
     const saveIcon = isSaved
@@ -89,7 +89,7 @@ function renderPostings(postings) {
          </a>
       </div>
       <div class="flex items-center mt-3 justify-content-between">
-        <a href="/public/oghep-chitiet.html?id=${
+        <a href="/oghep-chitiet.html?id=${
           post.posting_id
         }" class="btn btn-sm btn-outline-primary flex-grow-1 me-2">Xem chi tiết</a>
         <button class="btn btn-sm ${saveClass} save-roommate-btn" data-id="${
@@ -118,7 +118,7 @@ function addRoommateSaveButtonListeners() {
 
       if (!session) {
         alert("Vui lòng đăng nhập để lưu tin!");
-        window.location.href = "/public/login.html";
+        window.location.href = "/login.html";
         return;
       }
 

@@ -7,7 +7,7 @@
 
   if (error || !session) {
     alert("Bạn cần đăng nhập để truy cập trang này.");
-    window.location.href = "/public/login.html";
+    window.location.href = "/login.html";
     return;
   }
 
@@ -21,7 +21,7 @@
 
     if (profileError || !profile || profile.role !== "ADMIN") {
       alert("Bạn không có quyền truy cập trang Quản trị.");
-      window.location.href = "/public/index.html";
+      window.location.href = "/index.html";
       return;
     }
 
@@ -29,6 +29,6 @@
     console.log("Admin access granted.");
   } catch (err) {
     console.error("Lỗi kiểm tra quyền admin:", err);
-    window.location.href = "/public/index.html";
+    window.location.href = "/index.html";
   }
 })();

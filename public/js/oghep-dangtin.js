@@ -183,7 +183,7 @@ async function submitPost() {
     console.error("Lỗi đăng tin:", error);
     if (error.message.includes("not authenticated")) {
       showAlert("Bạn cần đăng nhập để đăng tin!");
-      window.location.href = "/public/login.html";
+      window.location.href = "/login.html";
     } else if (error.message.includes("Only RENTERs")) {
       showAlert("Lỗi: Chỉ có Người Thuê (RENTER) mới được đăng tin này.");
     } else {
@@ -196,7 +196,7 @@ async function submitPost() {
       "Đăng tin thành công! Tin của bạn đang chờ Admin duyệt trước khi hiển thị."
     );
     setTimeout(() => {
-      window.location.href = "/public/oghep-danhsach.html";
+      window.location.href = "/oghep-danhsach.html";
     }, 2000);
   }
 }

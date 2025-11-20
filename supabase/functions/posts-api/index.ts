@@ -198,7 +198,7 @@ Deno.serve(async (req, context) => {
             .upload(imagePath, image, { upsert: false });
           if (!upErr)
             publicImageUrls.push(
-              `${publicSupabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${imagePath}`
+              `${publicSupabaseUrl}/storage/v1/object/${BUCKET_NAME}/${imagePath}`
             );
         }
       }

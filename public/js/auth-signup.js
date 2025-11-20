@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         alert("Đăng ký thành công! Vui lòng kiểm tra email để xác thực.");
         // Tự động chuyển về trang đăng nhập
-        window.location.href = "/public/login.html";
+        window.location.href = "/login.html";
       } catch (error) {
         // Bắt lỗi từ fetch hoặc lỗi (throw) ở trên
         console.error("Lỗi khi gọi Edge Function user-signup:", error.message);
