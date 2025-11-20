@@ -69,3 +69,22 @@ const Utils = {
 
 // Thông báo file đã load
 console.log("✅ Utils loaded");
+/**
+   * 6. Tối ưu hóa đường dẫn ảnh Supabase
+   * Chuyển đổi URL từ /object/public/ sang /render/image/public/ để resize ảnh
+   * @param {string} url - URL ảnh gốc
+   * @param {number} width - Chiều rộng mong muốn (mặc định 400px cho thumbnail)
+   */
+  getOptimizedImage: (url, width = 400) => {
+    if (!url) return "/assets/logo2.jpg"; // Ảnh mặc định nếu không có URL
+    
+    // Kiểm tra xem có phải ảnh từ Supabase Storage không
+    if (url.includes("/storage/v1/object/public/")) {
+      // Thay thế /object/ bằng /render/image/ để kích hoạt tính năng resize
+      let newUrl = url.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+      // Thêm tham số resize
+      return `${newUrl}?width=${width}&resize=cover&quality=80`;
+    }
+    
+    return url; // Nếu là ảnh nguồn khác thì giữ nguyên
+  },

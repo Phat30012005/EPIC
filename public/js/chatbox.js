@@ -1,8 +1,8 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
+   (PHIÊN BẢN ĐÃ VÁ LỖI XSS)
    ======================================= */
 
-// Gói tất cả logic vào một hàm để đảm bảo nó chỉ chạy khi được gọi
 function initializeChatbox() {
   const chatWidget = document.getElementById("chat-widget");
   if (!chatWidget) return;
@@ -49,14 +49,26 @@ function initializeChatbox() {
     }
   });
 
-  // Hàm thêm tin nhắn vào giao diện
+  // --- [BẢO MẬT] HÀM ĐÃ ĐƯỢC SỬA ---
   const appendMessage = (text, sender) => {
     const div = document.createElement("div");
     div.className = sender === "user" ? "user-message" : "bot-message";
-    div.innerHTML = `<p>${text}</p>`;
+
+    const p = document.createElement("p");
+
+    if (sender === "user") {
+      // Với User: Chỉ hiển thị text thuần để chống XSS
+      p.textContent = text;
+    } else {
+      // Với Bot: Cho phép HTML (để hiển thị link hướng dẫn)
+      p.innerHTML = text;
+    }
+
+    div.appendChild(p);
     chatBody.appendChild(div);
     chatBody.scrollTop = chatBody.scrollHeight;
   };
+  // ---------------------------------
 
   // Logic trả lời của Bot
   const getBotReply = (msg) => {
@@ -72,7 +84,7 @@ function initializeChatbox() {
     return "Cảm ơn bạn! Hiện tại hệ thống sẽ sớm phản hồi thêm 🌟";
   };
 
-  // Hiển thị tin nhắn chào mừng khi mới vào
+  // Hiển thị tin nhắn chào mừng
   if (chatBody.children.length === 0) {
     appendMessage(
       "Xin chào 👋<br>CHICKY.STU có thể giúp gì cho bạn hôm nay?",

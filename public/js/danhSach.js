@@ -53,10 +53,14 @@ function renderRooms(inputData) {
     div.className =
       "bg-white rounded shadow p-3 hover:shadow-lg transition flex flex-col h-full";
 
-    const imageSrc =
+    // Lấy URL gốc
+    const originalUrl =
       Array.isArray(room.image_urls) && room.image_urls.length > 0
         ? room.image_urls[0]
-        : "/assets/logo1.png"; // Dùng đường dẫn assets chuẩn Vercel
+        : null;
+
+    // Gọi hàm tối ưu ảnh từ Utils (Resize về 400px cho nhẹ)
+    const imageSrc = Utils.getOptimizedImage(originalUrl, 400);
 
     const priceFormatted = Utils.formatCurrencyShort(room.price);
 
