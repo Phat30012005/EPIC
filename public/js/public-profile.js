@@ -1,5 +1,5 @@
 /* =======================================
-   --- FILE: public/js/public-profile.js ---
+   --- FILE: public/js/-profile.js ---
    ======================================= */
 
 document.addEventListener("DOMContentLoaded", async () => {
