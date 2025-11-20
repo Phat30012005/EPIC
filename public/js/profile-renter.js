@@ -1,6 +1,6 @@
 /* =======================================
    --- FILE: public/js/profile-renter.js ---
-   (PHIÊN BẢN V4 - HỖ TRỢ UPLOAD AVATAR)
+   (PHIÊN BẢN FINAL - FIX LỖI TYPO)
    ======================================= */
 
 // 1. Profile Form
@@ -59,31 +59,6 @@ async function handleProfileUpdate(e) {
   updateButton.textContent = "Lưu thay đổi";
 }
 
-function addDeleteRoommateListeners() {
-  document.querySelectorAll(".delete-roommate-post-btn").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      const postingId = button.dataset.id;
-
-      showConfirm("Bạn có chắc muốn xóa tin này?", async () => {
-        // === SỬA ĐỔI QUAN TRỌNG TẠI ĐÂY ===
-        // Cũ: callEdgeFunction("delete-roommate-posting", ...)
-        // Mới: Dùng roommate-api với method DELETE
-
-        const { error } = await callEdgeFunction("roommate-api", {
-          method: "DELETE",
-          params: { id: postingId }, // Lưu ý: API mới dùng param 'id', không phải 'posting_id'
-        });
-
-        if (error) {
-          alert("Lỗi: " + error.message);
-        } else {
-          alert("Xóa thành công!");
-          button.closest(".d-flex").remove();
-        }
-      });
-    });
-  });
-}
 // 2. My Roommate Posts (Tin ở ghép của tôi)
 function renderMyRoommatePosts(posts) {
   const postsList = document.getElementById("my-roommate-posts-list");
@@ -117,17 +92,36 @@ function renderMyRoommatePosts(posts) {
   addDeleteRoommateListeners();
 }
 
-f;
+function addDeleteRoommateListeners() {
+  document.querySelectorAll(".delete-roommate-post-btn").forEach((button) => {
+    button.addEventListener("click", async (e) => {
+      const postingId = button.dataset.id;
+      showConfirm("Bạn có chắc muốn xóa tin này?", async () => {
+        // FIX: Dùng roommate-api để xóa
+        const { error } = await callEdgeFunction("roommate-api", {
+          method: "DELETE",
+          params: { id: postingId },
+        });
+        if (error) {
+          alert("Lỗi: " + error.message);
+        } else {
+          alert("Xóa thành công!");
+          button.closest(".d-flex").remove();
+        }
+      });
+    });
+  });
+}
 
 async function loadMyRoommatePosts() {
   const { data, error } = await callEdgeFunction("get-my-roommate-postings", {
     method: "GET",
   });
   if (error) {
-    console.error("Lỗi tải tin ở ghép:", error);
     document.getElementById("my-roommate-posts-loading").textContent =
       "Lỗi tải tin.";
   } else {
+    // Handle data array safely
     renderMyRoommatePosts(data.data || data);
   }
 }
