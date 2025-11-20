@@ -1,35 +1,57 @@
 /* =======================================
    --- FILE: public/js/admin.js ---
-   (PHIÊN BẢN V2 - QUẢN LÝ DUYỆT TIN)
+   (PHIÊN BẢN V3 - QUẢN LÝ ĐA NĂNG: PHÒNG TRỌ & Ở GHÉP)
    ======================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
   const tableBody = document.getElementById("adminTableBody");
-  if (!tableBody) return;
+  const postTypeSelector = document.getElementById("adminPostType");
 
-  // Hàm tải danh sách (Lấy TẤT CẢ trạng thái)
+  // Nếu thiếu 1 trong 2 element này thì dừng lại (tránh lỗi null)
+  if (!tableBody || !postTypeSelector) {
+    console.error("Thiếu adminTableBody hoặc adminPostType trong HTML");
+    return;
+  }
+
+  // --- 1. CẤU HÌNH API (PHẦN MỚI BẠN ĐANG THIẾU) ---
+  const API_CONFIG = {
+    rental: {
+      api: "posts-api", // Tên function cho phòng trọ
+      idField: "id", // Tên trường ID trả về
+    },
+    roommate: {
+      api: "roommate-api", // Tên function cho tìm ở ghép
+      idField: "posting_id", // Tên trường ID trả về
+    },
+  };
+
+  // Biến lưu loại tin hiện tại đang xem (Mặc định là rental)
+  let currentType = "rental";
+
+  // --- 2. LẮNG NGHE SỰ KIỆN ĐỔI LOẠI TIN ---
+  postTypeSelector.addEventListener("change", (e) => {
+    currentType = e.target.value; // 'rental' hoặc 'roommate'
+    console.log("Admin chuyển sang xem:", currentType);
+    loadAdminPosts(); // Tải lại dữ liệu tương ứng
+  });
+
+  /**
+   * Hàm tải dữ liệu
+   */
   async function loadAdminPosts() {
     tableBody.innerHTML =
       '<tr><td colspan="5" class="text-center">Đang tải dữ liệu...</td></tr>';
 
-    // Gọi API với tham số status="ALL" (hoặc không truyền status để mặc định logic Admin lấy hết nếu backend hỗ trợ,
-    // nhưng ở backend ta vừa sửa: nếu không có status -> lấy APPROVED.
-    // Vậy Admin cần truyền status cụ thể hoặc ta sửa backend để Admin lấy hết.
-    // Ở đây ta sẽ gọi lần lượt 3 loại status hoặc sửa Backend cho phép lấy ALL.
-    // Cách đơn giản nhất: Gọi 3 lần và gộp lại hoặc dùng param status đặc biệt.
+    // Lấy config dựa trên loại hiện tại
+    const config = API_CONFIG[currentType];
 
-    // TUY NHIÊN: Để đơn giản và hiệu quả, ta sẽ gọi API lấy tin PENDING trước để xử lý.
-    // Bạn có thể mở rộng để lấy hết sau.
-
-    // SỬA LẠI CHIẾN THUẬT: Gọi API 3 lần để lấy Pending, Approved, Rejected rồi gộp lại
-    // Hoặc tốt nhất: Admin chỉ cần quan tâm tin PENDING và APPROVED.
-
+    // Gọi API lấy 2 danh sách: Chờ duyệt (PENDING) và Đang hiện (APPROVED)
     const [pendingRes, approvedRes] = await Promise.all([
-      callEdgeFunction("posts-api", {
+      callEdgeFunction(config.api, {
         method: "GET",
         params: { status: "PENDING", limit: 50 },
       }),
-      callEdgeFunction("posts-api", {
+      callEdgeFunction(config.api, {
         method: "GET",
         params: { status: "APPROVED", limit: 50 },
       }),
@@ -50,10 +72,14 @@ document.addEventListener("DOMContentLoaded", () => {
     renderTable(allPosts);
   }
 
+  /**
+   * Hàm vẽ bảng
+   */
   function renderTable(posts) {
     tableBody.innerHTML = "";
+    const config = API_CONFIG[currentType];
 
-    // Sắp xếp: PENDING lên đầu
+    // Sắp xếp: Tin PENDING (Chờ duyệt) lên đầu
     posts.sort((a, b) => {
       if (a.status === "PENDING" && b.status !== "PENDING") return -1;
       if (a.status !== "PENDING" && b.status === "PENDING") return 1;
@@ -63,7 +89,16 @@ document.addEventListener("DOMContentLoaded", () => {
     posts.forEach((post, index) => {
       const tr = document.createElement("tr");
 
-      // Badge trạng thái
+      // Lấy ID linh hoạt (vì 2 bảng dùng tên cột khác nhau)
+      const postId = post[config.idField] || post.post_id || post.id;
+
+      // Tạo link xem chi tiết đúng loại
+      const detailLink =
+        currentType === "rental"
+          ? `/public/chitiet.html?id=${postId}`
+          : `/public/oghep-chitiet.html?id=${postId}`;
+
+      // Badge trạng thái & Nút bấm
       let statusBadge = "";
       let actionButtons = "";
 
@@ -71,40 +106,42 @@ document.addEventListener("DOMContentLoaded", () => {
         statusBadge =
           '<span class="badge bg-warning text-dark">Chờ duyệt</span>';
         actionButtons = `
-            <button class="btn btn-success btn-sm approve-btn me-1" data-id="${post.id}">
+            <button class="btn btn-success btn-sm approve-btn me-1" data-id="${postId}">
                 <i class="fa-solid fa-check"></i> Duyệt
             </button>
-            <button class="btn btn-secondary btn-sm reject-btn me-1" data-id="${post.id}">
+            <button class="btn btn-secondary btn-sm reject-btn me-1" data-id="${postId}">
                 <i class="fa-solid fa-xmark"></i> Từ chối
             </button>
           `;
       } else if (post.status === "APPROVED") {
         statusBadge = '<span class="badge bg-success">Đang hiển thị</span>';
         actionButtons = `
-             <button class="btn btn-secondary btn-sm reject-btn me-1" data-id="${post.id}">
+             <button class="btn btn-secondary btn-sm reject-btn me-1" data-id="${postId}">
                 <i class="fa-solid fa-ban"></i> Gỡ bài
              </button>
           `;
       } else {
-        statusBadge = '<span class="badge bg-danger">Đã từ chối</span>';
+        statusBadge = `<span class="badge bg-danger">${post.status}</span>`;
       }
 
       // Nút Xóa (Luôn có)
       actionButtons += `
-        <button class="btn btn-danger btn-sm delete-btn" data-id="${post.id}">
+        <button class="btn btn-danger btn-sm delete-btn" data-id="${postId}">
            <i class="fa-solid fa-trash"></i>
         </button>
       `;
 
+      // Định dạng giá (Dùng Utils nếu có, hoặc toLocaleString)
+      const priceDisplay = post.price ? post.price.toLocaleString() : "0";
+      const unit = currentType === "rental" ? "đ" : "đ/người";
+
       tr.innerHTML = `
           <td class="text-center">${index + 1}</td>
           <td>
-              <a href="/public/chitiet.html?id=${
-                post.id
-              }" target="_blank" class="fw-bold text-decoration-none">
+              <a href="${detailLink}" target="_blank" class="fw-bold text-decoration-none">
                   ${post.title}
               </a>
-              <br><small class="text-muted">${post.price.toLocaleString()} đ</small>
+              <br><small class="text-muted">${priceDisplay} ${unit}</small>
           </td>
           <td class="text-center">${statusBadge}</td>
           <td class="text-center">
@@ -119,29 +156,34 @@ document.addEventListener("DOMContentLoaded", () => {
     addEventListeners();
   }
 
+  /**
+   * Gán sự kiện click cho các nút trong bảng
+   */
   function addEventListeners() {
-    // 1. Nút DUYỆT
+    // 1. Nút Duyệt
     document.querySelectorAll(".approve-btn").forEach((btn) => {
       btn.addEventListener("click", () =>
         updateStatus(btn.dataset.id, "APPROVED")
       );
     });
 
-    // 2. Nút TỪ CHỐI / GỠ BÀI
+    // 2. Nút Từ chối / Gỡ
     document.querySelectorAll(".reject-btn").forEach((btn) => {
       btn.addEventListener("click", () =>
         updateStatus(btn.dataset.id, "REJECTED")
       );
     });
 
-    // 3. Nút XÓA VĨNH VIỄN
+    // 3. Nút Xóa vĩnh viễn
     document.querySelectorAll(".delete-btn").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const id = e.target.closest("button").dataset.id;
+        const config = API_CONFIG[currentType]; // Lấy config hiện tại để biết gọi API nào
+
         showConfirm("Xóa vĩnh viễn bài này?", async () => {
-          const { error } = await callEdgeFunction("posts-api", {
+          const { error } = await callEdgeFunction(config.api, {
             method: "DELETE",
-            params: { id },
+            params: { id: id },
           });
           if (!error) {
             alert("Đã xóa!");
@@ -154,9 +196,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  /**
+   * Gọi API Patch Update Status
+   */
   async function updateStatus(id, newStatus) {
-    // Gọi method PATCH
-    const { error } = await callEdgeFunction("posts-api", {
+    const config = API_CONFIG[currentType];
+
+    const { error } = await callEdgeFunction(config.api, {
       method: "PATCH",
       body: { id: id, status: newStatus },
     });
@@ -164,10 +210,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (error) {
       alert("Lỗi cập nhật: " + error.message);
     } else {
-      // alert("Thành công!"); // Không cần alert cho mượt
-      loadAdminPosts(); // Tải lại bảng
+      loadAdminPosts();
     }
   }
 
+  // Chạy lần đầu khi vào trang
   loadAdminPosts();
 });

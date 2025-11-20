@@ -1,104 +1,109 @@
 // supabase/functions/update-user-profile/index.ts
-// (PHIÊN BẢN ĐÃ CHUẨN HÓA LOGIC AUTH)
+// (PHIÊN BẢN V2 - HỖ TRỢ UPLOAD AVATAR)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserIdFromToken } from "../_shared/auth-helper.ts";
 
-// (Không có hàm logic helper, logic nằm thẳng trong Deno.serve)
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req, context) => {
-  // 1. Xử lý CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
-  }
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
 
-  // 2. Block try...catch chính
   try {
-    let userId: string; // Khai báo userId
-
-    // --- BƯỚC A: Block Xác thực CHUẨN ---
+    // 1. Xác thực User
+    let userId: string;
     try {
       if (context && context.auth) {
-        console.log(
-          "Production context detected. Using context.auth.getUser()"
-        );
         const {
           data: { user },
-          error: authError,
         } = await context.auth.getUser();
-        if (authError) throw authError;
-        if (!user) throw new Error("User not found (from context)");
-        userId = user.id;
+        userId = user?.id || "";
       } else {
-        console.warn(
-          "Local dev context detected. Falling back to manual JWT parsing."
-        );
-        userId = await getUserIdFromToken(req); // Dùng shared helper
+        userId = await getUserIdFromToken(req);
       }
-    } catch (authError) {
-      console.error("Authentication error:", authError.message);
-      return new Response(JSON.stringify({ error: authError.message }), {
+    } catch (e: any) {
+      return new Response(JSON.stringify({ error: e.message }), {
         status: 401,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: corsHeaders,
       });
     }
-    // --- KẾT THÚC BƯỚC A ---
 
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
+    if (!userId) throw new Error("User not authenticated");
 
-    // --- BƯỚC B: Chạy LOGIC CỐT LÕI CỦA HÀM ---
-    // (Cần khởi tạo supabaseAdmin ở đây)
-    const supabaseAdmin = createClient(
+    const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { full_name, phone_number } = await req.json();
-    const profileToUpdate = {
-      full_name: full_name,
-      phone_number: phone_number,
+    // 2. Xử lý FormData (File + Text)
+    const formData = await req.formData();
+    const fullName = formData.get("full_name") as string;
+    const phoneNumber = formData.get("phone_number") as string;
+    const avatarFile = formData.get("avatar") as File | null;
+
+    const updates: any = {
+      full_name: fullName,
+      phone_number: phoneNumber,
+      updated_at: new Date(),
     };
-    const { data: profileData, error: profileError } = await supabaseAdmin
+
+    // 3. Upload Avatar (Nếu có)
+    // 3. Upload Avatar (Nếu có)
+    if (avatarFile && avatarFile.size > 0) {
+      const fileExt = avatarFile.name.split(".").pop();
+      const filePath = `${userId}/avatar.${fileExt}`; // Luôn ghi đè file cũ
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, avatarFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Lấy URL public gốc từ Supabase
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+      // === [FIX LỖI KONG:8000] ===
+      // Khi chạy local, Supabase trả về URL nội bộ docker (kong:8000)
+      // Trình duyệt không hiểu 'kong', nên ta phải đổi thành localhost (127.0.0.1:54321)
+      let finalUrl = publicUrl;
+      if (finalUrl.includes("kong:8000")) {
+        finalUrl = finalUrl.replace(
+          "http://kong:8000",
+          "http://127.0.0.1:54321"
+        );
+      }
+      // ===========================
+
+      // Thêm timestamp để tránh cache trình duyệt
+      updates.avatar_url = `${finalUrl}?t=${Date.now()}`;
+    }
+    // 4. Update Database
+    const { data, error } = await supabase
       .from("profiles")
-      .update(profileToUpdate)
+      .update(updates)
       .eq("id", userId)
       .select()
       .single();
-    if (profileError) {
-      throw new Error(`Profile DB Error: ${profileError.message}`);
-    }
-    return new Response(JSON.stringify(profileData), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
-    // --- KẾT THÚC BƯỚC B ---
 
-    // --- BƯỚC C: Block catch ngoài ---
-  } catch (error) {
-    console.error("Error in update-user-profile function:", error);
-    let status = 500;
-    if (error.message.includes("not authenticated")) status = 401;
-    if (error.message.includes("Body")) status = 400; // Lỗi parse JSON
+    if (error) throw error;
+
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
-      status: status,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

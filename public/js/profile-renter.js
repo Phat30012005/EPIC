@@ -1,6 +1,6 @@
 /* =======================================
    --- FILE: public/js/profile-renter.js ---
-   (PHIÊN BẢN V_FINAL - TÍCH HỢP UTILS)
+   (PHIÊN BẢN V4 - HỖ TRỢ UPLOAD AVATAR)
    ======================================= */
 
 // 1. Profile Form
@@ -11,11 +11,16 @@ function populateProfileForm(profile) {
   const roleInput = document.getElementById("profile-role");
   const loadingDiv = document.getElementById("profile-loading");
   const profileForm = document.getElementById("profile-form");
+  const avatarPreview = document.getElementById("avatar-preview");
 
   emailInput.value = profile.email || "Đang tải...";
   nameInput.value = profile.full_name || "";
   phoneInput.value = profile.phone_number || "";
   roleInput.value = profile.role === "RENTER" ? "Người thuê" : "Chưa xác định";
+
+  if (profile.avatar_url) {
+    avatarPreview.src = profile.avatar_url;
+  }
 
   loadingDiv.style.display = "none";
   profileForm.style.display = "block";
@@ -25,21 +30,30 @@ async function handleProfileUpdate(e) {
   e.preventDefault();
   const updateButton = document.getElementById("update-profile-btn");
   updateButton.disabled = true;
-  updateButton.textContent = "Đang lưu...";
+  updateButton.textContent = "Đang tải lên...";
 
   const newName = document.getElementById("profile-name").value;
   const newPhone = document.getElementById("profile-phone").value;
+  const avatarInput = document.getElementById("avatar-input");
+
+  const formData = new FormData();
+  formData.append("full_name", newName);
+  formData.append("phone_number", newPhone);
+
+  if (avatarInput.files.length > 0) {
+    formData.append("avatar", avatarInput.files[0]);
+  }
 
   const { data, error } = await callEdgeFunction("update-user-profile", {
     method: "POST",
-    body: { full_name: newName, phone_number: newPhone },
+    body: formData,
   });
 
   if (error) {
     alert("Lỗi: " + error.message);
   } else {
     alert("Cập nhật thành công!");
-    populateProfileForm(data);
+    window.location.reload();
   }
   updateButton.disabled = false;
   updateButton.textContent = "Lưu thay đổi";
@@ -111,7 +125,7 @@ async function loadMyRoommatePosts() {
   }
 }
 
-// 3. Saved Rental Posts (Tin phòng trọ đã lưu)
+// 3. Saved Rental Posts
 function renderSavedPosts(bookmarks) {
   const postsList = document.getElementById("saved-posts-list");
   const loadingDiv = document.getElementById("saved-posts-loading");
@@ -149,7 +163,6 @@ function renderSavedPosts(bookmarks) {
     postsList.appendChild(postDiv);
   });
 
-  // Gán sự kiện bỏ lưu (như profile-lessor)
   document.querySelectorAll(".unsave-post-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const pid = btn.dataset.id;
@@ -176,7 +189,7 @@ async function loadSavedPosts() {
   }
 }
 
-// 4. Saved Roommate Posts (Tin ở ghép đã lưu)
+// 4. Saved Roommate Posts
 function renderSavedRoommatePosts(bookmarks) {
   const postsList = document.getElementById("saved-roommate-posts-list");
   const loadingDiv = document.getElementById("saved-roommate-posts-loading");
@@ -244,6 +257,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const profileForm = document.getElementById("profile-form");
   if (profileForm) profileForm.addEventListener("submit", handleProfileUpdate);
+
+  // Sự kiện Preview Avatar
+  const avatarInput = document.getElementById("avatar-input");
+  const avatarPreview = document.getElementById("avatar-preview");
+  if (avatarInput) {
+    avatarInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => (avatarPreview.src = e.target.result);
+        reader.readAsDataURL(file);
+      }
+    });
+  }
 
   await Promise.all([
     loadMyRoommatePosts(),

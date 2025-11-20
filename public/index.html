@@ -1,65 +1,94 @@
 <!DOCTYPE html>
 <html lang="vi">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trang Chủ - Ứng dụng Thuê Trọ CHICKY.STU</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/public/css/style.css">
-    <link rel="stylesheet" href="/public/css/chatbox.css">
-</head>
+    <link rel="stylesheet" href="/public/css/style.css" />
+    <link rel="stylesheet" href="/public/css/chatbox.css" />
+  </head>
 
-<body class="bg-gray-100 flex flex-col min-h-screen">
-
+  <body class="bg-gray-100 flex flex-col min-h-screen">
     <div id="header-placeholder"></div>
 
-    <section class="text-white text-center py-24 shadow-md"
-        style="background: linear-gradient(to right, #007bff, #0056d2);">
-        <div class="container px-4">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4">
-                Chào mừng bạn đến với <span class="text-yellow-300">CHICKY.STU</span> — Website thuê trọ Cần
-                Thơ
-            </h1>
-            <p class="text-lg md:text-xl mb-6">
-                Tìm phòng trọ, căn hộ, hoặc đăng tin cho thuê một cách dễ dàng, nhanh chóng và uy tín
-            </p>
-            <a href="/public/dangtin.html"
-                class="btn btn-warning text-gray-900 font-semibold px-4 py-2 rounded-full shadow hover:shadow-lg transition">
-                🚀 Đăng tin ngay
-            </a>
-        </div>
+    <section
+      class="text-white text-center py-24 shadow-md"
+      style="background: linear-gradient(to right, #007bff, #0056d2)"
+    >
+      <div class="container px-4">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4">
+          Chào mừng bạn đến với
+          <span class="text-yellow-300">CHICKY.STU</span> — Website thuê trọ Cần
+          Thơ
+        </h1>
+        <p class="text-lg md:text-xl mb-6">
+          Tìm phòng trọ, căn hộ, hoặc đăng tin cho thuê một cách dễ dàng, nhanh
+          chóng và uy tín
+        </p>
+        <a
+          href="/public/dangtin.html"
+          id="hero-post-btn"
+          class="btn btn-warning text-gray-900 font-semibold px-4 py-2 rounded-full shadow hover:shadow-lg transition"
+        >
+          🚀 Đăng tin ngay
+        </a>
+      </div>
     </section>
 
     <main class="container my-16 px-4 text-center flex-grow">
-        <h2 class="text-3xl font-bold mb-6 text-gray-800">Vì sao chọn CHICKY.STU?</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
-                <h3 class="text-xl font-semibold mb-2 text-primary">🔍 Tìm kiếm dễ dàng</h3>
-                <p class="text-gray-600">Hệ thống lọc thông minh giúp bạn nhanh chóng tìm được phòng trọ phù hợp nhu
-                    cầu.</p>
-            </div>
-            <div class="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
-                <h3 class="text-xl font-semibold mb-2 text-primary">🏠 Nhiều loại hình</h3>
-                <p class="text-gray-600">Từ phòng trọ, căn hộ mini đến nhà nguyên căn — đầy đủ thông tin và hình ảnh
-                    thực tế.</p>
-            </div>
-            <div class="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
-                <h3 class="text-xl font-semibold mb-2 text-primary">💬 Kết nối nhanh chóng</h3>
-                <p class="text-gray-600">Liên hệ trực tiếp với chủ trọ, tiết kiệm thời gian và chi phí trung gian.</p>
-            </div>
+      <h2 class="text-3xl font-bold mb-6 text-gray-800">
+        Vì sao chọn CHICKY.STU?
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div
+          class="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition"
+        >
+          <h3 class="text-xl font-semibold mb-2 text-primary">
+            🔍 Tìm kiếm dễ dàng
+          </h3>
+          <p class="text-gray-600">
+            Hệ thống lọc thông minh giúp bạn nhanh chóng tìm được phòng trọ phù
+            hợp nhu cầu.
+          </p>
         </div>
+        <div
+          class="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition"
+        >
+          <h3 class="text-xl font-semibold mb-2 text-primary">
+            🏠 Nhiều loại hình
+          </h3>
+          <p class="text-gray-600">
+            Từ phòng trọ, căn hộ mini đến nhà nguyên căn — đầy đủ thông tin và
+            hình ảnh thực tế.
+          </p>
+        </div>
+        <div
+          class="bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition"
+        >
+          <h3 class="text-xl font-semibold mb-2 text-primary">
+            💬 Kết nối nhanh chóng
+          </h3>
+          <p class="text-gray-600">
+            Liên hệ trực tiếp với chủ trọ, tiết kiệm thời gian và chi phí trung
+            gian.
+          </p>
+        </div>
+      </div>
     </main>
 
     <div id="footer-placeholder"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/public/js/supabase-config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="/public/js/utils.js"></script>
+    <script src="/public/js/api-client.js"></script>
+
     <script src="/public/js/chatbox.js"></script>
     <script src="/public/js/main.js"></script>
-
-</body>
-
+  </body>
 </html>

@@ -158,14 +158,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         // 3. Phân quyền Menu
+        const heroBtn = document.getElementById("hero-post-btn");
         if (role === "LESSOR") {
           profileLinkA.href = "/public/profile-lessor.html";
           renterPostLink.style.display = "none";
           lessorPostLink.style.display = "list-item";
+          if (heroBtn) heroBtn.href = "/public/dangtin.html";
         } else {
           profileLinkA.href = "/public/profile-renter.html";
           renterPostLink.style.display = "list-item";
           lessorPostLink.style.display = "none";
+          if (heroBtn) heroBtn.href = "/public/oghep-dangtin.html";
         }
 
         profileLinkLi.style.display = "list-item";

@@ -125,6 +125,7 @@ async function loadSavedStatus(postId) {
   } = await supabase.auth.getSession();
   if (!session) {
     saveBtn.innerHTML = '<i class="far fa-heart mr-2"></i> Đăng nhập để lưu';
+    saveBtn.classList.remove("active");
     saveBtn.onclick = () => (window.location.href = "/public/login.html");
     return;
   }
@@ -138,8 +139,12 @@ async function loadSavedStatus(postId) {
     return;
   }
 
-  const bookmarks = responseData;
-  const isSaved = bookmarks.some((b) => b.post.id === postId);
+  const bookmarks = responseData.data || responseData || [];
+  const isSaved = bookmarks.some((b) => {
+    // Kiểm tra cả 2 trường hợp ID (do backend trả về có thể khác nhau)
+    const bPostId = b.post?.id || b.post?.post_id;
+    return bPostId === postId;
+  });
 
   updateSaveButtonUI(isSaved);
   setupSaveButton(postId, isSaved);
@@ -293,7 +298,14 @@ async function setupReviewForm(postId) {
       stars.forEach((s) => s.classList.remove("selected"));
       loadReviews(postId);
     } catch (error) {
-      alert(`Lỗi: ${error.message}`);
+      // Kiểm tra thông báo lỗi từ Backend
+      if (error.message && error.message.includes("already reviewed")) {
+        alert(
+          "Bạn đã đánh giá phòng trọ này rồi! Mỗi người chỉ được đánh giá 1 lần."
+        );
+      } else {
+        alert(`Lỗi: ${error.message}`);
+      }
     } finally {
       btn.disabled = false;
     }
