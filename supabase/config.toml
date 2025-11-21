@@ -142,3 +142,9 @@ verify_jwt = false
 
 import_map = "./functions/admin-manage-reviews/deno.json"
 entrypoint = "./functions/admin-manage-reviews/index.ts"
+
+[functions.admin-get-stats]
+enabled = true
+verify_jwt = false
+import_map = "./functions/admin-get-stats/deno.json"
+entrypoint = "./functions/admin-get-stats/index.ts"
