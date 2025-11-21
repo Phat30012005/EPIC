@@ -1,7 +1,11 @@
-// public/js/danhSach.js
-// (PHIÊN BẢN V_FINAL - TÍCH HỢP UTILS & POSTS-API)
+/* =======================================
+   --- FILE: public/js/danhSach.js ---
+   (PHIÊN BẢN V_FINAL + PAGINATION)
+   ======================================= */
 
 let savedPostIds = new Set();
+let currentPage = 1; // Trang hiện tại mặc định
+const ITEMS_PER_PAGE = 12; // Số tin mỗi trang
 
 /**
  * 1. Tải trạng thái đã lưu (Bookmark)
@@ -16,65 +20,67 @@ async function loadSavedStatus() {
     method: "GET",
   });
 
-  if (error) {
-    console.error("Lỗi tải trạng thái đã lưu:", error);
-  } else if (data.data) {
-    const postIds = data.data
-      .filter((b) => b.post) // Lọc bookmark hợp lệ
-      .map((b) => b.post.post_id || b.post.id); // Hỗ trợ cả 2 trường hợp id
+  if (!error && data) {
+    // Lấy danh sách ID tin đã lưu
+    const list = data.data || data;
+    const postIds = list
+      .filter((b) => b.post)
+      .map((b) => b.post.post_id || b.post.id);
     savedPostIds = new Set(postIds);
   }
 }
 
 /**
- * 2. Render danh sách phòng (Đã bổ sung Avatar & Link Profile)
+ * 2. Render danh sách phòng
  */
-function renderRooms(inputData) {
+function renderRooms(responseData) {
   const roomList = document.getElementById("roomList");
   roomList.innerHTML = "";
 
-  // --- Logic phòng thủ ---
+  // Xử lý dữ liệu trả về từ API (để hỗ trợ cả phân trang và không phân trang)
   let rooms = [];
-  if (Array.isArray(inputData)) {
-    rooms = inputData;
-  } else if (inputData && Array.isArray(inputData.data)) {
-    rooms = inputData.data;
-  } else {
-    rooms = [];
+  let pagination = null;
+
+  if (responseData && responseData.data) {
+    rooms = responseData.data; // Danh sách tin
+    pagination = responseData.pagination; // Thông tin phân trang { page, total_pages, ... }
+  } else if (Array.isArray(responseData)) {
+    rooms = responseData; // Trường hợp API search cũ trả về mảng trực tiếp
   }
 
   if (rooms.length === 0) {
     roomList.innerHTML = `<p class="text-center text-gray-500 mt-4 col-span-3">Không có phòng nào phù hợp.</p>`;
+    renderPagination(null); // Xóa phân trang nếu không có dữ liệu
     return;
   }
 
+  // Vẽ từng thẻ phòng
   rooms.forEach((room) => {
     const div = document.createElement("div");
     div.className =
       "bg-white rounded shadow p-3 hover:shadow-lg transition flex flex-col h-full";
 
-    // Lấy URL gốc
+    // Tối ưu ảnh
     const originalUrl =
       Array.isArray(room.image_urls) && room.image_urls.length > 0
         ? room.image_urls[0]
         : null;
-
-    // Gọi hàm tối ưu ảnh từ Utils (Resize về 400px cho nhẹ)
     const imageSrc = Utils.getOptimizedImage(originalUrl, 400);
 
     const priceFormatted = Utils.formatCurrencyShort(room.price);
-
     const postId = room.id || room.post_id;
+
+    // Nút Lưu
     const isSaved = savedPostIds.has(postId);
     const saveBtnIcon = isSaved
       ? '<i class="fa-solid fa-heart"></i>'
       : '<i class="fa-regular fa-heart"></i>';
     const saveBtnClass = isSaved ? "active" : "";
 
-    // --- THÔNG TIN NGƯỜI ĐĂNG ---
-    const avatarSrc = room.profiles?.avatar_url || "/assets/logo1.png";
+    // Thông tin người đăng
+    const avatarOriginal = room.profiles?.avatar_url;
+    const avatarSrc = Utils.getOptimizedImage(avatarOriginal, 100);
     const profileName = room.profiles?.full_name || "Ẩn danh";
-    // Tạo link đến Public Profile
     const profileUrl = `/profile.html?user_id=${room.user_id}`;
 
     div.innerHTML = `
@@ -104,14 +110,75 @@ function renderRooms(inputData) {
          </button>
       </div>
     `;
-
     roomList.appendChild(div);
   });
 
   addSaveButtonListeners();
+
+  // [MỚI] Vẽ nút phân trang nếu có dữ liệu pagination
+  if (pagination) {
+    renderPagination(pagination);
+  }
 }
+
 /**
- * 3. Gán sự kiện nút Lưu
+ * 3. [MỚI] Hàm vẽ thanh phân trang
+ */
+function renderPagination(pagination) {
+  const paginationEl = document.getElementById("pagination");
+  if (!paginationEl) return;
+  paginationEl.innerHTML = "";
+
+  if (!pagination || pagination.total_pages <= 1) return;
+
+  const { page, total_pages } = pagination;
+
+  // Nút Previous
+  const prevDisabled = page === 1 ? "disabled" : "";
+  paginationEl.innerHTML += `
+    <li class="page-item ${prevDisabled}">
+      <a class="page-link" href="#" onclick="changePage(${
+        page - 1
+      }); return false;">&laquo;</a>
+    </li>
+  `;
+
+  // Các nút số trang
+  for (let i = 1; i <= total_pages; i++) {
+    const active = i === page ? "active" : "";
+    paginationEl.innerHTML += `
+      <li class="page-item ${active}">
+        <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+      </li>
+    `;
+  }
+
+  // Nút Next
+  const nextDisabled = page === total_pages ? "disabled" : "";
+  paginationEl.innerHTML += `
+    <li class="page-item ${nextDisabled}">
+      <a class="page-link" href="#" onclick="changePage(${
+        page + 1
+      }); return false;">&raquo;</a>
+    </li>
+  `;
+}
+
+/**
+ * 4. [MỚI] Hàm xử lý khi bấm chuyển trang
+ */
+window.changePage = function (newPage) {
+  if (newPage < 1) return;
+  currentPage = newPage;
+  handleFilter(); // Gọi lại bộ lọc với trang mới
+  // Cuộn lên đầu danh sách cho dễ nhìn
+  document
+    .getElementById("default-title")
+    .scrollIntoView({ behavior: "smooth" });
+};
+
+/**
+ * 5. Gán sự kiện nút Lưu (Giữ nguyên)
  */
 function addSaveButtonListeners() {
   document.querySelectorAll(".save-btn").forEach((button) => {
@@ -158,14 +225,10 @@ function addSaveButtonListeners() {
   });
 }
 
-/**
- * 4. Hàm Lọc & Tìm kiếm (Dùng posts-api)
- */
-// 1. Thêm hàm render Skeleton
+// 6. Render Skeleton Loading
 function renderSkeletons() {
   const roomList = document.getElementById("roomList");
   roomList.innerHTML = "";
-  // Tạo 6 khung xương giả
   for (let i = 0; i < 6; i++) {
     roomList.innerHTML += `
       <div class="skeleton-card">
@@ -173,32 +236,18 @@ function renderSkeletons() {
         <div class="skeleton skeleton-text md"></div>
         <div class="skeleton skeleton-text sm"></div>
         <div class="skeleton skeleton-text sm"></div>
-        <div style="margin-top: 12px; display: flex; gap: 10px;">
-           <div class="skeleton skeleton-text" style="width: 70%"></div>
-           <div class="skeleton skeleton-text" style="width: 20%"></div>
-        </div>
       </div>
     `;
   }
 }
 
+/**
+ * 7. Hàm Lọc chính (Đã thêm tham số page)
+ */
 async function handleFilter() {
-  console.log("[danhSach.js] Đang lọc...");
-
+  console.log(`[danhSach.js] Đang lọc trang ${currentPage}...`);
   renderSkeletons();
 
-  const roomList = document.getElementById("roomList");
-
-  // Reset giao diện tìm kiếm nếu đang dùng bộ lọc
-  const searchResultsTitle = document.getElementById("search-results-title");
-  const defaultTitle = document.getElementById("default-title");
-  const desktopFilters = document.getElementById("desktopFilters");
-
-  if (searchResultsTitle) searchResultsTitle.style.display = "none";
-  if (defaultTitle) defaultTitle.style.display = "block";
-  if (desktopFilters) desktopFilters.style.display = "flex";
-
-  // Lấy tham số
   const params = new URLSearchParams(window.location.search);
   const urlRoomType = params.get("type");
 
@@ -207,21 +256,22 @@ async function handleFilter() {
   const filterSize = document.getElementById("roomsize-desktop");
   const filterLocal = document.getElementById("local-desktop");
 
-  const paramsObject = {};
+  const paramsObject = {
+    page: currentPage, // Gửi trang hiện tại lên server
+    limit: ITEMS_PER_PAGE,
+  };
 
-  // Logic ưu tiên Select box -> URL
   if (filterType && filterType.value) {
     paramsObject.type = filterType.value;
   } else if (urlRoomType) {
     paramsObject.type = urlRoomType;
-    if (filterType) filterType.value = urlRoomType; // Sync UI
+    if (filterType) filterType.value = urlRoomType;
   }
 
   if (filterPrice?.value) paramsObject.price = filterPrice.value;
   if (filterSize?.value) paramsObject.size = filterSize.value;
   if (filterLocal?.value) paramsObject.ward = filterLocal.value;
 
-  // Gọi API MỚI: posts-api
   const { data, error } = await callEdgeFunction("posts-api", {
     method: "GET",
     params: paramsObject,
@@ -229,59 +279,44 @@ async function handleFilter() {
 
   if (error) {
     console.error("Lỗi lọc:", error);
-    roomList.innerHTML = `<p class="text-center text-red-500">Lỗi: ${error.message}</p>`;
+    document.getElementById(
+      "roomList"
+    ).innerHTML = `<p class="text-center text-red-500">Lỗi: ${error.message}</p>`;
     return;
   }
 
-  // Render (Hàm renderRooms đã có logic tự xử lý data.data)
-  renderRooms(data);
-}
-
-async function handleSearch(searchQuery) {
-  console.log(`[danhSach.js] Tìm kiếm: "${searchQuery}"`);
-  renderSkeletons();
-  const searchResultsTitle = document.getElementById("search-results-title");
-  const defaultTitle = document.getElementById("default-title");
-  const desktopFilters = document.getElementById("desktopFilters");
-
-  if (defaultTitle) defaultTitle.style.display = "none";
-  if (desktopFilters) desktopFilters.style.display = "none"; // Ẩn bộ lọc khi tìm kiếm
-  if (searchResultsTitle) {
-    searchResultsTitle.textContent = `Kết quả tìm kiếm: "${searchQuery}"`;
-    searchResultsTitle.style.display = "block";
-  }
-
-  // Vẫn dùng search-posts cũ hoặc có thể chuyển sang posts-api nếu bạn đã nâng cấp search
-  // Ở đây giữ nguyên search-posts để an toàn cho chức năng tìm kiếm
-  const { data, error } = await callEdgeFunction("search-posts", {
-    method: "GET",
-    params: { q: searchQuery },
-  });
-
-  if (error) {
-    console.error("Lỗi tìm kiếm:", error);
-    return;
-  }
   renderRooms(data);
 }
 
 /**
- * 5. Khởi chạy
+ * 8. Khởi chạy
  */
 async function initializePage() {
   await loadSavedStatus();
 
+  // Nếu đang tìm kiếm (search q=...) thì dùng API search riêng
   const params = new URLSearchParams(window.location.search);
   const searchQuery = params.get("q");
 
   if (searchQuery) {
-    handleSearch(searchQuery);
+    // Logic tìm kiếm cũ (chưa có phân trang backend, tạm thời render hết)
+    document.getElementById("desktopFilters").style.display = "none";
+    document.getElementById(
+      "search-results-title"
+    ).textContent = `Kết quả tìm kiếm: "${searchQuery}"`;
+    document.getElementById("search-results-title").style.display = "block";
+
+    const { data } = await callEdgeFunction("search-posts", {
+      method: "GET",
+      params: { q: searchQuery },
+    });
+    renderRooms(data); // Search cũ trả về mảng, hàm renderRooms mới vẫn xử lý được
   } else {
     handleFilter();
   }
 }
 
-// Gán sự kiện
+// Gán sự kiện change cho bộ lọc -> Reset về trang 1
 const filters = [
   "filterPrice",
   "filterType",
@@ -290,7 +325,12 @@ const filters = [
 ];
 filters.forEach((id) => {
   const el = document.getElementById(id);
-  if (el) el.addEventListener("change", handleFilter);
+  if (el) {
+    el.addEventListener("change", () => {
+      currentPage = 1; // Reset về trang 1 khi đổi bộ lọc
+      handleFilter();
+    });
+  }
 });
 
 initializePage();
