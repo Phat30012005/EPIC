@@ -59,7 +59,8 @@ function renderPostings(postings) {
     // Thông tin người đăng
     const avatarOriginal = post.profiles?.avatar_url;
     const avatarSrc = Utils.getOptimizedImage(avatarOriginal, 100);
-
+    //profile name add
+    const profileName = post.profiles?.full_name || "Ẩn danh";
     // --- TẠO LINK PROFILE ---
     const profileUrl = `/profile.html?user_id=${post.user_id}`;
 
