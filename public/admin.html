@@ -51,7 +51,77 @@
         <h4 id="section-title" class="text-gray-700 font-bold m-0">
           Danh sách Tin đăng
         </h4>
+        <div id="dashboard-container" class="mb-4">
+          <div class="row g-4">
+            <div class="col-md-3">
+              <div class="card bg-primary text-white shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="fa-solid fa-users me-2"></i>Thành viên
+                  </h5>
+                  <h2 class="display-6 fw-bold mt-2" id="stat-users">...</h2>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-success text-white shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="fa-solid fa-house me-2"></i>Tin Phòng trọ
+                  </h5>
+                  <h2 class="display-6 fw-bold mt-2" id="stat-posts">...</h2>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-warning text-dark shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="fa-solid fa-clock me-2"></i>Chờ duyệt
+                  </h5>
+                  <h2 class="display-6 fw-bold mt-2" id="stat-pending">...</h2>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card bg-info text-white shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="fa-solid fa-star me-2"></i>Đánh giá
+                  </h5>
+                  <h2 class="display-6 fw-bold mt-2" id="stat-reviews">...</h2>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <div
+          id="filters-container"
+          class="d-flex justify-content-end mb-3"
+          style="display: none !important"
+        >
+          <select
+            id="adminPostType"
+            class="form-select w-auto shadow-sm border-primary"
+          >
+            <option value="rental">🏠 Phòng trọ</option>
+            <option value="roommate">👥 Tìm ở ghép</option>
+          </select>
+        </div>
+
+        <div
+          id="table-container"
+          class="bg-white p-4 rounded shadow-sm"
+          style="display: none"
+        >
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle mb-0 table-hover">
+              <thead class="table-primary text-center" id="table-head"></thead>
+              <tbody id="adminTableBody"></tbody>
+            </table>
+          </div>
+        </div>
         <select
           id="adminPostType"
           class="form-select w-auto shadow-sm border-primary"
