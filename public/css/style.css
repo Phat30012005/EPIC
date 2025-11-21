@@ -553,3 +553,86 @@ img {
   height: 24px;
   width: 80%;
 }
+/* =======================================
+   ADMIN DASHBOARD STYLES (NEW)
+   ======================================= */
+
+/* 1. Navigation Pills */
+.nav-pills .nav-link {
+  color: #6c757d;
+  transition: all 0.2s;
+}
+.nav-pills .nav-link:hover {
+  background-color: #f8f9fa;
+  color: #007bff;
+}
+.nav-pills .nav-link.active {
+  background-color: #007bff;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 123, 255, 0.3);
+}
+
+/* 2. Stat Cards */
+.stat-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Màu viền dưới đáy Card để phân biệt */
+.border-bottom-primary {
+  border-bottom: 4px solid #007bff !important;
+}
+.border-bottom-success {
+  border-bottom: 4px solid #198754 !important;
+}
+.border-bottom-warning {
+  border-bottom: 4px solid #ffc107 !important;
+}
+.border-bottom-info {
+  border-bottom: 4px solid #0dcaf0 !important;
+}
+
+/* Màu nền nhạt cho Icon Box */
+.bg-primary-subtle {
+  background-color: rgba(13, 110, 253, 0.1);
+}
+.bg-success-subtle {
+  background-color: rgba(25, 135, 84, 0.1);
+}
+.bg-warning-subtle {
+  background-color: rgba(255, 193, 7, 0.1);
+}
+.bg-info-subtle {
+  background-color: rgba(13, 202, 240, 0.1);
+}
+
+/* 3. Table Styling */
+.table th {
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+}
+.table td {
+  padding: 16px;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 4. Animation nhẹ */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

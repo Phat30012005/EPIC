@@ -17,126 +17,203 @@
   <body class="bg-gray-100 flex flex-col min-h-screen">
     <div id="header-placeholder"></div>
 
-    <main class="container my-5 flex-grow">
-      <h2 class="text-center mb-4 font-bold">Trang Quản Trị</h2>
+    <main class="container-fluid px-4 my-4 flex-grow">
+      <div
+        class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4"
+      >
+        <div>
+          <h2 class="fw-bold text-gray-800 m-0">Trang Quản Trị</h2>
+          <p class="text-muted m-0">
+            Xin chào Admin, chúc bạn một ngày làm việc hiệu quả!
+          </p>
+        </div>
 
-      <ul class="nav nav-tabs mb-4" id="adminTabs">
-        <li class="nav-item">
-          <button
-            class="nav-link active fw-bold"
-            id="tab-dashboard"
-            data-type="dashboard"
-          >
-            📊 Tổng quan
-          </button>
-        </li>
+        <ul
+          class="nav nav-pills bg-white p-1 rounded shadow-sm mt-3 mt-md-0"
+          id="adminTabs"
+        >
+          <li class="nav-item">
+            <button
+              class="nav-link active fw-bold px-4 rounded-3"
+              id="tab-dashboard"
+              data-type="dashboard"
+            >
+              <i class="fa-solid fa-chart-pie me-2"></i>Tổng quan
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link fw-bold px-4 rounded-3"
+              id="tab-posts"
+              data-type="posts"
+            >
+              <i class="fa-solid fa-newspaper me-2"></i>Tin đăng
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link fw-bold px-4 rounded-3"
+              id="tab-users"
+              data-type="users"
+            >
+              <i class="fa-solid fa-users me-2"></i>Người dùng
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link fw-bold px-4 rounded-3"
+              id="tab-reviews"
+              data-type="reviews"
+            >
+              <i class="fa-solid fa-star me-2"></i>Đánh giá
+            </button>
+          </li>
+        </ul>
+      </div>
 
-        <li class="nav-item">
-          <button class="nav-link fw-bold" id="tab-posts" data-type="posts">
-            📝 Quản lý Tin Đăng
-          </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link fw-bold" id="tab-users" data-type="users">
-            👥 Quản lý Người dùng
-          </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link fw-bold" id="tab-reviews" data-type="reviews">
-            ⭐ Quản lý Đánh giá
-          </button>
-        </li>
-      </ul>
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 id="section-title" class="text-gray-700 font-bold m-0">
-          Danh sách Tin đăng
+      <div id="dashboard-container" class="mb-5 animate-fade-in">
+        <h4
+          class="fw-bold text-gray-700 mb-3 border-start border-4 border-primary ps-3"
+        >
+          Thống kê hệ thống
         </h4>
-        <div id="dashboard-container" class="mb-4">
-          <div class="row g-4">
-            <div class="col-md-3">
-              <div class="card bg-primary text-white shadow-sm h-100">
-                <div class="card-body">
-                  <h5 class="card-title">
-                    <i class="fa-solid fa-users me-2"></i>Thành viên
-                  </h5>
-                  <h2 class="display-6 fw-bold mt-2" id="stat-users">...</h2>
-                </div>
+        <div class="row g-4">
+          <div class="col-12 col-md-6 col-lg-3">
+            <div
+              class="stat-card bg-white p-4 rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between h-100 border-bottom-primary"
+            >
+              <div>
+                <span class="text-muted fw-semibold text-uppercase small"
+                  >Thành viên</span
+                >
+                <h2
+                  class="fw-bold text-gray-800 display-6 mt-2 mb-0"
+                  id="stat-users"
+                >
+                  ...
+                </h2>
+              </div>
+              <div
+                class="icon-box bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 60px; height: 60px"
+              >
+                <i class="fa-solid fa-users fa-xl"></i>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="card bg-success text-white shadow-sm h-100">
-                <div class="card-body">
-                  <h5 class="card-title">
-                    <i class="fa-solid fa-house me-2"></i>Tin Phòng trọ
-                  </h5>
-                  <h2 class="display-6 fw-bold mt-2" id="stat-posts">...</h2>
-                </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <div
+              class="stat-card bg-white p-4 rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between h-100 border-bottom-success"
+            >
+              <div>
+                <span class="text-muted fw-semibold text-uppercase small"
+                  >Tin đang hiện</span
+                >
+                <h2
+                  class="fw-bold text-gray-800 display-6 mt-2 mb-0"
+                  id="stat-posts"
+                >
+                  ...
+                </h2>
+              </div>
+              <div
+                class="icon-box bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 60px; height: 60px"
+              >
+                <i class="fa-solid fa-house-circle-check fa-xl"></i>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="card bg-warning text-dark shadow-sm h-100">
-                <div class="card-body">
-                  <h5 class="card-title">
-                    <i class="fa-solid fa-clock me-2"></i>Chờ duyệt
-                  </h5>
-                  <h2 class="display-6 fw-bold mt-2" id="stat-pending">...</h2>
-                </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <div
+              class="stat-card bg-white p-4 rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between h-100 border-bottom-warning"
+            >
+              <div>
+                <span class="text-muted fw-semibold text-uppercase small"
+                  >Tin chờ duyệt</span
+                >
+                <h2
+                  class="fw-bold text-dark display-6 mt-2 mb-0"
+                  id="stat-pending"
+                >
+                  ...
+                </h2>
+              </div>
+              <div
+                class="icon-box bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 60px; height: 60px"
+              >
+                <i class="fa-solid fa-clock fa-xl"></i>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="card bg-info text-white shadow-sm h-100">
-                <div class="card-body">
-                  <h5 class="card-title">
-                    <i class="fa-solid fa-star me-2"></i>Đánh giá
-                  </h5>
-                  <h2 class="display-6 fw-bold mt-2" id="stat-reviews">...</h2>
-                </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <div
+              class="stat-card bg-white p-4 rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between h-100 border-bottom-info"
+            >
+              <div>
+                <span class="text-muted fw-semibold text-uppercase small"
+                  >Đánh giá</span
+                >
+                <h2
+                  class="fw-bold text-gray-800 display-6 mt-2 mb-0"
+                  id="stat-reviews"
+                >
+                  ...
+                </h2>
+              </div>
+              <div
+                class="icon-box bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center"
+                style="width: 60px; height: 60px"
+              >
+                <i class="fa-solid fa-comments fa-xl"></i>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div
-          id="filters-container"
-          class="d-flex justify-content-end mb-3"
-          style="display: none !important"
+      <div
+        id="filters-container"
+        class="d-flex justify-content-between align-items-center mb-3 animate-fade-in"
+        style="display: none !important"
+      >
+        <h4
+          id="section-title"
+          class="text-gray-700 fw-bold m-0 border-start border-4 border-primary ps-3"
         >
-          <select
-            id="adminPostType"
-            class="form-select w-auto shadow-sm border-primary"
-          >
-            <option value="rental">🏠 Phòng trọ</option>
-            <option value="roommate">👥 Tìm ở ghép</option>
-          </select>
-        </div>
-
-        <div
-          id="table-container"
-          class="bg-white p-4 rounded shadow-sm"
-          style="display: none"
-        >
-          <div class="table-responsive">
-            <table class="table table-bordered align-middle mb-0 table-hover">
-              <thead class="table-primary text-center" id="table-head"></thead>
-              <tbody id="adminTableBody"></tbody>
-            </table>
-          </div>
-        </div>
+          Danh sách
+        </h4>
         <select
           id="adminPostType"
-          class="form-select w-auto shadow-sm border-primary"
+          class="form-select w-auto shadow-sm border-2"
+          style="border-radius: 20px"
         >
-          <option value="rental">🏠 Phòng trọ</option>
-          <option value="roommate">👥 Tìm ở ghép</option>
+          <option value="rental">🏠 Quản lý Phòng trọ</option>
+          <option value="roommate">👥 Quản lý Tìm ở ghép</option>
         </select>
       </div>
 
-      <div class="bg-white p-4 rounded shadow-sm">
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle mb-0 table-hover">
-            <thead class="table-primary text-center" id="table-head"></thead>
-            <tbody id="adminTableBody"></tbody>
-          </table>
+      <div
+        id="table-container"
+        class="card border-0 shadow-sm rounded-4 overflow-hidden animate-fade-in"
+        style="display: none"
+      >
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead
+                class="bg-light text-secondary text-uppercase small fw-bold text-center"
+                style="letter-spacing: 1px"
+              >
+                <tr id="table-head"></tr>
+              </thead>
+              <tbody id="adminTableBody" class="border-top-0"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
