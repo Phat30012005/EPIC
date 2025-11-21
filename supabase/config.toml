@@ -148,3 +148,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/admin-get-stats/deno.json"
 entrypoint = "./functions/admin-get-stats/index.ts"
+
+[functions.chat-bot]
+enabled = true
+verify_jwt = true
+import_map = "./functions/chat-bot/deno.json"
+entrypoint = "./functions/chat-bot/index.ts"
