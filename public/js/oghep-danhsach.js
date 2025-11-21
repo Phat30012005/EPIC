@@ -1,9 +1,11 @@
 /* =======================================
    --- FILE: public/js/oghep-danhsach.js ---
-   (PHIÊN BẢN V4 - TÍCH HỢP PUBLIC PROFILE LINK)
+   (PHIÊN BẢN FINAL - CÓ PHÂN TRANG & FIX LỖI)
    ======================================= */
 
 let savedRoommatePostIds = new Set();
+let currentPage = 1; // Trang hiện tại
+const ITEMS_PER_PAGE = 12; // Số tin mỗi trang
 
 // 1. Tải trạng thái đã lưu (Bookmark)
 async function loadSavedRoommateStatus() {
@@ -23,25 +25,29 @@ async function loadSavedRoommateStatus() {
       .map((b) =>
         b.posting ? b.posting.posting_id : b.roommate_postings.posting_id
       );
-
     savedRoommatePostIds = new Set(postIds);
   }
 }
 
 // 2. Render danh sách
-function renderPostings(postings) {
+function renderPostings(responseData) {
   const roomList = document.getElementById("roomList");
   roomList.innerHTML = "";
 
+  // Xử lý dữ liệu phân trang
   let list = [];
-  if (Array.isArray(postings)) {
-    list = postings;
-  } else if (postings && Array.isArray(postings.data)) {
-    list = postings.data;
+  let pagination = null;
+
+  if (responseData && responseData.data) {
+    list = responseData.data;
+    pagination = responseData.pagination;
+  } else if (Array.isArray(responseData)) {
+    list = responseData;
   }
 
-  if (list.length === 0) {
+  if (!list || list.length === 0) {
     roomList.innerHTML = `<p class="text-center text-gray-500 mt-4 col-span-3">Không có tin nào phù hợp.</p>`;
+    renderPagination(null);
     return;
   }
 
@@ -56,12 +62,15 @@ function renderPostings(postings) {
 
     const priceFormatted = Utils.formatCurrencyShort(post.price);
 
-    // Thông tin người đăng
+    // --- [FIX] Xử lý ảnh & Tên người dùng ---
     const avatarOriginal = post.profiles?.avatar_url;
+    // Dùng ảnh tối ưu 100px
     const avatarSrc = Utils.getOptimizedImage(avatarOriginal, 100);
-    //profile name add
+
+    // [QUAN TRỌNG] Khai báo profileName để tránh lỗi ReferenceError
     const profileName = post.profiles?.full_name || "Ẩn danh";
-    // --- TẠO LINK PROFILE ---
+    // ----------------------------------------
+
     const profileUrl = `/profile.html?user_id=${post.user_id}`;
 
     const isSaved = savedRoommatePostIds.has(post.posting_id);
@@ -105,9 +114,65 @@ function renderPostings(postings) {
   });
 
   addRoommateSaveButtonListeners();
+
+  // Vẽ phân trang
+  if (pagination) {
+    renderPagination(pagination);
+  }
 }
 
-// 3. Gán sự kiện nút Lưu
+// 3. Hàm vẽ phân trang
+function renderPagination(pagination) {
+  const paginationEl = document.getElementById("pagination");
+  if (!paginationEl) return;
+  paginationEl.innerHTML = "";
+
+  if (!pagination || pagination.total_pages <= 1) return;
+
+  const { page, total_pages } = pagination;
+
+  // Nút Prev
+  const prevDisabled = page === 1 ? "disabled" : "";
+  paginationEl.innerHTML += `
+    <li class="page-item ${prevDisabled}">
+      <a class="page-link" href="#" onclick="changePage(${
+        page - 1
+      }); return false;">&laquo;</a>
+    </li>
+  `;
+
+  // Các số trang
+  for (let i = 1; i <= total_pages; i++) {
+    const active = i === page ? "active" : "";
+    paginationEl.innerHTML += `
+      <li class="page-item ${active}">
+        <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+      </li>
+    `;
+  }
+
+  // Nút Next
+  const nextDisabled = page === total_pages ? "disabled" : "";
+  paginationEl.innerHTML += `
+    <li class="page-item ${nextDisabled}">
+      <a class="page-link" href="#" onclick="changePage(${
+        page + 1
+      }); return false;">&raquo;</a>
+    </li>
+  `;
+}
+
+// 4. Hàm chuyển trang
+window.changePage = function (newPage) {
+  if (newPage < 1) return;
+  currentPage = newPage;
+  handleFilter();
+  document
+    .getElementById("default-title")
+    .scrollIntoView({ behavior: "smooth" });
+};
+
+// 5. Gán sự kiện nút Lưu
 function addRoommateSaveButtonListeners() {
   document.querySelectorAll(".save-roommate-btn").forEach((button) => {
     button.addEventListener("click", async (e) => {
@@ -150,9 +215,9 @@ function addRoommateSaveButtonListeners() {
   });
 }
 
-// 4. Hàm Lọc chính
+// 6. Hàm Lọc chính (Có phân trang)
 async function handleFilter() {
-  console.log("[oghep] Đang lọc...");
+  console.log(`[oghep] Đang lọc trang ${currentPage}...`);
   const roomList = document.getElementById("roomList");
 
   const filterPrice = document.getElementById("filterPrice")?.value;
@@ -160,7 +225,11 @@ async function handleFilter() {
   const filterPostingType = document.getElementById("filterPostingType")?.value;
   const filterGender = document.getElementById("filterGender")?.value;
 
-  const paramsObject = {};
+  const paramsObject = {
+    page: currentPage,
+    limit: ITEMS_PER_PAGE,
+  };
+
   if (filterPrice) paramsObject.price = filterPrice;
   if (filterLocal) paramsObject.ward = filterLocal;
   if (filterPostingType) paramsObject.posting_type = filterPostingType;
@@ -180,12 +249,13 @@ async function handleFilter() {
   renderPostings(data);
 }
 
-// 5. Khởi chạy
+// 7. Khởi chạy
 async function initializePage() {
   await loadSavedRoommateStatus();
   handleFilter();
 }
 
+// Reset về trang 1 khi lọc
 const filters = [
   "filterPrice",
   "local-desktop",
@@ -194,7 +264,11 @@ const filters = [
 ];
 filters.forEach((id) => {
   const el = document.getElementById(id);
-  if (el) el.addEventListener("change", handleFilter);
+  if (el)
+    el.addEventListener("change", () => {
+      currentPage = 1;
+      handleFilter();
+    });
 });
 
 initializePage();
