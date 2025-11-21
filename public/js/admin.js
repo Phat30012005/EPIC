@@ -200,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      const avatar = user.avatar_url || "/assets/logo2.jpg";
+      const avatar = user.avatar_url || "/assets/logo1.png";
 
       tr.innerHTML = `
         <td class="text-center">${index + 1}</td>
