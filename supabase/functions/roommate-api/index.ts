@@ -1,5 +1,5 @@
 // supabase/functions/roommate-api/index.ts
-// (PHIÊN BẢN FIX: BỔ SUNG USER_ID VÀO SELECT)
+// (PHIÊN BẢN BẢO MẬT V2)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -12,8 +12,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const createErrorResponse = (message: string, status: number) => {
-  return new Response(JSON.stringify({ error: message }), {
+const createErrorResponse = (
+  message: string,
+  status: number,
+  originalError?: any
+) => {
+  if (originalError) {
+    console.error(`[roommate-api Error ${status}]:`, originalError);
+  }
+  const clientMessage =
+    status >= 500 ? "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau." : message;
+  return new Response(JSON.stringify({ error: clientMessage }), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
@@ -37,14 +46,19 @@ Deno.serve(async (req, context) => {
     );
     const url = new URL(req.url);
 
-    // ============================================================
-    // 1. GET (Danh sách HOẶC Chi tiết)
-    // ============================================================
+    // === 1. GET ===
     if (req.method === "GET") {
       const id = url.searchParams.get("id");
 
       // A. CHI TIẾT
       if (id) {
+        if (
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            id
+          )
+        ) {
+          return createErrorResponse("ID không hợp lệ.", 400);
+        }
         const { data, error } = await supabase
           .from("roommate_postings")
           .select(
@@ -53,7 +67,8 @@ Deno.serve(async (req, context) => {
           .eq("posting_id", id)
           .single();
 
-        if (error) return createErrorResponse(error.message, 404);
+        if (error)
+          return createErrorResponse("Không tìm thấy tin.", 404, error);
         return createSuccessResponse(data);
       }
 
@@ -69,25 +84,20 @@ Deno.serve(async (req, context) => {
         user_id: url.searchParams.get("user_id"),
       };
 
-      // === [FIX QUAN TRỌNG] ===
-      // Thêm user_id vào select
       let query = supabase
         .from("roommate_postings")
         .select(`*, user_id, profiles:user_id (full_name, avatar_url)`, {
           count: "exact",
         });
 
-      if (filters.status) {
-        query = query.eq("status", filters.status);
-      } else {
-        query = query.eq("status", "APPROVED");
-      }
-      if (filters.user_id) {
-        query = query.eq("user_id", filters.user_id);
-      }
+      if (filters.status) query = query.eq("status", filters.status);
+      else query = query.eq("status", "APPROVED");
+
+      if (filters.user_id) query = query.eq("user_id", filters.user_id);
       if (filters.ward) query = query.ilike("ward", `%${filters.ward}%`);
       if (filters.posting_type)
         query = query.eq("posting_type", filters.posting_type);
+
       if (
         filters.gender_preference &&
         filters.gender_preference !== "Không yêu cầu"
@@ -99,7 +109,7 @@ Deno.serve(async (req, context) => {
         if (filters.price === "tren3") query = query.gte("price", 3000000);
         else {
           const parts = filters.price.split("-").map(Number);
-          if (parts.length === 2)
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]))
             query = query
               .gte("price", parts[0] * 1000000)
               .lte("price", parts[1] * 1000000);
@@ -107,8 +117,11 @@ Deno.serve(async (req, context) => {
       }
 
       query = query.order("created_at", { ascending: false });
-      const page = filters.page ? parseInt(filters.page) : 1;
-      const limit = filters.limit ? parseInt(filters.limit) : 12;
+      let page = parseInt(filters.page || "1");
+      let limit = parseInt(filters.limit || "12");
+      if (isNaN(page) || page < 1) page = 1;
+      if (isNaN(limit) || limit < 1 || limit > 50) limit = 12;
+
       const from = (page - 1) * limit;
       const to = from + limit - 1;
       query = query.range(from, to);
@@ -121,17 +134,14 @@ Deno.serve(async (req, context) => {
         pagination: {
           page,
           limit,
-          total_records: count,
+          total_records: count || 0,
           total_pages: count ? Math.ceil(count / limit) : 0,
         },
       });
     }
 
-    // ============================================================
-    // 2. POST (Đăng tin mới)
-    // ============================================================
+    // === 2. POST ===
     if (req.method === "POST") {
-      // Auth
       let userId: string;
       try {
         if (context && context.auth) {
@@ -143,31 +153,48 @@ Deno.serve(async (req, context) => {
           userId = await getUserIdFromToken(req);
         }
       } catch (e: any) {
-        return createErrorResponse("Auth failed", 401);
+        return createErrorResponse("Auth failed", 401, e);
       }
 
-      // Role Check
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", userId)
         .single();
       if (profile?.role !== "RENTER")
-        return createErrorResponse("Only RENTERs can post here", 403);
+        return createErrorResponse(
+          "Chỉ Người Thuê (RENTER) mới được đăng tin này.",
+          403
+        );
 
-      const body = await req.json();
-      if (!body.title || !body.ward || !body.price || !body.posting_type) {
-        return createErrorResponse("Missing required fields", 400);
+      let body;
+      try {
+        body = await req.json();
+      } catch (e) {
+        return createErrorResponse("JSON không hợp lệ.", 400, e);
       }
+
+      if (!body.title || !body.ward || !body.price || !body.posting_type) {
+        return createErrorResponse(
+          "Thiếu thông tin bắt buộc (title, ward, price, type).",
+          400
+        );
+      }
+
+      if (body.title.length < 5 || body.title.length > 100)
+        return createErrorResponse("Tiêu đề 5-100 ký tự.", 400);
+      const price = Number(body.price);
+      if (isNaN(price) || price <= 0)
+        return createErrorResponse("Giá không hợp lệ.", 400);
 
       const newPosting = {
         user_id: userId,
-        title: body.title,
-        description: body.description,
+        title: body.title.trim(),
+        description: (body.description || "").trim(),
         posting_type: body.posting_type,
         ward: body.ward,
-        price: Number(body.price),
-        gender_preference: body.gender_preference,
+        price: price,
+        gender_preference: body.gender_preference || "Không yêu cầu",
         status: "PENDING",
       };
 
@@ -176,13 +203,11 @@ Deno.serve(async (req, context) => {
         .insert(newPosting)
         .select()
         .single();
-      if (error) return createErrorResponse(error.message, 500);
+      if (error) return createErrorResponse("Lỗi Database.", 500, error);
       return createSuccessResponse(data);
     }
 
-    // ============================================================
-    // 3. PATCH (Duyệt tin)
-    // ============================================================
+    // === 3. PATCH ===
     if (req.method === "PATCH") {
       let userId: string;
       try {
@@ -195,7 +220,7 @@ Deno.serve(async (req, context) => {
           userId = await getUserIdFromToken(req);
         }
       } catch (e: any) {
-        return createErrorResponse("Auth failed", 401);
+        return createErrorResponse("Auth failed", 401, e);
       }
 
       const { data: profile } = await supabase
@@ -216,13 +241,11 @@ Deno.serve(async (req, context) => {
         .eq("posting_id", id)
         .select()
         .single();
-      if (error) return createErrorResponse(error.message, 500);
+      if (error) return createErrorResponse("Update failed", 500, error);
       return createSuccessResponse(data);
     }
 
-    // ============================================================
-    // 4. DELETE (Xóa tin)
-    // ============================================================
+    // === 4. DELETE ===
     if (req.method === "DELETE") {
       let userId: string;
       try {
@@ -235,7 +258,7 @@ Deno.serve(async (req, context) => {
           userId = await getUserIdFromToken(req);
         }
       } catch (e: any) {
-        return createErrorResponse("Auth failed", 401);
+        return createErrorResponse("Auth failed", 401, e);
       }
 
       const postingId = url.searchParams.get("id");
@@ -262,12 +285,12 @@ Deno.serve(async (req, context) => {
         .from("roommate_postings")
         .delete()
         .eq("posting_id", postingId);
-      if (dError) return createErrorResponse(dError.message, 500);
+      if (dError) return createErrorResponse("Delete failed", 500, dError);
       return createSuccessResponse({ id: postingId, status: "deleted" });
     }
 
     return createErrorResponse("Method Not Allowed", 405);
   } catch (err: any) {
-    return createErrorResponse("Server Error: " + err.message, 500);
+    return createErrorResponse("Server Error", 500, err);
   }
 });
