@@ -26,6 +26,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("tab-users")
     .addEventListener("click", (e) => switchTab("users", e.target));
+  document
+    .getElementById("tab-reviews")
+    .addEventListener("click", (e) => switchTab("reviews", e.target));
 
   function switchTab(tabName, clickedBtn) {
     currentTab = tabName;
@@ -40,10 +43,15 @@ document.addEventListener("DOMContentLoaded", () => {
       postTypeSelector.style.display = "block";
       sectionTitle.textContent = "Danh sách Tin đăng";
       loadAdminPosts();
-    } else {
+    } else if (tabName === "users") {
       postTypeSelector.style.display = "none";
       sectionTitle.textContent = "Danh sách Người dùng";
       loadAdminUsers();
+    } else {
+      // --- [MỚI] LOGIC TAB REVIEWS ---
+      postTypeSelector.style.display = "none";
+      sectionTitle.textContent = "Danh sách Đánh giá";
+      loadAdminReviews();
     }
   }
 
@@ -281,4 +289,89 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Khởi chạy mặc định
   loadAdminPosts();
+  // --- 5. LOGIC QUẢN LÝ ĐÁNH GIÁ (MỚI) ---
+  async function loadAdminReviews() {
+    renderTableHeader([
+      "STT",
+      "Người đánh giá",
+      "Nội dung / Sao",
+      "Bài đăng",
+      "Hành động",
+    ]);
+    tableBody.innerHTML =
+      '<tr><td colspan="5" class="text-center">Đang tải đánh giá...</td></tr>';
+
+    const { data, error } = await callEdgeFunction("admin-manage-reviews", {
+      method: "GET",
+    });
+
+    if (error) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Lỗi: ${error.message}</td></tr>`;
+      return;
+    }
+
+    const reviews = data.data || data;
+    if (!reviews || reviews.length === 0) {
+      tableBody.innerHTML =
+        '<tr><td colspan="5" class="text-center">Chưa có đánh giá nào.</td></tr>';
+      return;
+    }
+
+    renderReviewTable(reviews);
+  }
+
+  function renderReviewTable(reviews) {
+    tableBody.innerHTML = "";
+    reviews.forEach((review, index) => {
+      const tr = document.createElement("tr");
+      const userEmail = review.profiles?.email || "Ẩn danh";
+      const postTitle = review.posts?.title || "Bài đã xóa";
+      const stars = Utils.renderStars(review.rating); // Dùng hàm có sẵn trong Utils
+      const date = Utils.formatDate(review.created_at);
+
+      tr.innerHTML = `
+        <td class="text-center">${index + 1}</td>
+        <td>
+            <span class="fw-bold">${
+              review.profiles?.full_name || "No Name"
+            }</span><br>
+            <small class="text-muted">${userEmail}</small>
+        </td>
+        <td>
+            <div>${stars}</div>
+            <div class="fst-italic">"${review.comment}"</div>
+            <small class="text-muted">${date}</small>
+        </td>
+        <td>
+            <span class="text-primary small fw-bold" style="max-width: 200px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${postTitle}
+            </span>
+        </td>
+        <td class="text-center">
+            <button class="btn btn-danger btn-sm" onclick="deleteReview('${
+              review.review_id
+            }')">
+                <i class="fa-solid fa-trash"></i> Xóa
+            </button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // --- 6. ACTION XÓA REVIEW (GLOBAL) ---
+  window.deleteReview = async (id) => {
+    if (!confirm("Bạn chắc chắn muốn xóa đánh giá này?")) return;
+
+    const { error } = await callEdgeFunction("admin-manage-reviews", {
+      method: "DELETE",
+      params: { id: id },
+    });
+
+    if (error) alert("Lỗi xóa: " + error.message);
+    else {
+      alert("Đã xóa thành công!");
+      loadAdminReviews(); // Tải lại danh sách
+    }
+  };
 });

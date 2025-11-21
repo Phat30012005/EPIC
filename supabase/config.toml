@@ -135,3 +135,10 @@ verify_jwt = false
 import_map = "./functions/admin-manage-users/deno.json"
 entrypoint = "./functions/admin-manage-users/index.ts"
 
+
+[functions.admin-manage-reviews]
+enabled = true
+verify_jwt = false
+
+import_map = "./functions/admin-manage-reviews/deno.json"
+entrypoint = "./functions/admin-manage-reviews/index.ts"
