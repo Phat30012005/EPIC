@@ -18,28 +18,43 @@
     <div id="header-placeholder"></div>
 
     <main class="container my-5 flex-grow">
-      <h2 class="text-center mb-4 font-bold">Quản trị bài đăng</h2>
-      <div class="d-flex justify-content-end mb-3">
+      <h2 class="text-center mb-4 font-bold">Trang Quản Trị</h2>
+
+      <ul class="nav nav-tabs mb-4" id="adminTabs">
+        <li class="nav-item">
+          <button
+            class="nav-link active fw-bold"
+            id="tab-posts"
+            data-type="posts"
+          >
+            📝 Quản lý Tin Đăng
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link fw-bold" id="tab-users" data-type="users">
+            👥 Quản lý Người dùng
+          </button>
+        </li>
+      </ul>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 id="section-title" class="text-gray-700 font-bold m-0">
+          Danh sách Tin đăng
+        </h4>
+
         <select
           id="adminPostType"
           class="form-select w-auto shadow-sm border-primary"
         >
-          <option value="rental">🏠 Quản lý Phòng trọ</option>
-          <option value="roommate">👥 Quản lý Tìm ở ghép</option>
+          <option value="rental">🏠 Phòng trọ</option>
+          <option value="roommate">👥 Tìm ở ghép</option>
         </select>
       </div>
+
       <div class="bg-white p-4 rounded shadow-sm">
         <div class="table-responsive">
-          <table class="table table-bordered align-middle mb-0">
-            <thead class="table-primary text-center">
-              <tr>
-                <th>STT</th>
-                <th>Tiêu đề</th>
-                <th>Giá</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
+          <table class="table table-bordered align-middle mb-0 table-hover">
+            <thead class="table-primary text-center" id="table-head"></thead>
             <tbody id="adminTableBody"></tbody>
           </table>
         </div>

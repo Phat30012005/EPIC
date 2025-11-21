@@ -128,3 +128,10 @@ verify_jwt = false
 import_map = "./functions/create-conversation/deno.json"
 entrypoint = "./functions/create-conversation/index.ts"
 
+
+[functions.admin-manage-users]
+enabled = true
+verify_jwt = false
+import_map = "./functions/admin-manage-users/deno.json"
+entrypoint = "./functions/admin-manage-users/index.ts"
+
