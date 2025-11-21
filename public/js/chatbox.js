@@ -1,10 +1,18 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
-   (PHIÊN BẢN REALTIME - KẾT NỐI EDGE FUNCTION)
+   (PHIÊN BẢN AI + SUGGESTED QUESTIONS)
    ======================================= */
 
 let chatSubscription = null;
 let currentUser = null;
+
+// Danh sách câu hỏi mẫu
+const SUGGESTED_QUESTIONS = [
+  "Cách đăng tin cho thuê?",
+  "Tìm phòng dưới 2 triệu",
+  "Chính sách tìm người ở ghép?",
+  "Khu vực nào gần ĐH Cần Thơ?",
+];
 
 async function initializeChatbox() {
   const chatWidget = document.getElementById("chat-widget");
@@ -17,32 +25,40 @@ async function initializeChatbox() {
   const chatInput = document.getElementById("chat-input");
   const chatBody = document.getElementById("chat-body");
 
+  // Thêm vùng chứa gợi ý (nếu chưa có)
+  let suggestionBox = document.getElementById("suggestion-box");
+  if (!suggestionBox) {
+    suggestionBox = document.createElement("div");
+    suggestionBox.id = "suggestion-box";
+    suggestionBox.className = "suggestion-container hidden";
+    // Chèn vào trên footer
+    chatBox.insertBefore(suggestionBox, document.querySelector(".chat-footer"));
+  }
+
   if (!toggleBtn || !chatBox || !closeBtn) return;
 
-  // 1. Kiểm tra Auth
+  // 1. Auth Check
   const {
     data: { session },
   } = await supabase.auth.getSession();
   currentUser = session?.user;
 
-  // 2. Xử lý giao diện Login nếu chưa đăng nhập
   if (!currentUser) {
     chatBody.innerHTML = `
       <div class="text-center mt-10 px-4">
-        <p class="text-gray-600 mb-3">Vui lòng đăng nhập để chat với hỗ trợ.</p>
+        <p class="text-gray-600 mb-3">Đăng nhập để chat với AI Chicky!</p>
         <a href="/login.html" class="btn btn-sm btn-primary">Đăng nhập ngay</a>
       </div>
     `;
-    // Vô hiệu hóa input
     chatInput.disabled = true;
     sendBtn.disabled = true;
   } else {
-    // Nếu đã đăng nhập -> Tải lịch sử & Kết nối Realtime
     await loadChatHistory();
     setupRealtimeSubscription();
+    renderSuggestions(); // Hiển thị gợi ý
   }
 
-  // 3. Sự kiện UI
+  // 2. Sự kiện UI
   toggleBtn.addEventListener("click", () => {
     chatBox.classList.toggle("hidden");
     if (!chatBox.classList.contains("hidden") && currentUser) {
@@ -53,49 +69,65 @@ async function initializeChatbox() {
 
   closeBtn.addEventListener("click", () => chatBox.classList.add("hidden"));
 
-  // 4. Gửi tin nhắn
-  const handleSend = async () => {
-    const msg = chatInput.value.trim();
+  // 3. Hàm gửi tin
+  window.handleSend = async (messageText = null) => {
+    // Nếu có text truyền vào (từ nút gợi ý) thì dùng, không thì lấy từ input
+    const msg = messageText || chatInput.value.trim();
+
     if (!msg || !currentUser) return;
 
-    // Xóa input ngay để trải nghiệm mượt (Optimistic UI)
     chatInput.value = "";
 
-    // Hiển thị tin nhắn tạm thời (Client-side echo)
-    // Thực tế Realtime sẽ trả về lại, nhưng hiện ngay cho mượt
-    // (Lưu ý: Nếu muốn chính xác tuyệt đối thì đợi Realtime,
-    // nhưng ở đây ta gọi API nên cứ hiện trước)
+    // Ẩn gợi ý sau khi chat
+    document.getElementById("suggestion-box").classList.add("hidden");
 
-    // Gọi Edge Function
     try {
+      // Gọi AI Function
       const { error } = await callEdgeFunction("chat-bot", {
         method: "POST",
         body: { message: msg },
       });
 
       if (error) {
-        console.error("Lỗi gửi tin:", error);
-        appendMessage("Lỗi: Không gửi được tin nhắn.", "bot");
+        console.error("Lỗi AI:", error);
+        appendMessage("Lỗi kết nối AI. Vui lòng thử lại.", "bot");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  sendBtn.addEventListener("click", handleSend);
+  sendBtn.addEventListener("click", () => window.handleSend());
   chatInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleSend();
+      window.handleSend();
     }
   });
 }
 
-// --- HÀM TẢI LỊCH SỬ ---
+// --- HÀM RENDER GỢI Ý ---
+function renderSuggestions() {
+  const box = document.getElementById("suggestion-box");
+  if (!box) return;
+
+  box.innerHTML = "";
+  box.classList.remove("hidden"); // Hiện lên
+
+  SUGGESTED_QUESTIONS.forEach((q) => {
+    const btn = document.createElement("button");
+    btn.textContent = q;
+    btn.className = "suggestion-btn";
+    btn.onclick = () => window.handleSend(q); // Gửi ngay khi click
+    box.appendChild(btn);
+  });
+}
+
+// --- CÁC HÀM CŨ (Giữ nguyên logic) ---
 async function loadChatHistory() {
   const chatBody = document.getElementById("chat-body");
   chatBody.innerHTML =
-    '<div class="text-center text-gray-400 mt-4 text-sm">Đang tải...</div>';
+    '<div class="text-center text-gray-400 mt-4 text-sm">Đang tải lịch sử...</div>';
 
   const { data, error } = await supabase
     .from("chat_messages")
@@ -105,15 +137,16 @@ async function loadChatHistory() {
 
   if (error) {
     chatBody.innerHTML =
-      '<p class="text-red-500 text-center">Lỗi tải lịch sử.</p>';
+      '<p class="text-red-500 text-center">Lỗi tải chat.</p>';
     return;
   }
 
-  chatBody.innerHTML = ""; // Xóa loading
+  chatBody.innerHTML = "";
 
+  // Lời chào mặc định nếu chưa chat
   if (data.length === 0) {
     appendMessage(
-      "Xin chào! Tôi là trợ lý ảo của Chicky.stu. Tôi có thể giúp gì cho bạn?",
+      "Chào bạn! Mình là AI của Chicky.stu 🐣. Bạn cần giúp gì không?",
       "bot"
     );
   } else {
@@ -124,10 +157,8 @@ async function loadChatHistory() {
   scrollToBottom();
 }
 
-// --- HÀM REALTIME (NHẬN TIN MỚI) ---
 function setupRealtimeSubscription() {
   if (chatSubscription) supabase.removeChannel(chatSubscription);
-
   chatSubscription = supabase
     .channel("public:chat_messages")
     .on(
@@ -139,41 +170,22 @@ function setupRealtimeSubscription() {
         filter: `user_id=eq.${currentUser.id}`,
       },
       (payload) => {
-        console.log("Realtime message:", payload);
         const newMsg = payload.new;
-
-        // Chỉ hiển thị nếu chưa có trên màn hình (Tránh duplicate do Optimistic UI nếu có)
-        // Ở đây ta chỉ append, logic đơn giản nhất
-        // Tuy nhiên để tránh user thấy tin mình gửi hiện 2 lần (1 lần do JS, 1 lần do Realtime)
-        // Ta có thể kiểm tra hoặc đơn giản là ở hàm handleSend KHÔNG append manual nữa.
-        // => SỬA LẠI CHIẾN LƯỢC: handleSend CHỈ GỌI API. Realtime sẽ lo việc hiển thị.
-
         appendMessage(newMsg.content, newMsg.is_bot ? "bot" : "user");
       }
     )
     .subscribe();
 }
 
-// --- HELPER: HIỂN THỊ TIN NHẮN ---
 function appendMessage(text, sender) {
   const chatBody = document.getElementById("chat-body");
-
-  // Kiểm tra xem tin nhắn cuối cùng có giống hệt tin vừa nhận không (trong khoảng thời gian ngắn)
-  // Để chống duplicate đơn giản nếu cần (tùy chọn)
-
   const div = document.createElement("div");
   div.className = sender === "user" ? "user-message" : "bot-message";
 
-  const p = document.createElement("p");
+  // Markdown đơn giản (xuống dòng)
+  const formattedText = text.replace(/\n/g, "<br>");
 
-  // Bot được phép dùng HTML (để gửi link), User thì không (chống XSS)
-  if (sender === "bot") {
-    p.innerHTML = text;
-  } else {
-    p.textContent = text;
-  }
-
-  div.appendChild(p);
+  div.innerHTML = `<p>${formattedText}</p>`;
   chatBody.appendChild(div);
   scrollToBottom();
 }
