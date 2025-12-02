@@ -1,12 +1,10 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
-   (PHIÊN BẢN V5 - FIX UI TIN NHẮN NGƯỜI DÙNG)
+   (PHIÊN BẢN V6 - UI TỨC THÌ / NO-REALTIME DEPENDENCY)
    ======================================= */
 
-let chatSubscription = null;
 let currentUser = null;
 
-// Danh sách câu hỏi mẫu (Gợi ý)
 const SUGGESTED_QUESTIONS = [
   "Cách đăng tin cho thuê?",
   "Tìm phòng dưới 2 triệu",
@@ -25,7 +23,7 @@ async function initializeChatbox() {
   const chatInput = document.getElementById("chat-input");
   const chatBody = document.getElementById("chat-body");
 
-  // Thêm vùng chứa gợi ý (nếu chưa có)
+  // Tạo vùng gợi ý
   let suggestionBox = document.getElementById("suggestion-box");
   if (!suggestionBox) {
     suggestionBox = document.createElement("div");
@@ -36,7 +34,7 @@ async function initializeChatbox() {
 
   if (!toggleBtn || !chatBox || !closeBtn) return;
 
-  // 1. Auth Check
+  // 1. Kiểm tra đăng nhập
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -52,12 +50,12 @@ async function initializeChatbox() {
     chatInput.disabled = true;
     sendBtn.disabled = true;
   } else {
+    // Chỉ tải lịch sử cũ, không cần Realtime subscription để tránh duplicate
     await loadChatHistory();
-    setupRealtimeSubscription();
     renderSuggestions();
   }
 
-  // 2. Sự kiện UI
+  // 2. Sự kiện Mở/Đóng
   toggleBtn.addEventListener("click", () => {
     chatBox.classList.toggle("hidden");
     if (!chatBox.classList.contains("hidden") && currentUser) {
@@ -68,46 +66,51 @@ async function initializeChatbox() {
 
   closeBtn.addEventListener("click", () => chatBox.classList.add("hidden"));
 
-  // 3. Hàm gửi tin (ĐÃ SỬA LOGIC)
+  // 3. HÀM GỬI TIN (LOGIC MỚI: HIỂN THỊ NGAY LẬP TỨC)
   window.handleSend = async (messageText = null) => {
     const msg = messageText || chatInput.value.trim();
-
     if (!msg || !currentUser) return;
 
-    // Reset input ngay lập tức cho mượt
+    // A. UI: Hiển thị tin nhắn người dùng NGAY (Không chờ Server)
+    appendMessage(msg, "user");
+
+    // Reset input
     chatInput.value = "";
     document.getElementById("suggestion-box").classList.add("hidden");
 
+    // Hiển thị trạng thái "Đang soạn..." giả lập
+    const loadingId = showTypingIndicator();
+
     try {
-      // BƯỚC 1: Lưu tin nhắn của User vào Database NGAY LẬP TỨC
-      // (Realtime sẽ tự động bắt sự kiện này và vẽ lên giao diện)
+      // B. Database: Lưu tin nhắn User (chạy ngầm)
       const { error: insertError } = await supabase
         .from("chat_messages")
         .insert({
           user_id: currentUser.id,
           content: msg,
-          is_bot: false, // Đây là tin người dùng
+          is_bot: false,
         });
 
-      if (insertError) {
-        console.error("Lỗi lưu tin nhắn:", insertError);
-        appendMessage("⚠️ Lỗi gửi tin nhắn. Vui lòng thử lại.", "bot");
-        return;
-      }
+      if (insertError) console.error("Lỗi lưu tin nhắn:", insertError);
 
-      // BƯỚC 2: Gọi AI (Backend)
-      // Bot sẽ tự xử lý và lưu câu trả lời của nó vào DB sau
-      const { error } = await callEdgeFunction("chat-bot", {
+      // C. API: Gọi Bot lấy câu trả lời
+      const { data, error } = await callEdgeFunction("chat-bot", {
         method: "POST",
         body: { message: msg },
       });
 
+      // Xóa trạng thái "Đang soạn..."
+      removeTypingIndicator(loadingId);
+
       if (error) {
-        console.error("Lỗi gọi AI:", error);
-        // Nếu gọi Function thất bại (mất mạng, server sập...), báo lỗi
+        console.error("Lỗi Bot:", error);
         appendMessage("⚠️ Gà Bông đang mất kết nối. Thử lại sau nhé!", "bot");
+      } else {
+        // D. UI: Hiển thị tin nhắn Bot từ phản hồi API
+        appendMessage(data.reply, "bot");
       }
     } catch (err) {
+      removeTypingIndicator(loadingId);
       console.error(err);
     }
   };
@@ -121,15 +124,13 @@ async function initializeChatbox() {
   });
 }
 
-// --- CÁC HÀM HỖ TRỢ ---
+// --- CÁC HÀM UI ---
 
 function renderSuggestions() {
   const box = document.getElementById("suggestion-box");
   if (!box) return;
-
   box.innerHTML = "";
   box.classList.remove("hidden");
-
   SUGGESTED_QUESTIONS.forEach((q) => {
     const btn = document.createElement("button");
     btn.textContent = q;
@@ -142,7 +143,7 @@ function renderSuggestions() {
 async function loadChatHistory() {
   const chatBody = document.getElementById("chat-body");
   chatBody.innerHTML =
-    '<div class="text-center text-gray-400 mt-4 text-sm"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Đang tải lịch sử...</div>';
+    '<div class="text-center text-gray-400 mt-4 text-sm">Đang tải cuộc trò chuyện...</div>';
 
   const { data, error } = await supabase
     .from("chat_messages")
@@ -150,77 +151,56 @@ async function loadChatHistory() {
     .eq("user_id", currentUser.id)
     .order("created_at", { ascending: true });
 
-  if (error) {
-    chatBody.innerHTML =
-      '<p class="text-red-500 text-center">Lỗi tải chat.</p>';
-    return;
-  }
+  chatBody.innerHTML = ""; // Clear loading
 
-  chatBody.innerHTML = ""; // Xóa loading
-
-  if (data.length === 0) {
-    appendMessage(
-      "Chào bạn! Mình là Gà Bông 🐣. Bạn đang tìm phòng trọ khu vực nào?",
-      "bot"
-    );
-  } else {
+  if (!error && data.length > 0) {
     data.forEach((msg) => {
       appendMessage(msg.content, msg.is_bot ? "bot" : "user");
     });
+  } else {
+    appendMessage(
+      "Chào bạn! Mình là Gà Bông 🐣. Bạn cần tìm phòng trọ ở đâu?",
+      "bot"
+    );
   }
   scrollToBottom();
 }
 
-function setupRealtimeSubscription() {
-  if (chatSubscription) supabase.removeChannel(chatSubscription);
-
-  // Lắng nghe sự kiện INSERT vào bảng chat_messages
-  chatSubscription = supabase
-    .channel("public:chat_messages")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "chat_messages",
-        filter: `user_id=eq.${currentUser.id}`, // Chỉ nhận tin của mình (hoặc Bot trả lời mình)
-      },
-      (payload) => {
-        const newMsg = payload.new;
-        // Vẽ tin nhắn lên màn hình (Cả User và Bot đều qua đây)
-        appendMessage(newMsg.content, newMsg.is_bot ? "bot" : "user");
-      }
-    )
-    .subscribe();
-}
-
+// Hàm vẽ tin nhắn
 function appendMessage(text, sender) {
   const chatBody = document.getElementById("chat-body");
   const div = document.createElement("div");
-
-  // Class CSS quyết định màu sắc (Xanh cho User, Xám cho Bot)
   div.className = sender === "user" ? "user-message" : "bot-message";
 
-  // Xử lý xuống dòng và format nhẹ
-  // Regex này chuyển các dấu gạch đầu dòng (-) thành chấm tròn cho đẹp
-  let formattedText = text.replace(/\n/g, "<br>");
-
-  // Highlight giá tiền (nếu có)
-  formattedText = formattedText.replace(
-    /(\d{1,3}(?:\.\d{3})+) VNĐ/g,
-    "<b>$1 VNĐ</b>"
-  );
+  // Format xuống dòng và tô đậm giá tiền
+  let formattedText = text
+    .replace(/\n/g, "<br>")
+    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // Hỗ trợ bold markdown cơ bản
 
   div.innerHTML = `<p>${formattedText}</p>`;
   chatBody.appendChild(div);
   scrollToBottom();
 }
 
+// Hiệu ứng "Gà Bông đang soạn tin..."
+function showTypingIndicator() {
+  const chatBody = document.getElementById("chat-body");
+  const id = "typing-" + Date.now();
+  const div = document.createElement("div");
+  div.id = id;
+  div.className = "bot-message";
+  div.innerHTML = `<p class="text-gray-400 italic text-xs">Bot đang nhập...</p>`;
+  chatBody.appendChild(div);
+  scrollToBottom();
+  return id;
+}
+
+function removeTypingIndicator(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
 function scrollToBottom() {
   const chatBody = document.getElementById("chat-body");
-  // Cuộn mượt
-  chatBody.scrollTo({
-    top: chatBody.scrollHeight,
-    behavior: "smooth",
-  });
+  chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: "smooth" });
 }
