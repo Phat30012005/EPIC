@@ -1,12 +1,12 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
-   (PHIÊN BẢN AI + SUGGESTED QUESTIONS)
+   (PHIÊN BẢN V5 - FIX UI TIN NHẮN NGƯỜI DÙNG)
    ======================================= */
 
 let chatSubscription = null;
 let currentUser = null;
 
-// Danh sách câu hỏi mẫu
+// Danh sách câu hỏi mẫu (Gợi ý)
 const SUGGESTED_QUESTIONS = [
   "Cách đăng tin cho thuê?",
   "Tìm phòng dưới 2 triệu",
@@ -31,7 +31,6 @@ async function initializeChatbox() {
     suggestionBox = document.createElement("div");
     suggestionBox.id = "suggestion-box";
     suggestionBox.className = "suggestion-container hidden";
-    // Chèn vào trên footer
     chatBox.insertBefore(suggestionBox, document.querySelector(".chat-footer"));
   }
 
@@ -46,7 +45,7 @@ async function initializeChatbox() {
   if (!currentUser) {
     chatBody.innerHTML = `
       <div class="text-center mt-10 px-4">
-        <p class="text-gray-600 mb-3">Đăng nhập để chat với AI Chicky!</p>
+        <p class="text-gray-600 mb-3">Đăng nhập để chat với Gà Bông 🐣 nhé!</p>
         <a href="/login.html" class="btn btn-sm btn-primary">Đăng nhập ngay</a>
       </div>
     `;
@@ -55,7 +54,7 @@ async function initializeChatbox() {
   } else {
     await loadChatHistory();
     setupRealtimeSubscription();
-    renderSuggestions(); // Hiển thị gợi ý
+    renderSuggestions();
   }
 
   // 2. Sự kiện UI
@@ -69,28 +68,44 @@ async function initializeChatbox() {
 
   closeBtn.addEventListener("click", () => chatBox.classList.add("hidden"));
 
-  // 3. Hàm gửi tin
+  // 3. Hàm gửi tin (ĐÃ SỬA LOGIC)
   window.handleSend = async (messageText = null) => {
-    // Nếu có text truyền vào (từ nút gợi ý) thì dùng, không thì lấy từ input
     const msg = messageText || chatInput.value.trim();
 
     if (!msg || !currentUser) return;
 
+    // Reset input ngay lập tức cho mượt
     chatInput.value = "";
-
-    // Ẩn gợi ý sau khi chat
     document.getElementById("suggestion-box").classList.add("hidden");
 
     try {
-      // Gọi AI Function
+      // BƯỚC 1: Lưu tin nhắn của User vào Database NGAY LẬP TỨC
+      // (Realtime sẽ tự động bắt sự kiện này và vẽ lên giao diện)
+      const { error: insertError } = await supabase
+        .from("chat_messages")
+        .insert({
+          user_id: currentUser.id,
+          content: msg,
+          is_bot: false, // Đây là tin người dùng
+        });
+
+      if (insertError) {
+        console.error("Lỗi lưu tin nhắn:", insertError);
+        appendMessage("⚠️ Lỗi gửi tin nhắn. Vui lòng thử lại.", "bot");
+        return;
+      }
+
+      // BƯỚC 2: Gọi AI (Backend)
+      // Bot sẽ tự xử lý và lưu câu trả lời của nó vào DB sau
       const { error } = await callEdgeFunction("chat-bot", {
         method: "POST",
         body: { message: msg },
       });
 
       if (error) {
-        console.error("Lỗi AI:", error);
-        appendMessage("Lỗi kết nối AI. Vui lòng thử lại.", "bot");
+        console.error("Lỗi gọi AI:", error);
+        // Nếu gọi Function thất bại (mất mạng, server sập...), báo lỗi
+        appendMessage("⚠️ Gà Bông đang mất kết nối. Thử lại sau nhé!", "bot");
       }
     } catch (err) {
       console.error(err);
@@ -106,28 +121,28 @@ async function initializeChatbox() {
   });
 }
 
-// --- HÀM RENDER GỢI Ý ---
+// --- CÁC HÀM HỖ TRỢ ---
+
 function renderSuggestions() {
   const box = document.getElementById("suggestion-box");
   if (!box) return;
 
   box.innerHTML = "";
-  box.classList.remove("hidden"); // Hiện lên
+  box.classList.remove("hidden");
 
   SUGGESTED_QUESTIONS.forEach((q) => {
     const btn = document.createElement("button");
     btn.textContent = q;
     btn.className = "suggestion-btn";
-    btn.onclick = () => window.handleSend(q); // Gửi ngay khi click
+    btn.onclick = () => window.handleSend(q);
     box.appendChild(btn);
   });
 }
 
-// --- CÁC HÀM CŨ (Giữ nguyên logic) ---
 async function loadChatHistory() {
   const chatBody = document.getElementById("chat-body");
   chatBody.innerHTML =
-    '<div class="text-center text-gray-400 mt-4 text-sm">Đang tải lịch sử...</div>';
+    '<div class="text-center text-gray-400 mt-4 text-sm"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Đang tải lịch sử...</div>';
 
   const { data, error } = await supabase
     .from("chat_messages")
@@ -141,12 +156,11 @@ async function loadChatHistory() {
     return;
   }
 
-  chatBody.innerHTML = "";
+  chatBody.innerHTML = ""; // Xóa loading
 
-  // Lời chào mặc định nếu chưa chat
   if (data.length === 0) {
     appendMessage(
-      "Chào bạn! Mình là AI của Chicky.stu 🐣. Bạn cần giúp gì không?",
+      "Chào bạn! Mình là Gà Bông 🐣. Bạn đang tìm phòng trọ khu vực nào?",
       "bot"
     );
   } else {
@@ -159,6 +173,8 @@ async function loadChatHistory() {
 
 function setupRealtimeSubscription() {
   if (chatSubscription) supabase.removeChannel(chatSubscription);
+
+  // Lắng nghe sự kiện INSERT vào bảng chat_messages
   chatSubscription = supabase
     .channel("public:chat_messages")
     .on(
@@ -167,10 +183,11 @@ function setupRealtimeSubscription() {
         event: "INSERT",
         schema: "public",
         table: "chat_messages",
-        filter: `user_id=eq.${currentUser.id}`,
+        filter: `user_id=eq.${currentUser.id}`, // Chỉ nhận tin của mình (hoặc Bot trả lời mình)
       },
       (payload) => {
         const newMsg = payload.new;
+        // Vẽ tin nhắn lên màn hình (Cả User và Bot đều qua đây)
         appendMessage(newMsg.content, newMsg.is_bot ? "bot" : "user");
       }
     )
@@ -180,10 +197,19 @@ function setupRealtimeSubscription() {
 function appendMessage(text, sender) {
   const chatBody = document.getElementById("chat-body");
   const div = document.createElement("div");
+
+  // Class CSS quyết định màu sắc (Xanh cho User, Xám cho Bot)
   div.className = sender === "user" ? "user-message" : "bot-message";
 
-  // Markdown đơn giản (xuống dòng)
-  const formattedText = text.replace(/\n/g, "<br>");
+  // Xử lý xuống dòng và format nhẹ
+  // Regex này chuyển các dấu gạch đầu dòng (-) thành chấm tròn cho đẹp
+  let formattedText = text.replace(/\n/g, "<br>");
+
+  // Highlight giá tiền (nếu có)
+  formattedText = formattedText.replace(
+    /(\d{1,3}(?:\.\d{3})+) VNĐ/g,
+    "<b>$1 VNĐ</b>"
+  );
 
   div.innerHTML = `<p>${formattedText}</p>`;
   chatBody.appendChild(div);
@@ -192,5 +218,9 @@ function appendMessage(text, sender) {
 
 function scrollToBottom() {
   const chatBody = document.getElementById("chat-body");
-  chatBody.scrollTop = chatBody.scrollHeight;
+  // Cuộn mượt
+  chatBody.scrollTo({
+    top: chatBody.scrollHeight,
+    behavior: "smooth",
+  });
 }
