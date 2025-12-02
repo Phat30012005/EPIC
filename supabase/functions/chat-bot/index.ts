@@ -10,14 +10,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Hàm dò tìm model (Giữ nguyên từ bản trước vì đã hoạt động tốt)
+// 1. Hàm dò tìm Model (Giữ nguyên - Đã ổn định)
 async function getAvailableModel(apiKey: string) {
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=50`,
       { method: "GET" }
     );
-    if (!response.ok) return null;
+    if (!response.ok) return "gemini-1.5-flash-latest";
     const data = await response.json();
     const models = data.models || [];
 
@@ -35,10 +35,36 @@ async function getAvailableModel(apiKey: string) {
     );
     if (anyFlash) return anyFlash.name.replace("models/", "");
 
-    return "gemini-1.5-flash-latest"; // Fallback an toàn
+    return "gemini-1.5-flash-latest";
   } catch (e) {
-    return null;
+    return "gemini-1.5-flash-latest";
   }
+}
+
+// 2. [MỚI] Hàm trích xuất giá tiền từ tin nhắn
+function extractPrice(text: string): number | null {
+  // Tìm các mẫu như "2 triệu", "2tr", "2000000", "1.5 triệu"
+  const cleanText = text.toLowerCase().replace(/\./g, "").replace(/,/g, ""); // Xóa dấu chấm phẩy số
+
+  // Regex bắt số tiền (triệu/tr)
+  const millionMatch = cleanText.match(/(\d+(?:[\.,]\d+)?)\s*(triệu|tr|m)/);
+  if (millionMatch) {
+    return parseFloat(millionMatch[1].replace(",", ".")) * 1000000;
+  }
+
+  // Regex bắt số trăm nghìn (k/nghìn)
+  const thousandMatch = cleanText.match(/(\d+)\s*(k|nghìn|ngàn)/);
+  if (thousandMatch) {
+    return parseFloat(thousandMatch[1]) * 1000;
+  }
+
+  // Regex bắt số thuần túy lớn (nếu user nhập 2000000)
+  const rawNumberMatch = cleanText.match(/\d{6,}/);
+  if (rawNumberMatch) {
+    return parseFloat(rawNumberMatch[0]);
+  }
+
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -54,7 +80,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Auth Check
+    // Auth Check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader)
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -72,10 +98,16 @@ Deno.serve(async (req) => {
       });
 
     const { message } = await req.json();
+    const userMessage = message.toLowerCase();
 
-    // 2. [LOGIC MỚI] XỬ LÝ TỪ KHÓA TÌM KIẾM THÔNG MINH
-    // Loại bỏ các từ nối vô nghĩa để tìm kiếm chính xác hơn
-    const stopWords = [
+    // === LOGIC TÌM KIẾM THÔNG MINH (V5) ===
+
+    // A. Xử lý giá tiền
+    const detectedPrice = extractPrice(userMessage);
+
+    // B. Xử lý từ khóa (Text Search)
+    // Loại bỏ các từ rác để lấy từ khóa địa điểm/tên trọ chính xác hơn
+    const removeWords = [
       "tìm",
       "kiếm",
       "phòng",
@@ -84,101 +116,111 @@ Deno.serve(async (req) => {
       "tại",
       "khu",
       "vực",
-      "giá",
-      "khoảng",
-      "dưới",
-      "trên",
-      "cho",
       "thuê",
       "cần",
+      "giá",
+      "dưới",
+      "khoảng",
+      "triệu",
+      "tr",
+      "k",
+      "vnđ",
     ];
-    const keywords = message
+    let searchTerms = userMessage
       .split(" ")
-      .filter(
-        (w: string) => !stopWords.includes(w.toLowerCase()) && w.length > 1
-      )
-      .join(" "); // Ví dụ: "Tìm trọ ở Bình Thủy" -> "Bình Thủy"
+      .filter((w) => !removeWords.includes(w) && isNaN(Number(w)));
+    const queryText = searchTerms.join(" ").trim(); // Ví dụ: "Bình Thủy"
 
-    // 3. [LOGIC MỚI] TÌM KIẾM LINH HOẠT (Flexible Search)
-    // Thay vì dùng RPC cứng nhắc, ta dùng ILIKE để tìm gần đúng trên nhiều cột
-    let postsData: any[] = [];
-    let searchNote = "";
+    console.log(
+      `[ChatBot Log] Search: "${queryText}", MaxPrice: ${detectedPrice}`
+    );
 
-    // A. Thử tìm theo từ khóa (Nếu có từ khóa)
-    if (keywords.length > 0) {
-      const { data } = await supabase
-        .from("posts")
-        .select("title, motelName, price, ward, address_detail, description")
-        .eq("status", "APPROVED") // Chỉ lấy tin đã duyệt
-        .or(
-          `title.ilike.%${keywords}%,motelName.ilike.%${keywords}%,ward.ilike.%${keywords}%,address_detail.ilike.%${keywords}%`
-        )
-        .limit(5); // Lấy 5 kết quả khớp nhất
+    // C. Xây dựng Query Supabase
+    let query = supabase
+      .from("posts")
+      .select("title, motelName, price, ward, address_detail, description")
+      .eq("status", "APPROVED");
 
-      if (data && data.length > 0) {
-        postsData = data;
-        searchNote = "Tìm thấy phòng khớp với từ khóa:";
-      }
+    // Nếu có giá tiền -> Lọc những phòng rẻ hơn hoặc bằng giá đó
+    if (detectedPrice) {
+      query = query.lte("price", detectedPrice);
     }
 
-    // B. [QUAN TRỌNG] Fallback: Nếu không tìm thấy gì, lấy 5 phòng MỚI NHẤT
-    // Giúp Bot không bao giờ bị "bí", luôn có gì đó để giới thiệu
+    // Nếu có từ khóa -> Tìm trong Tên, Khu vực, Địa chỉ, và MÔ TẢ
+    if (queryText.length > 0) {
+      // Dùng cú pháp ILIKE linh hoạt
+      // Tìm xem từ khóa có xuất hiện trong bất kỳ cột nào không
+      query = query.or(
+        `title.ilike.%${queryText}%,motelName.ilike.%${queryText}%,ward.ilike.%${queryText}%,address_detail.ilike.%${queryText}%,description.ilike.%${queryText}%`
+      );
+    }
+
+    // Giới hạn kết quả
+    query = query.limit(5);
+
+    const { data: searchResults, error: dbError } = await query;
+
+    // D. Xử lý kết quả & Fallback
+    let postsData = searchResults || [];
+    let noteToAI = "";
+
+    if (dbError) {
+      console.error("DB Search Error:", dbError);
+    }
+
+    // Nếu tìm không ra (do từ khóa quá khó hoặc filter giá quá thấp) -> Lấy Top 5 phòng mới nhất
     if (postsData.length === 0) {
-      const { data: latestPosts } = await supabase
+      console.log("[ChatBot Log] No results found. Fetching fallback.");
+      const { data: fallbackPosts } = await supabase
         .from("posts")
         .select("title, motelName, price, ward, address_detail")
         .eq("status", "APPROVED")
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (latestPosts) {
-        postsData = latestPosts;
-        searchNote =
-          "Hệ thống không tìm thấy phòng khớp chính xác yêu cầu, nhưng đây là các phòng MỚI NHẤT vừa đăng:";
+      if (fallbackPosts) {
+        postsData = fallbackPosts;
+        noteToAI = `(Hệ thống không tìm thấy phòng khớp chính xác với yêu cầu "${message}". Dưới đây là danh sách phòng MỚI NHẤT để gợi ý thay thế)`;
       }
+    } else {
+      noteToAI = `(Hệ thống tìm thấy ${postsData.length} phòng khớp với yêu cầu)`;
     }
 
-    // 4. Chuẩn bị dữ liệu cho AI
+    // E. Chuẩn bị Prompt
     const listText = postsData
       .map(
         (p) =>
-          `- ${p.motelName || p.title}: Giá ${p.price} VNĐ. Địa chỉ: ${
-            p.address_detail
-          }, ${p.ward}.`
+          `- ${p.motelName || p.title}: Giá ${p.price.toLocaleString(
+            "vi-VN"
+          )}đ. Địa chỉ: ${p.address_detail}, ${p.ward}.`
       )
       .join("\n");
 
-    const contextInfo = `${searchNote}\n${listText}`;
-
-    // 5. Prompt cho AI (Đã tối ưu để Bot tự nhiên hơn)
     const SYSTEM_PROMPT = `
-    Bạn là "Gà Bông" 🐣 - Trợ lý tìm trọ của Chicky.stu.
+    Bạn là "Gà Bông" 🐣 - Trợ lý của Chicky.stu.
     
-    DỮ LIỆU TỪ HỆ THỐNG:
-    ${contextInfo}
+    YÊU CẦU CỦA KHÁCH: "${message}"
+    
+    DỮ LIỆU TỪ DATABASE:
+    ${noteToAI}
+    ${listText}
 
     NHIỆM VỤ:
-    1. Nếu khách chào hỏi xã giao (hi, hello, chào...), hãy chào lại thân thiện và hỏi khách muốn tìm phòng khu vực nào.
-    2. Nếu Dữ liệu có phòng phù hợp, hãy giới thiệu ngắn gọn (Tên, Giá, Khu vực).
-    3. Nếu Dữ liệu là "phòng mới nhất" (không khớp yêu cầu), hãy khéo léo bảo khách là chưa tìm thấy đúng ý, nhưng có thể tham khảo mấy phòng mới này.
-    4. Luôn dùng emoji 🐣, giọng văn vui vẻ.
+    1. Trả lời thân thiện, ngắn gọn, dùng emoji.
+    2. Nếu Dữ liệu là "khớp yêu cầu": Hãy liệt kê các phòng đó ra mời khách xem.
+    3. Nếu Dữ liệu là "phòng MỚI NHẤT" (không khớp): Hãy xin lỗi khéo là chưa thấy phòng đúng ý, và gợi ý khách xem tạm mấy phòng mới này hoặc tìm trên thanh tìm kiếm.
+    4. Nếu khách hỏi giá (vd: "tìm phòng 2 triệu") mà kết quả trả về có phòng giá đó, hãy nhấn mạnh vào giá.
     `;
 
-    // 6. Gọi Gemini (Logic V4 ổn định)
+    // F. Gọi AI
     let modelName = await getAvailableModel(GEMINI_API_KEY);
-    if (!modelName) modelName = "gemini-1.5-flash";
-
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+
     const aiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: SYSTEM_PROMPT + "\n\nKhách: " + message }],
-          },
-        ],
+        contents: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }],
       }),
     });
 
@@ -186,16 +228,16 @@ Deno.serve(async (req) => {
     let botReply = "";
 
     if (!aiResponse.ok || aiData.error) {
-      // Nếu AI lỗi, Bot vẫn trả về danh sách phòng (Fallback thủ công)
       console.error("AI Error:", JSON.stringify(aiData.error));
-      botReply = `Gà Bông đang bị nghẹt mũi (Lỗi kết nối AI) 🤧.\n\nNhưng mình tìm thấy mấy phòng này nè:\n${listText}`;
+      // Fallback khi AI sập: Bot tự trả lời bằng dữ liệu thô
+      botReply = `Gà Bông đang bị lỗi kết nối AI 🤧.\n\nNhưng mình tìm được thông tin này trong hệ thống:\n${listText}`;
     } else {
       botReply =
         aiData.candidates?.[0]?.content?.parts?.[0]?.text ||
         "Gà Bông chưa hiểu ý bạn 🐣";
     }
 
-    // 7. Lưu & Trả về
+    // G. Lưu & Trả về
     await supabase
       .from("chat_messages")
       .insert({ user_id: user.id, content: botReply, is_bot: true });
