@@ -80,20 +80,22 @@ Deno.serve(async (req) => {
     Dữ liệu phòng: ${contextInfo}
     `;
 
-    // 3. Gửi sang Google (CÓ LOG ERROR)
-    const geminiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}";
+    // 3. Gửi sang Google (CÓ LOG ERROR) - ĐÃ SỬA URL VÀ DÙNG BACKTICK (`)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+    const aiPayload = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: SYSTEM_PROMPT + "\nUser: " + message }],
+        },
+      ],
+    };
+
     const aiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: SYSTEM_PROMPT + "\nUser: " + message }],
-          },
-        ],
-      }),
+      body: JSON.stringify(aiPayload),
     });
 
     const aiData = await aiResponse.json();
@@ -110,7 +112,7 @@ Deno.serve(async (req) => {
       // Nếu thành công
       botReply = aiData.candidates[0].content.parts[0].text;
     } else {
-      // Nếu cấu trúc lạ (bị chặn nội dung, safety settings...)
+      // Nếu cấu trúc lạ
       botReply = `⚠️ LỖI LẠ (JSON):\n${JSON.stringify(aiData)}`;
     }
 
