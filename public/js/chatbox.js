@@ -1,6 +1,6 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
-   (PHIÊN BẢN V6 - UI TỨC THÌ / NO-REALTIME DEPENDENCY)
+   (PHIÊN BẢN V6 - UI TỨC THÌ / KHẮC PHỤC LỖI TÀNG HÌNH)
    ======================================= */
 
 let currentUser = null;
@@ -23,7 +23,7 @@ async function initializeChatbox() {
   const chatInput = document.getElementById("chat-input");
   const chatBody = document.getElementById("chat-body");
 
-  // Tạo vùng gợi ý
+  // Tạo vùng gợi ý nếu chưa có
   let suggestionBox = document.getElementById("suggestion-box");
   if (!suggestionBox) {
     suggestionBox = document.createElement("div");
@@ -50,7 +50,7 @@ async function initializeChatbox() {
     chatInput.disabled = true;
     sendBtn.disabled = true;
   } else {
-    // Chỉ tải lịch sử cũ, không cần Realtime subscription để tránh duplicate
+    // Tải lịch sử cũ
     await loadChatHistory();
     renderSuggestions();
   }
@@ -66,23 +66,23 @@ async function initializeChatbox() {
 
   closeBtn.addEventListener("click", () => chatBox.classList.add("hidden"));
 
-  // 3. HÀM GỬI TIN (LOGIC MỚI: HIỂN THỊ NGAY LẬP TỨC)
+  // 3. HÀM GỬI TIN (SỬA LỖI QUAN TRỌNG Ở ĐÂY)
   window.handleSend = async (messageText = null) => {
     const msg = messageText || chatInput.value.trim();
     if (!msg || !currentUser) return;
 
-    // A. UI: Hiển thị tin nhắn người dùng NGAY (Không chờ Server)
+    // A. UI: Hiển thị tin nhắn người dùng NGAY LẬP TỨC (Không chờ Server)
     appendMessage(msg, "user");
 
-    // Reset input
+    // Reset input và ẩn gợi ý
     chatInput.value = "";
     document.getElementById("suggestion-box").classList.add("hidden");
 
-    // Hiển thị trạng thái "Đang soạn..." giả lập
+    // Hiển thị hiệu ứng "Bot đang nhập..."
     const loadingId = showTypingIndicator();
 
     try {
-      // B. Database: Lưu tin nhắn User (chạy ngầm)
+      // B. Database: Lưu tin nhắn User vào DB (để F5 không bị mất)
       const { error: insertError } = await supabase
         .from("chat_messages")
         .insert({
@@ -99,7 +99,7 @@ async function initializeChatbox() {
         body: { message: msg },
       });
 
-      // Xóa trạng thái "Đang soạn..."
+      // Xóa hiệu ứng đang nhập
       removeTypingIndicator(loadingId);
 
       if (error) {
@@ -107,7 +107,9 @@ async function initializeChatbox() {
         appendMessage("⚠️ Gà Bông đang mất kết nối. Thử lại sau nhé!", "bot");
       } else {
         // D. UI: Hiển thị tin nhắn Bot từ phản hồi API
-        appendMessage(data.reply, "bot");
+        if (data && data.reply) {
+          appendMessage(data.reply, "bot");
+        }
       }
     } catch (err) {
       removeTypingIndicator(loadingId);
@@ -124,7 +126,7 @@ async function initializeChatbox() {
   });
 }
 
-// --- CÁC HÀM UI ---
+// --- CÁC HÀM UI HỖ TRỢ ---
 
 function renderSuggestions() {
   const box = document.getElementById("suggestion-box");
@@ -151,7 +153,7 @@ async function loadChatHistory() {
     .eq("user_id", currentUser.id)
     .order("created_at", { ascending: true });
 
-  chatBody.innerHTML = ""; // Clear loading
+  chatBody.innerHTML = "";
 
   if (!error && data.length > 0) {
     data.forEach((msg) => {
@@ -166,23 +168,23 @@ async function loadChatHistory() {
   scrollToBottom();
 }
 
-// Hàm vẽ tin nhắn
+// Hàm vẽ tin nhắn (QUAN TRỌNG)
 function appendMessage(text, sender) {
   const chatBody = document.getElementById("chat-body");
   const div = document.createElement("div");
+  // Class user-message (màu xanh) hoặc bot-message (màu xám)
   div.className = sender === "user" ? "user-message" : "bot-message";
 
-  // Format xuống dòng và tô đậm giá tiền
+  // Format xuống dòng và tô đậm
   let formattedText = text
     .replace(/\n/g, "<br>")
-    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // Hỗ trợ bold markdown cơ bản
+    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
 
   div.innerHTML = `<p>${formattedText}</p>`;
   chatBody.appendChild(div);
   scrollToBottom();
 }
 
-// Hiệu ứng "Gà Bông đang soạn tin..."
 function showTypingIndicator() {
   const chatBody = document.getElementById("chat-body");
   const id = "typing-" + Date.now();
