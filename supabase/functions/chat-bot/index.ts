@@ -1,4 +1,5 @@
 // supabase/functions/chat-bot/index.ts
+// (PHIÊN BẢN V6 - FIX LOGIC TÌM KIẾM & TỐI ƯU STOPWORDS)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -10,7 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// 1. Hàm dò tìm Model (Giữ nguyên - Đã ổn định)
+// 1. Hàm dò tìm Model (Giữ nguyên)
 async function getAvailableModel(apiKey: string) {
   try {
     const response = await fetch(
@@ -21,13 +22,11 @@ async function getAvailableModel(apiKey: string) {
     const data = await response.json();
     const models = data.models || [];
 
-    // Ưu tiên Flash 1.5
     const stableFlash = models.find(
       (m: any) => m.name === "models/gemini-1.5-flash"
     );
     if (stableFlash) return "gemini-1.5-flash";
 
-    // Tìm bất kỳ bản Flash nào
     const anyFlash = models.find(
       (m: any) =>
         m.name.includes("flash") &&
@@ -41,12 +40,11 @@ async function getAvailableModel(apiKey: string) {
   }
 }
 
-// 2. [MỚI] Hàm trích xuất giá tiền từ tin nhắn
+// 2. Hàm trích xuất giá tiền (Giữ nguyên)
 function extractPrice(text: string): number | null {
-  // Tìm các mẫu như "2 triệu", "2tr", "2000000", "1.5 triệu"
-  const cleanText = text.toLowerCase().replace(/\./g, "").replace(/,/g, ""); // Xóa dấu chấm phẩy số
+  const cleanText = text.toLowerCase().replace(/\./g, "").replace(/,/g, "");
 
-  // Regex bắt số tiền (triệu/tr)
+  // Regex bắt số tiền (triệu/tr/m)
   const millionMatch = cleanText.match(/(\d+(?:[\.,]\d+)?)\s*(triệu|tr|m)/);
   if (millionMatch) {
     return parseFloat(millionMatch[1].replace(",", ".")) * 1000000;
@@ -100,13 +98,12 @@ Deno.serve(async (req) => {
     const { message } = await req.json();
     const userMessage = message.toLowerCase();
 
-    // === LOGIC TÌM KIẾM THÔNG MINH (V5) ===
+    // === LOGIC TÌM KIẾM THÔNG MINH (V6 - UPDATED) ===
 
     // A. Xử lý giá tiền
     const detectedPrice = extractPrice(userMessage);
 
-    // B. Xử lý từ khóa (Text Search)
-    // Loại bỏ các từ rác để lấy từ khóa địa điểm/tên trọ chính xác hơn
+    // B. Xử lý từ khóa (QUAN TRỌNG: CẬP NHẬT DANH SÁCH TỪ RÁC)
     const removeWords = [
       "tìm",
       "kiếm",
@@ -125,11 +122,37 @@ Deno.serve(async (req) => {
       "tr",
       "k",
       "vnđ",
+      "đồng",
+      "mức",
+      // Thêm các từ giao tiếp xã giao để tránh nhận diện nhầm là địa điểm
+      "giúp",
+      "với",
+      "mình",
+      "em",
+      "anh",
+      "chị",
+      "bạn",
+      "ad",
+      "admin",
+      "ơi",
+      "nhé",
+      "nào",
+      "đâu",
+      "là",
+      "có",
+      "không",
+      "gấp",
     ];
+
     let searchTerms = userMessage
       .split(" ")
       .filter((w) => !removeWords.includes(w) && isNaN(Number(w)));
-    const queryText = searchTerms.join(" ").trim(); // Ví dụ: "Bình Thủy"
+
+    // Nếu từ khóa quá ngắn (dưới 2 ký tự) thì cũng bỏ qua luôn
+    const queryText = searchTerms
+      .filter((w) => w.length > 1)
+      .join(" ")
+      .trim();
 
     console.log(
       `[ChatBot Log] Search: "${queryText}", MaxPrice: ${detectedPrice}`
@@ -141,15 +164,15 @@ Deno.serve(async (req) => {
       .select("title, motelName, price, ward, address_detail, description")
       .eq("status", "APPROVED");
 
-    // Nếu có giá tiền -> Lọc những phòng rẻ hơn hoặc bằng giá đó
+    // Filter Giá
     if (detectedPrice) {
       query = query.lte("price", detectedPrice);
     }
 
-    // Nếu có từ khóa -> Tìm trong Tên, Khu vực, Địa chỉ, và MÔ TẢ
+    // Filter Text (CHỈ ÁP DỤNG NẾU CÒN TỪ KHÓA SAU KHI LỌC)
+    // Nếu queryText rỗng (ví dụ: chỉ hỏi "tìm phòng 3 triệu"), ta chỉ lọc theo giá
+    // Điều này giúp tìm ra kết quả chính xác hơn và nhanh hơn (bỏ qua ILIKE chậm chạp)
     if (queryText.length > 0) {
-      // Dùng cú pháp ILIKE linh hoạt
-      // Tìm xem từ khóa có xuất hiện trong bất kỳ cột nào không
       query = query.or(
         `title.ilike.%${queryText}%,motelName.ilike.%${queryText}%,ward.ilike.%${queryText}%,address_detail.ilike.%${queryText}%,description.ilike.%${queryText}%`
       );
@@ -168,7 +191,7 @@ Deno.serve(async (req) => {
       console.error("DB Search Error:", dbError);
     }
 
-    // Nếu tìm không ra (do từ khóa quá khó hoặc filter giá quá thấp) -> Lấy Top 5 phòng mới nhất
+    // Fallback: Nếu không tìm thấy, lấy top 5 phòng mới nhất
     if (postsData.length === 0) {
       console.log("[ChatBot Log] No results found. Fetching fallback.");
       const { data: fallbackPosts } = await supabase
@@ -207,9 +230,9 @@ Deno.serve(async (req) => {
 
     NHIỆM VỤ:
     1. Trả lời thân thiện, ngắn gọn, dùng emoji.
-    2. Nếu Dữ liệu là "khớp yêu cầu": Hãy liệt kê các phòng đó ra mời khách xem.
-    3. Nếu Dữ liệu là "phòng MỚI NHẤT" (không khớp): Hãy xin lỗi khéo là chưa thấy phòng đúng ý, và gợi ý khách xem tạm mấy phòng mới này hoặc tìm trên thanh tìm kiếm.
-    4. Nếu khách hỏi giá (vd: "tìm phòng 2 triệu") mà kết quả trả về có phòng giá đó, hãy nhấn mạnh vào giá.
+    2. Nếu dữ liệu khớp: Mời khách xem các phòng bên trên.
+    3. Nếu dữ liệu là gợi ý (không khớp): Xin lỗi khéo và mời xem phòng mới nhất.
+    4. TUYỆT ĐỐI KHÔNG BỊA RA PHÒNG KHÔNG CÓ TRONG DANH SÁCH.
     `;
 
     // F. Gọi AI
@@ -229,7 +252,6 @@ Deno.serve(async (req) => {
 
     if (!aiResponse.ok || aiData.error) {
       console.error("AI Error:", JSON.stringify(aiData.error));
-      // Fallback khi AI sập: Bot tự trả lời bằng dữ liệu thô
       botReply = `Gà Bông đang bị lỗi kết nối AI 🤧.\n\nNhưng mình tìm được thông tin này trong hệ thống:\n${listText}`;
     } else {
       botReply =
