@@ -1,156 +1,205 @@
-/* public/css/chatbox.css */
+/* =======================================
+   --- FILE: public/css/chatbox.css ---
+   (V12 - FINAL: LAYOUT CHUẨN FLEXBOX & ISOLATION)
+   ======================================= */
 
-/* Container chính */
 #chat-widget {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 99999;
+  z-index: 2147483647; /* Z-index cao nhất để đè lên mọi thứ */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
     sans-serif;
+  line-height: 1.5;
+}
+
+/* Reset CSS nội bộ để tránh bị Bootstrap/Tailwind ảnh hưởng */
+#chat-widget * {
+  box-sizing: border-box;
 }
 
 /* Nút mở chat */
-#chat-toggle {
+.chat-toggle-btn {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #0d6efd;
+  background: #007bff;
   color: white;
   border: none;
   font-size: 28px;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.2s;
+}
+.chat-toggle-btn:hover {
+  transform: scale(1.05);
 }
 
-/* Khung chat */
-#chat-box {
+/* Khung Chat */
+.chat-box {
   position: absolute;
   bottom: 80px;
   right: 0;
   width: 360px;
   height: 520px;
   max-height: 80vh;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  border: 1px solid #ddd;
   overflow: hidden;
+  border: 1px solid #e5e7eb;
+  /* Animation */
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s, transform 0.3s;
 }
 
-#chat-box.hidden {
-  display: none !important;
+.chat-box.hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  display: none !important; /* Ẩn hẳn để không chiếm chỗ */
 }
 
 /* Header */
 .chat-header {
-  background: #0d6efd;
+  background: linear-gradient(135deg, #007bff, #0062cc);
   color: white;
   padding: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 600;
 }
 
-/* Body - Nơi hiển thị tin nhắn */
-#chat-body {
+.close-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* Body */
+.chat-body {
   flex: 1;
   padding: 15px;
   overflow-y: auto;
-  background-color: #f4f6f8;
+  background-color: #f8f9fa;
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Khoảng cách giữa các tin */
+  gap: 10px; /* Khoảng cách giữa các tin nhắn */
 }
 
-/* === PHẦN QUAN TRỌNG NHẤT: CẤU TRÚC TIN NHẮN === */
+/* --- CẤU TRÚC TIN NHẮN ĐỒNG BỘ --- */
 
-/* Dòng tin nhắn (Wrapper) */
+/* 1. Dòng chứa tin (Wrapper) - Luôn chiếm 100% chiều rộng */
 .chat-row {
   display: flex;
   width: 100%;
   margin: 0;
   padding: 0;
+  border: none;
+  background: none;
 }
 
-/* Modifiers: Căn trái/phải dựa trên class is-user/is-bot */
+/* 2. Modifiers: Căn trái/phải */
+/* User -> Căn phải */
 .chat-row.is-user {
-  justify-content: flex-end; /* User nằm phải */
+  justify-content: flex-end;
 }
 
+/* Bot -> Căn trái */
 .chat-row.is-bot {
-  justify-content: flex-start; /* Bot nằm trái */
+  justify-content: flex-start;
 }
 
-/* Bong bóng nội dung */
+/* 3. Bong bóng nội dung (Bubble) */
 .chat-bubble {
   max-width: 80%;
   padding: 10px 14px;
   border-radius: 16px;
   font-size: 14px;
-  line-height: 1.5;
   word-wrap: break-word;
   position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Màu sắc dựa trên class cha */
+/* Màu sắc riêng cho User */
 .chat-row.is-user .chat-bubble {
-  background-color: #0d6efd;
+  background-color: #007bff;
   color: white;
   border-bottom-right-radius: 2px;
 }
 
+/* Màu sắc riêng cho Bot */
 .chat-row.is-bot .chat-bubble {
   background-color: #e9ecef;
   color: #212529;
   border-bottom-left-radius: 2px;
+  border: 1px solid #dee2e6;
 }
 
-/* Footer */
+/* Footer & Input */
 .chat-footer {
-  padding: 10px;
-  background: white;
+  padding: 10px 15px;
+  background: #fff;
   border-top: 1px solid #eee;
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
 }
 
 #chat-input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 15px;
   border: 1px solid #ccc;
   border-radius: 20px;
   outline: none;
+  font-size: 14px;
+  color: #333;
+}
+#chat-input:focus {
+  border-color: #007bff;
 }
 
 #send-btn {
   background: none;
   border: none;
-  color: #0d6efd;
+  color: #007bff;
   font-weight: bold;
   cursor: pointer;
+  padding: 5px 10px;
+}
+#send-btn:hover {
+  color: #0056b3;
 }
 
 /* Gợi ý */
 #suggestion-box {
   padding: 10px;
-  background: white;
+  background: #fff;
   border-top: 1px solid #f0f0f0;
   display: flex;
-  gap: 5px;
+  gap: 6px;
   overflow-x: auto;
+  white-space: nowrap;
 }
+#suggestion-box::-webkit-scrollbar {
+  display: none;
+}
+
 .suggestion-btn {
-  background: #e7f1ff;
-  border: 1px solid #cce5ff;
-  color: #0056b3;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #007bff;
   border-radius: 15px;
-  padding: 5px 10px;
+  padding: 6px 12px;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;

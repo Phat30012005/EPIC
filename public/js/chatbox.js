@@ -1,10 +1,10 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
-   (PHIÊN BẢN V11 - ĐỒNG BỘ CLASS CHUẨN)
+   (PHIÊN BẢN V12 - ĐỒNG BỘ CLASS JS <-> CSS)
    ======================================= */
 
-// Log để kiểm tra xem trình duyệt đã tải file mới chưa
-console.log("✅ Chatbox V11 Loaded: Synchronized Classes");
+// Log kiểm tra phiên bản
+console.log("✅ Chatbox V12 Loaded: Sync Fixed");
 
 let currentUser = null;
 let isSending = false;
@@ -17,17 +17,17 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 async function initializeChatbox() {
-  const widget = document.getElementById("chat-widget");
-  if (!widget) return;
+  const chatWidget = document.getElementById("chat-widget");
+  if (!chatWidget) return;
 
-  // UI Elements Mapping
+  // Mapping UI Elements
   const ui = {
-    toggle: document.getElementById("chat-toggle"),
-    box: document.getElementById("chat-box"),
-    close: document.getElementById("chat-close"),
-    send: document.getElementById("send-btn"),
-    input: document.getElementById("chat-input"),
-    body: document.getElementById("chat-body"),
+    toggleBtn: document.getElementById("chat-toggle"),
+    chatBox: document.getElementById("chat-box"),
+    closeBtn: document.getElementById("chat-close"),
+    sendBtn: document.getElementById("send-btn"),
+    chatInput: document.getElementById("chat-input"),
+    chatBody: document.getElementById("chat-body"),
   };
 
   // Thêm vùng gợi ý
@@ -37,7 +37,7 @@ async function initializeChatbox() {
     suggestionBox.id = "suggestion-box";
     suggestionBox.className = "hidden";
     const footer = document.querySelector(".chat-footer");
-    if (footer) ui.box.insertBefore(suggestionBox, footer);
+    if (footer) ui.chatBox.insertBefore(suggestionBox, footer);
   }
 
   // 1. Check Auth
@@ -47,55 +47,55 @@ async function initializeChatbox() {
   currentUser = session?.user;
 
   if (!currentUser) {
-    ui.body.innerHTML = `
-      <div style="text-align:center; margin-top:60px; color:#666;">
-        <p>Bạn cần đăng nhập để chat 🐣</p>
+    ui.chatBody.innerHTML = `
+      <div style="text-align: center; margin-top: 60px; color: #666;">
+        <p>Vui lòng đăng nhập để chat 🐣</p>
         <a href="/login.html" class="btn btn-primary btn-sm" style="margin-top:10px;">Đăng nhập ngay</a>
-      </div>`;
-    ui.input.disabled = true;
-    ui.send.disabled = true;
+      </div>
+    `;
+    ui.chatInput.disabled = true;
+    ui.sendBtn.disabled = true;
   } else {
-    // Tải lịch sử (quan trọng: Truyền ui.body vào)
-    await loadChatHistory(ui.body);
+    await loadChatHistory(ui.chatBody);
     renderSuggestions();
   }
 
   // 2. Events
-  ui.toggle.onclick = () => {
-    ui.box.classList.toggle("hidden");
-    if (!ui.box.classList.contains("hidden") && currentUser) {
+  ui.toggleBtn.onclick = () => {
+    ui.chatBox.classList.toggle("hidden");
+    if (!ui.chatBox.classList.contains("hidden") && currentUser) {
       setTimeout(() => {
-        ui.input.focus();
-        scrollToBottom(ui.body);
+        ui.chatInput.focus();
+        scrollToBottom(ui.chatBody);
       }, 150);
     }
   };
-  ui.close.onclick = () => ui.box.classList.add("hidden");
 
-  // 3. Handle Send
+  ui.closeBtn.onclick = () => ui.chatBox.classList.add("hidden");
+
+  // 3. Handle Send (Core Logic)
   window.handleSend = async (text = null) => {
-    const msg = text || ui.input.value.trim();
+    const msg = text || ui.chatInput.value.trim();
 
     if (!msg) return;
     if (!currentUser) {
-      alert("Vui lòng đăng nhập lại.");
+      alert("Phiên đăng nhập hết hạn.");
       return;
     }
     if (isSending) return;
     isSending = true;
 
-    // === UI UPDATE (Vẽ ngay lập tức) ===
-    // 'user' ở đây là tham số sender, hàm appendMessage sẽ chuyển nó thành class 'is-user'
-    appendMessage(ui.body, msg, "user");
+    // --- A. UI UPDATE (Vẽ ngay lập tức) ---
+    // Tham số thứ 2 là 'user' -> Hàm appendMessage sẽ đổi thành class 'is-user'
+    appendMessage(ui.chatBody, msg, "user");
 
-    ui.input.value = "";
+    ui.chatInput.value = "";
     if (suggestionBox) suggestionBox.classList.add("hidden");
 
-    // Hiển thị typing
-    const typingId = showTyping(ui.body);
+    const typingId = showTyping(ui.chatBody);
 
     try {
-      // Gọi song song DB và API
+      // --- B. Process: Save DB & Call AI ---
       const [dbRes, apiRes] = await Promise.all([
         supabase.from("chat_messages").insert({
           user_id: currentUser.id,
@@ -110,29 +110,26 @@ async function initializeChatbox() {
 
       removeTyping(typingId);
 
-      // Xử lý phản hồi Bot
+      // --- C. Handle Response ---
       if (apiRes.error) {
-        appendMessage(ui.body, "⚠️ Lỗi kết nối Gà Bông.", "bot");
+        appendMessage(ui.chatBody, "⚠️ Lỗi kết nối Gà Bông.", "bot");
       } else if (apiRes.data && apiRes.data.reply) {
-        appendMessage(ui.body, apiRes.data.reply, "bot");
+        appendMessage(ui.chatBody, apiRes.data.reply, "bot");
       } else {
-        appendMessage(ui.body, "Gà Bông chưa hiểu ý bạn.", "bot");
+        appendMessage(ui.chatBody, "Gà Bông chưa hiểu ý bạn.", "bot");
       }
     } catch (err) {
       removeTyping(typingId);
       console.error(err);
-      appendMessage(ui.body, "⚠️ Lỗi hệ thống.", "bot");
+      appendMessage(ui.chatBody, "⚠️ Lỗi hệ thống.", "bot");
     } finally {
       isSending = false;
-      setTimeout(() => {
-        ui.input.focus();
-        scrollToBottom(ui.body);
-      }, 100);
+      setTimeout(() => ui.chatInput.focus(), 100);
     }
   };
 
-  ui.send.onclick = () => window.handleSend();
-  ui.input.onkeypress = (e) => {
+  ui.sendBtn.onclick = () => window.handleSend();
+  ui.chatInput.onkeypress = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       window.handleSend();
@@ -140,17 +137,16 @@ async function initializeChatbox() {
   };
 }
 
-// --- UI RENDER FUNCTIONS (ĐÃ SỬA KHỚP VỚI CSS) ---
+// --- UI RENDER FUNCTIONS (SỬA LẠI ĐỂ KHỚP CSS) ---
 
 function appendMessage(container, text, sender) {
   if (!container) return;
 
-  // 1. Tạo Row
+  // 1. Tạo Wrapper Row
   const row = document.createElement("div");
 
-  // [SỬA LỖI QUAN TRỌNG]: Đồng bộ tên class với CSS
-  // Nếu sender là 'user' -> class="chat-row is-user"
-  // Nếu sender là 'bot'  -> class="chat-row is-bot"
+  // [FIX]: Chuyển đổi "user" -> "is-user", "bot" -> "is-bot"
+  // Để khớp với CSS .chat-row.is-user
   const modifier = sender === "user" ? "is-user" : "is-bot";
   row.className = `chat-row ${modifier}`;
 
@@ -159,16 +155,18 @@ function appendMessage(container, text, sender) {
   bubble.className = "chat-bubble";
 
   // 3. Format Text
-  let safeText = text
+  let formatted = text
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/\n/g, "<br>")
     .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
 
-  bubble.innerHTML = safeText;
+  bubble.innerHTML = formatted;
 
+  // 4. Append
   row.appendChild(bubble);
   container.appendChild(row);
+
   scrollToBottom(container);
 }
 
@@ -183,9 +181,9 @@ function showTyping(container) {
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble";
   bubble.style.background = "transparent";
+  bubble.style.color = "#888";
   bubble.style.fontStyle = "italic";
-  bubble.style.color = "#999";
-  bubble.style.padding = "0 10px";
+  bubble.style.border = "none"; // Xóa viền cho đẹp
   bubble.innerText = "Đang nhập...";
 
   row.appendChild(bubble);
@@ -195,7 +193,6 @@ function showTyping(container) {
 }
 
 function removeTyping(id) {
-  if (!id) return;
   const el = document.getElementById(id);
   if (el) el.remove();
 }
@@ -226,15 +223,14 @@ async function loadChatHistory(container) {
 
   if (!error && data && data.length > 0) {
     data.forEach((msg) => {
-      // DB lưu 'is_bot' là boolean (true/false)
-      // Chuyển đổi sang string 'bot'/'user' để hàm appendMessage xử lý
+      // [FIX]: Chuyển boolean is_bot thành string 'bot'/'user'
       const sender = msg.is_bot ? "bot" : "user";
       appendMessage(container, msg.content, sender);
     });
   } else {
     appendMessage(
       container,
-      "Chào bạn! Mình là Gà Bông 🐣. Bạn cần tìm phòng trọ ở đâu?",
+      "Chào bạn! Mình là Gà Bông 🐣. Bạn muốn tìm phòng trọ ở khu vực nào?",
       "bot"
     );
   }
