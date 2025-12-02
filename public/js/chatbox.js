@@ -1,26 +1,25 @@
 /* =======================================
    --- FILE: js/chatbox.js ---
-   (PHIÊN BẢN V13 - SAFE MODE & DOMINO FIX)
+   (PHIÊN BẢN V14 - FINAL - FIXED SYNTAX)
    ======================================= */
 
-// Gói toàn bộ logic vào DOMContentLoaded để đảm bảo HTML & Supabase đã tải xong
-window.initializeChatbox = async function() {
-  // 1. KIỂM TRA AN TOÀN (QUAN TRỌNG NHẤT)
-  // Nếu không tìm thấy div chat-widget, dừng ngay lập tức.
-  // Điều này ngăn code chạy trên trang Login/Signup gây lỗi.
+// Định nghĩa hàm khởi tạo toàn cục (Global)
+window.initializeChatbox = async function () {
+  // 1. KIỂM TRA AN TOÀN
+  // Tìm phần tử cha chứa chatbox
   const chatWidget = document.getElementById("chat-widget");
   if (!chatWidget) {
-    // console.log("⏩ Chatbox skipped (Not on this page)");
+    console.warn("⚠️ Chatbox HTML chưa sẵn sàng. Bỏ qua khởi tạo.");
     return;
   }
 
-  // Kiểm tra Supabase có tồn tại không
+  // Kiểm tra Supabase
   if (typeof supabase === "undefined") {
-    console.error("❌ Supabase client not found. Chatbox disabled.");
+    console.error("❌ Không tìm thấy Supabase client. Chatbox bị tắt.");
     return;
   }
 
-  console.log("✅ Chatbox V13 Initialized");
+  console.log("✅ Chatbox V14 đã khởi động thành công!");
 
   // === KHAI BÁO BIẾN UI ===
   let currentUser = null;
@@ -60,7 +59,7 @@ window.initializeChatbox = async function() {
     const { data } = await supabase.auth.getSession();
     currentUser = data?.session?.user;
   } catch (err) {
-    console.warn("Chatbox Auth Check Failed:", err);
+    console.warn("Lỗi kiểm tra Auth chatbox:", err);
   }
 
   // Render UI dựa trên trạng thái đăng nhập
@@ -98,7 +97,7 @@ window.initializeChatbox = async function() {
   }
 
   // === HÀM GỬI TIN NHẮN ===
-  window.handleSend = async (text = null) => {
+  const handleSend = async (text = null) => {
     const msg = text || ui.chatInput.value.trim();
 
     if (!msg) return;
@@ -151,13 +150,16 @@ window.initializeChatbox = async function() {
     }
   };
 
-  if (ui.sendBtn) ui.sendBtn.onclick = () => window.handleSend();
+  // Gán hàm handleSend vào window để nút gợi ý có thể gọi (nếu cần)
+  window.handleSendChat = handleSend;
+
+  if (ui.sendBtn) ui.sendBtn.onclick = () => handleSend();
 
   if (ui.chatInput) {
     ui.chatInput.onkeypress = (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        window.handleSend();
+        handleSend();
       }
     };
   }
@@ -234,8 +236,8 @@ window.initializeChatbox = async function() {
       const btn = document.createElement("button");
       btn.className = "suggestion-btn";
       btn.textContent = q;
-      btn.onclick = () => window.handleSend(q);
+      btn.onclick = () => handleSend(q);
       suggestionBox.appendChild(btn);
     });
   }
-});
+};

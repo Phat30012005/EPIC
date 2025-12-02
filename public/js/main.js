@@ -1,8 +1,7 @@
 // public/js/main.js
-// === PHIÊN BẢN ĐẦY ĐỦ (V_FINAL) ===
-// (Đã cập nhật logic theo yêu cầu mới)
+// === PHIÊN BẢN ĐẦY ĐỦ (V_FINAL_FIXED) ===
 
-// --- Các hàm tiện ích (Giữ nguyên) ---
+// --- Các hàm tiện ích ---
 window.showAlert = function (message) {
   const modalOverlay = document.createElement("div");
   modalOverlay.className = "modal-overlay";
@@ -15,6 +14,7 @@ window.showAlert = function (message) {
     `;
   document.body.appendChild(modalOverlay);
 };
+
 window.showConfirm = function (message, onConfirm) {
   const modalOverlay = document.createElement("div");
   modalOverlay.className = "modal-overlay";
@@ -37,7 +37,7 @@ window.showConfirm = function (message, onConfirm) {
   };
 };
 
-// --- Hàm active link (Giữ nguyên) ---
+// --- Hàm active link ---
 window.setupNavigation = function () {
   const path = window.location.pathname.split("/").pop() || "index.html";
   const navLinks = document.querySelectorAll(".nav-link");
@@ -58,7 +58,7 @@ window.setupNavigation = function () {
   });
 };
 
-// --- Hàm tìm kiếm (Giữ nguyên) ---
+// --- Hàm tìm kiếm ---
 function setupSearchForm() {
   const searchForm = document.getElementById("search-form");
   const searchInput = document.getElementById("search-input");
@@ -76,10 +76,10 @@ function setupSearchForm() {
 }
 
 // ===========================================
-// 🚀 LOGIC KHỞI ĐỘNG CHÍNH (ĐÃ CẬP NHẬT)
+// 🚀 LOGIC KHỞI ĐỘNG CHÍNH
 // ===========================================
 document.addEventListener("DOMContentLoaded", function () {
-  // 1. Hàm tải component (Giữ nguyên)
+  // 1. Hàm tải component
   const loadComponent = (url, placeholderId, callback) => {
     fetch(url)
       .then((response) => {
@@ -96,17 +96,16 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch((error) => console.error(`Lỗi tải component: ${error}`));
   };
 
-  // 2. Tải Header VÀ CHẠY LOGIC AUTH (ĐÃ SỬA)
+  // 2. Tải Header VÀ CHẠY LOGIC AUTH
   loadComponent("/header.html", "header-placeholder", () => {
     setupNavigation();
     setupSearchForm();
 
-    // (SỬA) Lấy các element ID mới
     const loginButton = document.getElementById("login-button");
     const adminLink = document.getElementById("admin-link");
     const profileLinkLi = document.getElementById("profile-link");
-    const lessorPostLink = document.getElementById("lessor-post-link"); // "Đăng tin" (chủ trọ)
-    const renterPostLink = document.getElementById("renter-post-link"); // "Đăng tin tìm ở ghép" (người thuê)
+    const lessorPostLink = document.getElementById("lessor-post-link");
+    const renterPostLink = document.getElementById("renter-post-link");
 
     const profileLinkA = profileLinkLi
       ? profileLinkLi.querySelector("a")
@@ -119,18 +118,15 @@ document.addEventListener("DOMContentLoaded", function () {
       !lessorPostLink ||
       !renterPostLink
     ) {
-      console.error(
-        "Lỗi DOM: Không tìm thấy một trong các element điều hướng (login, admin, profile, lessor-post, renter-post)"
-      );
+      // Bỏ qua nếu không tìm thấy DOM (tránh lỗi trang login/signup)
       return;
     }
 
-    // (SỬA) Cập nhật onAuthStateChange trong public/js/main.js
     supabase.auth.onAuthStateChange(async (event, session) => {
       const heroBtn = document.getElementById("hero-post-btn");
 
       if (event === "SIGNED_IN" || session) {
-        // 1. Xử lý giao diện Đăng nhập/Đăng xuất
+        // Logged In
         loginButton.textContent = "🚪 Đăng xuất";
         loginButton.href = "#";
         loginButton.classList.remove("btn-primary");
@@ -141,9 +137,10 @@ document.addEventListener("DOMContentLoaded", function () {
           window.location.reload();
         };
 
-        // 2. LẤY ROLE MỚI NHẤT TỪ DATABASE
+        // Check Role
         let role = session.user.user_metadata.role;
         try {
+          // Gọi API để lấy role chính xác nhất
           const { data: profile } = await callEdgeFunction("get-user-profile", {
             method: "GET",
           });
@@ -154,26 +151,22 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error("Lỗi kiểm tra role:", err);
         }
 
-        // 3. Phân quyền Menu & Nút Hero (Trang chủ)
+        // UI theo Role
         if (role === "LESSOR") {
           profileLinkA.href = "/profile-lessor.html";
           renterPostLink.style.display = "none";
           lessorPostLink.style.display = "list-item";
-
-          // Logic cho nút Hero
           if (heroBtn) {
             heroBtn.href = "/dangtin.html";
-            heroBtn.style.display = "inline-block"; // Hiện nút
+            heroBtn.style.display = "inline-block";
           }
         } else {
           profileLinkA.href = "/profile-renter.html";
           renterPostLink.style.display = "list-item";
           lessorPostLink.style.display = "none";
-
-          // Logic cho nút Hero
           if (heroBtn) {
             heroBtn.href = "/oghep-dangtin.html";
-            heroBtn.style.display = "inline-block"; // Hiện nút
+            heroBtn.style.display = "inline-block";
           }
         }
 
@@ -190,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
         event === "SIGNED_OUT" ||
         (event === "INITIAL_SESSION" && !session)
       ) {
-        // ... (Giữ nguyên logic đăng xuất cũ) ...
+        // Logged Out
         loginButton.textContent = "🔑 Đăng nhập";
         loginButton.href = "/login.html";
         loginButton.classList.remove("btn-outline-danger");
@@ -202,7 +195,6 @@ document.addEventListener("DOMContentLoaded", function () {
         renterPostLink.style.display = "none";
         lessorPostLink.style.display = "none";
 
-        // Nếu chưa đăng nhập, hiện nút và dẫn tới trang Login
         if (heroBtn) {
           heroBtn.href = "/login.html";
           heroBtn.style.display = "inline-block";
@@ -211,21 +203,27 @@ document.addEventListener("DOMContentLoaded", function () {
         setupNavigation();
       }
     });
-  }); // Kết thúc loadComponent
+  });
 
-  // 3. Tải Footer (Giữ nguyên)
+  // 3. Tải Footer
   loadComponent("/footer.html", "footer-placeholder");
 
-  // 4. Tải và kích hoạt Chatbox (Giữ nguyên)
+  // 4. Tải và kích hoạt Chatbox (QUAN TRỌNG: SỬA LỖI RACE CONDITION)
   fetch("/chatbox.html")
-    .then((res) => res.text())
+    .then((res) => {
+      if (!res.ok) throw new Error("Chatbox HTML not found");
+      return res.text();
+    })
     .then((html) => {
+      // A. Chèn HTML
       document.body.insertAdjacentHTML("beforeend", html);
-      if (typeof initializeChatbox === "function") {
-        initializeChatbox();
-      } else if (typeof initializeChatbox === "function") {
-        initializeChatbox(); // Fallback cho cách gọi cũ
+
+      // B. Kích hoạt logic từ chatbox.js (đã được tải trước đó)
+      if (typeof window.initializeChatbox === "function") {
+        window.initializeChatbox();
+      } else {
+        console.warn("⚠️ initializeChatbox chưa sẵn sàng hoặc không tồn tại.");
       }
-    });
-    .catch(err => console.error("Lỗi tải Chatbox HTML:", err));
+    })
+    .catch((err) => console.error("Lỗi tải Chatbox HTML:", err));
 });
