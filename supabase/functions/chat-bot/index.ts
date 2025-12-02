@@ -1,8 +1,8 @@
 // supabase/functions/chat-bot/index.ts
-// (PHIÊN BẢN V7 - AI PARSER - THÔNG MINH HƠN, KHÔNG CẦN TỪ KHÓA RÁC)
+// (PHIÊN BẢN V8 - JSON SANITIZER - CHỐNG LỖI PARSE TỪ AI)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "[https://esm.sh/@supabase/supabase-js@2](https://esm.sh/@supabase/supabase-js@2)";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +11,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// 1. Hàm tìm Model (Giữ nguyên)
+// 1. Hàm vệ sinh JSON (FIX LỖI QUAN TRỌNG NHẤT)
+function cleanJsonOutput(text: string): string {
+  // Tìm vị trí bắt đầu của dấu { và vị trí kết thúc của dấu }
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    // Chỉ lấy phần nội dung nằm trong {}
+    return text.substring(firstBrace, lastBrace + 1);
+  }
+  return text; // Trả về nguyên gốc nếu không tìm thấy (để try/catch xử lý)
+}
+
+// 2. Hàm tìm Model
 async function getAvailableModel(apiKey: string) {
   try {
     const response = await fetch(
@@ -30,24 +43,24 @@ async function getAvailableModel(apiKey: string) {
   }
 }
 
-// 2. [QUAN TRỌNG] Hàm nhờ AI phân tích ý định tìm kiếm
+// 3. Phân tích ý định bằng AI
 async function parseQueryWithGemini(apiKey: string, userMessage: string) {
   const prompt = `
-    Bạn là một trình phân tích tìm kiếm phòng trọ. 
-    Nhiệm vụ: Trích xuất thông tin từ câu nói tự nhiên của người dùng tiếng Việt thành JSON.
+    Role: Chuyên gia phân tích dữ liệu bất động sản Việt Nam.
+    Task: Trích xuất thông tin tìm kiếm từ câu nói của user thành JSON.
     
-    Câu người dùng: "${userMessage}"
+    Input: "${userMessage}"
     
-    Yêu cầu Output (CHỈ TRẢ VỀ JSON THUẦN, KHÔNG MARKDOWN):
-    {
-      "price_max": number | null, (Nếu tìm dưới X tiền, hoặc khoảng X tiền. Đổi về đơn vị VNĐ. Ví dụ 3 triệu -> 3000000)
-      "location": string | null, (Tên Quận/Huyện hoặc Phường hoặc Đường. Bỏ qua các từ như "ở", "tại", "khu vực")
-      "is_seeking_roommate": boolean (True nếu tìm người ở ghép, False nếu tìm thuê phòng)
-    }
-    
-    Ví dụ: 
-    - "tìm phòng dưới 3 triệu giúp mình" -> {"price_max": 3000000, "location": null, "is_seeking_roommate": false}
-    - "tìm trọ ở Ninh Kiều giá rẻ" -> {"price_max": null, "location": "Ninh Kiều", "is_seeking_roommate": false}
+    Rules:
+    1. "price_max": Chuyển đổi tất cả về số nguyên VNĐ. 
+       - "3 triệu" -> 3000000
+       - "3tr" -> 3000000
+       - "300k" -> 300000
+    2. "location": Trích xuất tên Phường, Quận, Đường. Bỏ qua các từ "ở", "tại", "khu vực". Nếu không có -> null.
+    3. "is_roommate": true nếu tìm người ở ghép, false nếu tìm thuê phòng.
+
+    Output Format (JSON Only):
+    {"price_max": number|null, "location": string|null, "is_roommate": boolean}
   `;
 
   try {
@@ -59,18 +72,26 @@ async function parseQueryWithGemini(apiKey: string, userMessage: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }, // Ép kiểu JSON
+        generationConfig: { responseMimeType: "application/json" },
       }),
     });
 
     const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!rawText) return null;
-    return JSON.parse(rawText);
+
+    // === BƯỚC QUAN TRỌNG: VỆ SINH DỮ LIỆU ===
+    // Loại bỏ Markdown (```json ... ```) mà AI thường thêm vào
+    const cleanText = cleanJsonOutput(rawText);
+
+    console.log("AI Parsed Raw:", rawText); // Log để debug
+    console.log("AI Parsed Clean:", cleanText); // Log để debug
+
+    return JSON.parse(cleanText);
   } catch (e) {
     console.error("Lỗi Parse Query:", e);
-    return null; // Fallback nếu AI lỗi
+    return null;
   }
 }
 
@@ -80,7 +101,7 @@ Deno.serve(async (req) => {
 
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")?.trim();
-    if (!GEMINI_API_KEY) throw new Error("Chưa cấu hình GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -89,129 +110,128 @@ Deno.serve(async (req) => {
 
     // Auth Check
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader)
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
+    if (!authHeader) throw new Error("Unauthorized");
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authError || !user)
-      return new Response(JSON.stringify({ error: "Auth failed" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
+    if (!user) throw new Error("Auth failed");
 
     const { message } = await req.json();
 
-    // === BƯỚC 1: DÙNG AI ĐỂ HIỂU Ý ĐỊNH (THAY VÌ DÙNG REGEX THỦ CÔNG) ===
-    console.log("Đang phân tích ý định:", message);
+    // === BƯỚC 1: HIỂU Ý ĐỊNH ===
     const searchIntent = await parseQueryWithGemini(GEMINI_API_KEY, message);
-    console.log("Kết quả phân tích JSON:", searchIntent);
 
-    // === BƯỚC 2: BUILD QUERY SUPABASE DỰA TRÊN JSON ===
+    // === BƯỚC 2: BUILD QUERY ===
     let query = supabase
       .from("posts")
       .select("title, motelName, price, ward, address_detail, description")
       .eq("status", "APPROVED");
 
-    // Áp dụng bộ lọc từ AI (Chính xác hơn nhiều)
-    if (searchIntent) {
-      if (searchIntent.price_max) {
-        query = query.lte("price", searchIntent.price_max);
-      }
+    let isFilterApplied = false;
 
+    if (searchIntent) {
+      // Lọc giá
+      if (searchIntent.price_max && searchIntent.price_max > 0) {
+        query = query.lte("price", searchIntent.price_max);
+        isFilterApplied = true;
+      }
+      // Lọc địa điểm
       if (searchIntent.location) {
-        // Tìm địa điểm trong cả 3 trường quan trọng
         const loc = searchIntent.location;
         query = query.or(
-          `ward.ilike.%${loc}%,address_detail.ilike.%${loc}%,motelName.ilike.%${loc}%`
+          `ward.ilike.%${loc}%,address_detail.ilike.%${loc}%,motelName.ilike.%${loc}%,description.ilike.%${loc}%`
         );
+        isFilterApplied = true;
       }
     }
 
-    // Giới hạn kết quả
+    // Nếu AI không lọc được gì (searchIntent null hoặc rỗng), thử tìm text search cơ bản
+    if (!isFilterApplied) {
+      // Fallback nhẹ: tìm xem trong message có từ khóa nào khớp description không
+      // (Tránh trường hợp trả về toàn bộ database)
+      // query = query.textSearch(...) -> Tạm thời bỏ qua để đơn giản hóa
+    }
+
     query = query.limit(5).order("created_at", { ascending: false });
 
     const { data: searchResults, error: dbError } = await query;
 
-    // === BƯỚC 3: XỬ LÝ KẾT QUẢ & PHẢN HỒI ===
+    // === BƯỚC 3: PHẢN HỒI ===
     let postsData = searchResults || [];
-    let noteToAI = "";
+    let systemPromptData = "";
 
-    if (dbError) console.error("DB Error:", dbError);
-
-    // Nếu không tìm thấy, lấy top 5 phòng mới nhất (Fallback)
     if (postsData.length === 0) {
+      // Fallback: Lấy tin mới nhất nếu không tìm thấy
       const { data: fallbackPosts } = await supabase
         .from("posts")
         .select("title, motelName, price, ward, address_detail")
         .eq("status", "APPROVED")
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(3);
 
-      if (fallbackPosts) {
-        postsData = fallbackPosts;
-        noteToAI = `(Không tìm thấy phòng khớp chính xác tiêu chí: ${JSON.stringify(
-          searchIntent
-        )}. Dưới đây là danh sách phòng MỚI NHẤT)`;
-      }
+      postsData = fallbackPosts || [];
+      systemPromptData = `KHÔNG tìm thấy phòng nào khớp với: ${JSON.stringify(
+        searchIntent
+      )}. Dưới đây là danh sách phòng MỚI NHẤT để gợi ý. Hãy xin lỗi khách.`;
     } else {
-      noteToAI = `(Đã tìm thấy ${postsData.length} phòng khớp tiêu chí)`;
+      systemPromptData = `Tìm thấy ${
+        postsData.length
+      } phòng khớp yêu cầu: ${JSON.stringify(searchIntent)}.`;
     }
 
     const listText = postsData
       .map(
         (p) =>
-          `- ${p.motelName || p.title}: Giá ${p.price.toLocaleString(
+          `- ${p.motelName || p.title}: ${p.price.toLocaleString(
             "vi-VN"
-          )}đ. Đ/c: ${p.address_detail}, ${p.ward}.`
+          )}đ. Đ/c: ${p.ward}.`
       )
       .join("\n");
 
-    // === BƯỚC 4: SINH CÂU TRẢ LỜI ===
     const SYSTEM_PROMPT = `
-    Bạn là "Gà Bông" 🐣 - Trợ lý tìm trọ.
-    Khách hỏi: "${message}"
+    Bạn là "Gà Bông" 🐣.
+    Input User: "${message}"
     
-    Dữ liệu hệ thống tìm được:
-    ${noteToAI}
+    Context từ Database:
+    ${systemPromptData}
     ${listText}
 
     Nhiệm vụ:
-    1. Trả lời ngắn gọn, thân thiện, dùng emoji.
-    2. Nếu có phòng khớp, hãy liệt kê ra.
-    3. Nếu không khớp (đang hiển thị phòng mới nhất), hãy nói khéo là chưa tìm thấy đúng yêu cầu nhưng mời xem tham khảo mấy phòng này.
+    Trả lời ngắn gọn (dưới 3 câu), thân thiện.
+    Nếu có phòng khớp: "Gà Bông tìm được mấy phòng nè: ..."
+    Nếu không khớp: "Huhu không thấy phòng nào [tiêu chí] rồi, xem tạm mấy phòng mới này nha..."
     `;
 
+    // Gọi AI trả lời
     const modelName = await getAvailableModel(GEMINI_API_KEY);
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+    const replyRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }],
+        }),
+      }
+    );
 
-    const aiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }],
-      }),
-    });
-
-    const aiData = await aiResponse.json();
+    const replyData = await replyRes.json();
     const botReply =
-      aiData.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Gà Bông đang bị nghẽn mạng xíu 🐣";
+      replyData.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Gà Bông đang lúng túng, bạn hỏi lại nha 🐣";
 
-    // Lưu log chat
-    await supabase
-      .from("chat_messages")
-      .insert({ user_id: user.id, content: botReply, is_bot: true });
+    // Lưu Log
+    await supabase.from("chat_messages").insert({
+      user_id: user.id,
+      content: botReply,
+      is_bot: true,
+    });
 
     return new Response(JSON.stringify({ success: true, reply: botReply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
     });
   } catch (error: any) {
+    console.error("ChatBot Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
