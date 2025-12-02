@@ -15,21 +15,18 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
 
   try {
-    // 1. LẤY VÀ LÀM SẠCH API KEY (FIX LỖI 404 QUAN TRỌNG)
-    // .trim() sẽ loại bỏ dấu xuống dòng hoặc khoảng trắng vô tình copy phải
+    // 1. LẤY API KEY (Đã có .trim() để an toàn)
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")?.trim();
-
     if (!GEMINI_API_KEY) {
       throw new Error("Chưa cấu hình GEMINI_API_KEY trong Supabase Secrets!");
     }
 
-    // 2. Setup Client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 3. Auth Check
+    // 2. Auth Check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Bạn chưa đăng nhập!" }), {
@@ -51,10 +48,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 4. Lấy tin nhắn
+    // 3. Lấy tin nhắn
     const { message } = await req.json();
 
-    // 5. RAG: Tìm kiếm dữ liệu liên quan
+    // 4. RAG: Tìm kiếm dữ liệu liên quan
     let contextInfo =
       "Hiện tại chưa tìm thấy phòng trọ nào khớp yêu cầu trong hệ thống.";
     try {
@@ -64,7 +61,7 @@ Deno.serve(async (req) => {
 
       if (searchResults && searchResults.length > 0) {
         const listText = searchResults
-          .slice(0, 3) // Lấy 3 kết quả tốt nhất
+          .slice(0, 3)
           .map(
             (p: any) =>
               `- Phòng: ${p.motelName || p.title}. Giá: ${p.price}đ. Đ/c: ${
@@ -78,7 +75,7 @@ Deno.serve(async (req) => {
       console.error("Lỗi Search DB:", err);
     }
 
-    // 6. Prompt
+    // 5. Prompt
     const SYSTEM_PROMPT = `
     Bạn là "Gà Bông" - Trợ lý ảo của Chicky.stu (Web tìm trọ Cần Thơ).
     Phong cách: Thân thiện, ngắn gọn, dùng emoji 🐣.
@@ -92,9 +89,11 @@ Deno.serve(async (req) => {
     - Nếu không có thông tin trong ngữ cảnh, hãy khuyên khách dùng thanh tìm kiếm hoặc gọi 0355746973.
     `;
 
-    // 7. GỌI GEMINI API (Cấu hình chuẩn)
-    // Dùng gemini-1.5-flash là bản ổn định, nhanh và rẻ nhất cho chatbot
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // 6. GỌI GEMINI API (SỬA LỖI Ở ĐÂY)
+    // Thay đổi: Dùng 'gemini-1.5-flash-latest' thay vì 'gemini-1.5-flash'
+    // Lý do: Alias ngắn gọn đôi khi bị lỗi 404 trên bản v1beta.
+    const modelName = "gemini-1.5-flash-latest";
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
     const aiPayload = {
       contents: [
@@ -114,20 +113,20 @@ Deno.serve(async (req) => {
     const aiData = await aiResponse.json();
     let botReply = "";
 
-    // 8. Xử lý kết quả & Lỗi từ Google
+    // 7. Xử lý lỗi từ Google trả về
     if (!aiResponse.ok || aiData.error) {
-      const errCode = aiData.error?.code || aiResponse.status;
-      const errMsg = aiData.error?.message || aiResponse.statusText;
-      console.error(`Gemini Error (${errCode}):`, errMsg); // Log để check trên Dashboard
+      // Log chi tiết lỗi để debug nếu vẫn bị
+      const errMessage = aiData.error?.message || aiResponse.statusText;
+      console.error(`Gemini API Error: ${JSON.stringify(aiData.error)}`);
 
-      botReply = `Xin lỗi, Gà Bông đang bị mất kết nối tới não bộ (Lỗi ${errCode}). Bạn chờ xíu rồi thử lại nhé! 🐣`;
+      botReply = `Xin lỗi, Gà Bông đang bảo trì server AI (${errMessage}). Bạn vui lòng thử lại sau nhé! 🐣`;
     } else if (aiData.candidates?.[0]?.content?.parts?.[0]?.text) {
       botReply = aiData.candidates[0].content.parts[0].text;
     } else {
       botReply = "Gà Bông chưa hiểu câu hỏi, bạn nói rõ hơn được không? 🐣";
     }
 
-    // 9. Lưu lịch sử chat
+    // 8. Lưu tin nhắn
     await supabase
       .from("chat_messages")
       .insert({ user_id: user.id, content: botReply, is_bot: true });
