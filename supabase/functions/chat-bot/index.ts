@@ -136,6 +136,7 @@ Deno.serve(async (req) => {
       "admin",
       "ơi",
       "nhé",
+      "nha",
       "nào",
       "đâu",
       "là",
