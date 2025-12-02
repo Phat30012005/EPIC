@@ -1,10 +1,8 @@
 // supabase/functions/chat-bot/index.ts
 
-// 1. Khai báo thư viện (Giữ nguyên)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// 2. Cấu hình CORS để Web gọi được API
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -13,24 +11,25 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Xử lý pre-flight request
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
 
   try {
-    // 3. Lấy API Key và kiểm tra
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    // 1. LẤY VÀ LÀM SẠCH API KEY (FIX LỖI 404 QUAN TRỌNG)
+    // .trim() sẽ loại bỏ dấu xuống dòng hoặc khoảng trắng vô tình copy phải
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")?.trim();
+
     if (!GEMINI_API_KEY) {
       throw new Error("Chưa cấu hình GEMINI_API_KEY trong Supabase Secrets!");
     }
 
-    // 4. Kết nối Supabase
+    // 2. Setup Client
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 5. Kiểm tra Auth (Người dùng phải đăng nhập)
+    // 3. Auth Check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Bạn chưa đăng nhập!" }), {
@@ -44,67 +43,64 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: "Phiên đăng nhập không hợp lệ" }),
-        { status: 401, headers: corsHeaders }
+        JSON.stringify({ error: "Phiên đăng nhập hết hạn" }),
+        {
+          status: 401,
+          headers: corsHeaders,
+        }
       );
     }
 
-    // 6. Lấy tin nhắn từ Client
+    // 4. Lấy tin nhắn
     const { message } = await req.json();
 
-    // 7. TÌM KIẾM DỮ LIỆU (RAG)
+    // 5. RAG: Tìm kiếm dữ liệu liên quan
     let contextInfo =
-      "Hiện tại hệ thống chưa tìm thấy phòng trọ nào khớp với mô tả.";
+      "Hiện tại chưa tìm thấy phòng trọ nào khớp yêu cầu trong hệ thống.";
     try {
       const { data: searchResults } = await supabase.rpc("search_posts_v2", {
         search_term: message,
       });
+
       if (searchResults && searchResults.length > 0) {
-        // Lấy tối đa 3 phòng khớp nhất
         const listText = searchResults
-          .slice(0, 3)
+          .slice(0, 3) // Lấy 3 kết quả tốt nhất
           .map(
             (p: any) =>
-              `- Phòng trọ: ${p.motelName || p.title}. Giá: ${
-                p.price
-              } VNĐ. Khu vực: ${p.ward}. Địa chỉ: ${p.address_detail}`
+              `- Phòng: ${p.motelName || p.title}. Giá: ${p.price}đ. Đ/c: ${
+                p.address_detail
+              }, ${p.ward}.`
           )
           .join("\n");
-        contextInfo = `Hệ thống tìm thấy các phòng sau trong cơ sở dữ liệu:\n${listText}`;
+        contextInfo = `Dữ liệu phòng trọ tìm được:\n${listText}`;
       }
     } catch (err) {
-      console.error("Lỗi tìm kiếm DB:", err);
-      // Không throw error ở đây để bot vẫn trả lời được dù DB lỗi nhẹ
+      console.error("Lỗi Search DB:", err);
     }
 
-    // 8. Tạo Prompt cho AI
+    // 6. Prompt
     const SYSTEM_PROMPT = `
-    Bạn là "Gà Bông" - Trợ lý ảo của website tìm trọ Chicky.stu tại Cần Thơ.
+    Bạn là "Gà Bông" - Trợ lý ảo của Chicky.stu (Web tìm trọ Cần Thơ).
     Phong cách: Thân thiện, ngắn gọn, dùng emoji 🐣.
     
-    Nhiệm vụ:
-    1. Trả lời câu hỏi của khách dựa trên THÔNG TIN ĐƯỢC CUNG CẤP bên dưới.
-    2. Nếu có phòng phù hợp trong thông tin cung cấp, hãy giới thiệu tên, giá và địa chỉ.
-    3. Nếu thông tin cung cấp không có phòng nào phù hợp, hãy khuyên khách tìm kiếm trên thanh công cụ hoặc gọi hotline 0355746973.
-    4. Tuyệt đối không tự bịa ra thông tin phòng trọ không có trong dữ liệu.
-
-    === THÔNG TIN CUNG CẤP TỪ DATABASE ===
+    Thông tin ngữ cảnh từ database:
     ${contextInfo}
-    ======================================
+
+    Yêu cầu:
+    - Trả lời dựa trên thông tin ngữ cảnh trên.
+    - Nếu có phòng phù hợp, hãy liệt kê Tên, Giá và Địa chỉ.
+    - Nếu không có thông tin trong ngữ cảnh, hãy khuyên khách dùng thanh tìm kiếm hoặc gọi 0355746973.
     `;
 
-    // 9. Gửi sang Google Gemini (SỬA LỖI URL Ở ĐÂY)
-    // Dùng phiên bản 'gemini-1.5-flash' chuẩn, bỏ chữ 'latest' để tránh lỗi 404
-    // Dùng dấu backtick (`) để bao quanh URL
-    const geminiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
-      GEMINI_API_KEY;
+    // 7. GỌI GEMINI API (Cấu hình chuẩn)
+    // Dùng gemini-1.5-flash là bản ổn định, nhanh và rẻ nhất cho chatbot
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     const aiPayload = {
       contents: [
         {
           role: "user",
-          parts: [{ text: SYSTEM_PROMPT + "\n\nKhách hỏi: " + message }],
+          parts: [{ text: SYSTEM_PROMPT + "\n\nUser: " + message }],
         },
       ],
     };
@@ -118,21 +114,20 @@ Deno.serve(async (req) => {
     const aiData = await aiResponse.json();
     let botReply = "";
 
-    // 10. Xử lý phản hồi từ Google
-    if (aiData.error) {
-      console.error("Gemini API Error:", aiData.error);
-      botReply = `Xin lỗi, Gà Bông đang gặp chút sự cố kết nối (Mã lỗi: ${aiData.error.code}). Bạn thử lại sau nhé!`;
-    } else if (
-      aiData.candidates &&
-      aiData.candidates[0]?.content?.parts[0]?.text
-    ) {
+    // 8. Xử lý kết quả & Lỗi từ Google
+    if (!aiResponse.ok || aiData.error) {
+      const errCode = aiData.error?.code || aiResponse.status;
+      const errMsg = aiData.error?.message || aiResponse.statusText;
+      console.error(`Gemini Error (${errCode}):`, errMsg); // Log để check trên Dashboard
+
+      botReply = `Xin lỗi, Gà Bông đang bị mất kết nối tới não bộ (Lỗi ${errCode}). Bạn chờ xíu rồi thử lại nhé! 🐣`;
+    } else if (aiData.candidates?.[0]?.content?.parts?.[0]?.text) {
       botReply = aiData.candidates[0].content.parts[0].text;
     } else {
-      botReply =
-        "Gà Bông chưa hiểu ý bạn lắm, bạn hỏi lại rõ hơn được không? 🐣";
+      botReply = "Gà Bông chưa hiểu câu hỏi, bạn nói rõ hơn được không? 🐣";
     }
 
-    // 11. Lưu tin nhắn Bot vào Database
+    // 9. Lưu lịch sử chat
     await supabase
       .from("chat_messages")
       .insert({ user_id: user.id, content: botReply, is_bot: true });
@@ -142,16 +137,10 @@ Deno.serve(async (req) => {
       status: 200,
     });
   } catch (error: any) {
-    console.error("System Error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        reply: `Lỗi hệ thống: ${error.message}`,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+    console.error("Function Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
