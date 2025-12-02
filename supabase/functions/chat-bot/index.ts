@@ -10,53 +10,48 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Hàm phụ trợ: Lấy danh sách model mà Key này ĐƯỢC PHÉP dùng
+// Hàm dò tìm thông minh (Đã tinh chỉnh để Ưu tiên Flash)
 async function getAvailableModel(apiKey: string) {
   try {
-    // Gọi API list_models để xem tài khoản này có gì
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=50`,
       { method: "GET" }
     );
 
-    if (!response.ok) return null; // Nếu lỗi key hoặc quyền, trả về null
+    if (!response.ok) return null;
 
     const data = await response.json();
     const models = data.models || [];
 
-    // Ưu tiên 1: Tìm bản Flash 1.5 (Nhanh, rẻ)
-    const flash15 = models.find(
+    // === CHIẾN THUẬT CHỌN MODEL MỚI ===
+
+    // 1. Ưu tiên tuyệt đối: Flash 1.5 (Bản ổn định nhất)
+    // Tìm chính xác tên chuẩn trước
+    const stableFlash = models.find(
+      (m: any) => m.name === "models/gemini-1.5-flash"
+    );
+    if (stableFlash) return "gemini-1.5-flash";
+
+    // 2. Nếu không có, tìm bất kỳ bản Flash nào (Flash-001, Flash-002...)
+    const anyFlash = models.find(
       (m: any) =>
-        m.name.includes("gemini-1.5-flash") &&
+        m.name.includes("flash") &&
+        !m.name.includes("8b") && // Tránh bản 8b nếu chưa ổn định
         m.supportedGenerationMethods?.includes("generateContent")
     );
-    if (flash15) return flash15.name.replace("models/", "");
+    if (anyFlash) return anyFlash.name.replace("models/", "");
 
-    // Ưu tiên 2: Tìm bản Pro 1.5
-    const pro15 = models.find(
+    // 3. Nếu vẫn không có Flash, mới đành dùng Pro (Dễ dính lỗi Quota)
+    const anyPro = models.find(
       (m: any) =>
         m.name.includes("gemini-1.5-pro") &&
         m.supportedGenerationMethods?.includes("generateContent")
     );
-    if (pro15) return pro15.name.replace("models/", "");
+    if (anyPro) return anyPro.name.replace("models/", "");
 
-    // Ưu tiên 3: Tìm bản Pro 1.0 (Cũ nhưng ổn định)
-    const pro10 = models.find(
-      (m: any) =>
-        m.name.includes("gemini-1.0-pro") &&
-        m.supportedGenerationMethods?.includes("generateContent")
-    );
-    if (pro10) return pro10.name.replace("models/", "");
-
-    // Ưu tiên 4: Lấy bất kỳ cái nào có thể tạo nội dung
-    const anyGen = models.find((m: any) =>
-      m.supportedGenerationMethods?.includes("generateContent")
-    );
-    if (anyGen) return anyGen.name.replace("models/", "");
-
-    return null;
+    // 4. Đường cùng: Gemin-Pro cũ
+    return "gemini-pro";
   } catch (e) {
-    console.error("Error finding models:", e);
     return null;
   }
 }
@@ -66,69 +61,60 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
 
   try {
+    // 1. SETUP & AUTH
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")?.trim();
-    if (!GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("Chưa cấu hình GEMINI_API_KEY");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Auth Check (Giữ nguyên)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader)
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: corsHeaders,
       });
-    }
+
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (authError || !user) {
+    if (authError || !user)
       return new Response(JSON.stringify({ error: "Auth failed" }), {
         status: 401,
         headers: corsHeaders,
       });
-    }
 
     const { message } = await req.json();
 
-    // 2. [DEEP FIX] TỰ ĐỘNG CHỌN MODEL THAY VÌ HARDCODE
-    // Code sẽ tự tìm xem Key của bạn chạy được model nào
+    // 2. CHỌN MODEL (QUAN TRỌNG)
     let modelName = await getAvailableModel(GEMINI_API_KEY);
 
-    // Nếu không tìm thấy model nào -> Key này bị lỗi permission ở phía Google Project
-    if (!modelName) {
-      console.error(
-        "CRITICAL: API Key valid but NO generateContent models found via API list."
-      );
-      // Fallback cuối cùng: thử model cũ nhất
-      modelName = "gemini-pro";
-    }
+    // Fallback cứng nếu hàm dò tìm thất bại hoàn toàn
+    if (!modelName) modelName = "gemini-1.5-flash";
 
-    console.log(`[ChatBot] Selected Model: ${modelName}`); // Log để bạn kiểm tra
-
-    // 3. RAG Logic (Giữ nguyên)
-    let contextInfo = "Chưa tìm thấy phòng phù hợp.";
+    // 3. RAG LOGIC
+    let contextInfo = "Không tìm thấy phòng phù hợp.";
     try {
       const { data: searchResults } = await supabase.rpc("search_posts_v2", {
         search_term: message,
       });
-      if (searchResults?.length > 0) {
+      if (searchResults && searchResults.length > 0) {
         contextInfo = searchResults
           .slice(0, 3)
           .map(
-            (p: any) => `- ${p.motelName || p.title}: ${p.price}đ, ${p.ward}.`
+            (p: any) =>
+              `- ${p.motelName || p.title}: ${p.price}đ, tại ${p.ward}.`
           )
           .join("\n");
       }
     } catch {}
 
-    const SYSTEM_PROMPT = `Bạn là Gà Bông (Chicky.stu). Dữ liệu: ${contextInfo}. Trả lời ngắn gọn, thân thiện.`;
+    const SYSTEM_PROMPT = `Bạn là Gà Bông (Chicky.stu). Dữ liệu: ${contextInfo}. Trả lời ngắn gọn.`;
 
-    // 4. Gọi API với model đã được dò tìm (Dùng v1beta)
+    // 4. GỌI API GOOGLE
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
     const aiResponse = await fetch(geminiUrl, {
@@ -146,30 +132,34 @@ Deno.serve(async (req) => {
 
     const aiData = await aiResponse.json();
 
+    // 5. XỬ LÝ LỖI CHI TIẾT (Để bạn biết đường sửa Key)
     if (!aiResponse.ok || aiData.error) {
-      const err = aiData.error;
-      console.error("Gemini API Error:", JSON.stringify(err));
+      const errMessage = aiData.error?.message || "Lỗi không xác định";
+      console.error(`Gemini Error (${modelName}):`, errMessage);
 
-      // Phản hồi chi tiết để bạn biết lỗi gì trên giao diện
-      const debugMsg = err?.message || "Unknown error";
+      // Nếu lỗi là Quota (429), báo rõ cho user
+      let userMsg = `Gà Bông đang bị ốm (${modelName}).`;
+      if (errMessage.includes("quota") || aiResponse.status === 429) {
+        userMsg =
+          "Hệ thống đang quá tải (Hết quota miễn phí). Vui lòng thử lại vào ngày mai!";
+      }
+
+      // Vẫn lưu tin nhắn lỗi vào DB để Chatbox không bị treo
       await supabase.from("chat_messages").insert({
         user_id: user.id,
-        content: `⚠️ Lỗi AI (${modelName}): ${debugMsg}. Hãy kiểm tra API Key Settings.`,
+        content: `⚠️ ${userMsg}`,
         is_bot: true,
       });
 
-      return new Response(
-        JSON.stringify({ success: false, reply: "Lỗi kết nối AI." }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200, // Trả về 200 để frontend không crash, nhưng hiển thị lỗi
-        }
-      );
+      return new Response(JSON.stringify({ success: true, reply: userMsg }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     const botReply =
       aiData.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Gà Bông đang bối rối 🐣";
+      "Gà Bông không hiểu ý bạn.";
 
     await supabase.from("chat_messages").insert({
       user_id: user.id,
