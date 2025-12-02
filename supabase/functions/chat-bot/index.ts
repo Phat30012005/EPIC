@@ -1,5 +1,5 @@
 // supabase/functions/chat-bot/index.ts
-// VERSION V16 - PERFECT LOCALIZATION (KẾT HỢP V6 + V15)
+// VERSION V17 - NO-RPC (CHẠY TRỰC TIẾP TRÊN CODE - KHÔNG CẦN MIGRATION)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,8 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// 1. CÁC HÀM XỬ LÝ CHUỖI (CỰC KỲ QUAN TRỌNG)
-
+// 1. CÁC HÀM XỬ LÝ TỪ KHÓA (GIỮ NGUYÊN VÌ ĐÃ TỐT)
 function cleanJson(text: string): string {
   return text
     .replace(/```json/g, "")
@@ -20,15 +19,14 @@ function cleanJson(text: string): string {
     .trim();
 }
 
-// Hàm này biến các từ viết tắt thành từ chuẩn trong Database của bạn
 function normalizeKeyword(keyword: string | null) {
   if (!keyword) return null;
   let k = keyword
     .toLowerCase()
     .trim()
-    .replace(/[.,;?!]/g, ""); // Xóa dấu câu
+    .replace(/[.,;?!]/g, "");
 
-  // Danh sách từ cấm (Nếu AI lỡ trích xuất ra thì xóa luôn)
+  // Từ khóa cấm (Stopwords)
   const blacklist = [
     "giúp",
     "với",
@@ -45,10 +43,14 @@ function normalizeKeyword(keyword: string | null) {
     "giá",
     "dưới",
     "khoảng",
+    "tầm",
+    "muốn",
+    "cho",
+    "em",
   ];
   if (blacklist.includes(k)) return null;
 
-  // Bản đồ từ điển địa phương Cần Thơ
+  // Map địa phương
   const aliasMap: Record<string, string> = {
     dhct: "Đại học Cần Thơ",
     đhct: "Đại học Cần Thơ",
@@ -56,31 +58,23 @@ function normalizeKeyword(keyword: string | null) {
     fpt: "FPT",
     "nam cần thơ": "Nam Cần Thơ",
     dhnct: "Nam Cần Thơ",
-    "y dược": "Y Dược",
     "3/2": "3/2",
-    "3-2": "3/2",
     "30/4": "30/4",
-    "30-4": "30/4",
     "ninh kiều": "Ninh Kiều",
     "cái răng": "Cái Răng",
     "bình thủy": "Bình Thủy",
     "ô môn": "Ô Môn",
   };
 
-  // Kiểm tra map chính xác
   if (aliasMap[k]) return aliasMap[k];
-
-  // Kiểm tra map gần đúng (ví dụ: "quận ninh kiều" -> "Ninh Kiều")
   for (const key in aliasMap) {
     if (k.includes(key)) return aliasMap[key];
   }
 
-  // Nếu không map được, trả về từ gốc (để tìm tên đường/hẻm)
   return keyword.replace(/[%_]/g, "").trim();
 }
 
-// 2. GỌI GEMINI (2 CHẾ ĐỘ)
-
+// 2. GỌI GEMINI (JSON)
 async function callGeminiJSON(apiKey: string, prompt: string) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   try {
@@ -89,18 +83,18 @@ async function callGeminiJSON(apiKey: string, prompt: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }, // Bắt buộc JSON
+        generationConfig: { responseMimeType: "application/json" },
       }),
     });
     const json = await res.json();
     const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
     return rawText ? JSON.parse(cleanJson(rawText)) : null;
   } catch (e) {
-    console.error("Gemini JSON Error:", e);
     return null;
   }
 }
 
+// 3. GỌI GEMINI (TEXT)
 async function callGeminiText(apiKey: string, prompt: string) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
@@ -114,8 +108,7 @@ async function callGeminiText(apiKey: string, prompt: string) {
   return json.candidates?.[0]?.content?.parts?.[0]?.text || null;
 }
 
-// 3. MAIN HANDLER
-
+// 4. MAIN HANDLER
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
@@ -127,7 +120,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Auth Check
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
     if (!token) throw new Error("Unauthorized");
     const {
@@ -137,79 +129,85 @@ Deno.serve(async (req) => {
 
     const { message } = await req.json();
 
-    // === BƯỚC 1: HIỂU Ý ĐỊNH (AI) ===
+    // === BƯỚC 1: HIỂU Ý ===
     const promptIntent = `
       User: "${message}"
-      Task: Extract search criteria into JSON.
+      Task: Extract info.
       Rules:
-      - keyword: Specific location name ONLY (District, Street, Uni). If generic words like "tìm trọ", "giúp", return NULL.
-      - max: Convert "3 triệu", "3tr", "3000k" -> 3000000.
-      
+      - keyword: Location/Name only. Ignore "tìm", "giúp", "trọ".
+      - max: Convert "3 triệu" -> 3000000.
       Output Schema: { "keyword": string|null, "max": number|null, "min": number|null }
     `;
-
     let intent = (await callGeminiJSON(GEMINI_API_KEY, promptIntent)) || {};
 
-    // === BƯỚC 2: CHUẨN HÓA TỪ KHÓA (CODE) ===
-    const rawKw = intent.keyword;
+    // Chuẩn hóa
     intent.keyword = normalizeKeyword(intent.keyword);
-    console.log(
-      `🔍 Intent: "${rawKw}" -> Normalized: "${intent.keyword}" | Max: ${intent.max}`
-    );
+    console.log("Intent:", intent);
 
-    // === BƯỚC 3: TÌM KIẾM PHÂN TẦNG (DB RPC) ===
-    let posts: any[] = [];
+    // === BƯỚC 2: TÌM KIẾM (TRỰC TIẾP TRÊN CODE - KHÔNG DÙNG RPC) ===
+
+    // Hàm tạo query cơ bản
+    const baseQuery = () =>
+      supabase
+        .from("posts")
+        .select("title, motelName, price, ward, address_detail")
+        .eq("status", "APPROVED")
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+    let posts = [];
     let note = "";
 
-    // Tầng 1: Tìm chính xác (Có từ khóa + Giá)
-    const { data: exact } = await supabase.rpc("match_posts_smart", {
-      p_keyword: intent.keyword,
-      p_min_price: intent.min,
-      p_max_price: intent.max,
-      p_limit: 5,
-    });
+    // Tầng 1: Tìm Chính Xác (Nếu có Keyword)
+    if (intent.keyword) {
+      let query = baseQuery();
+      // Tìm keyword trong mọi cột
+      const kw = intent.keyword;
+      query = query.or(
+        `title.ilike.%${kw}%,motelName.ilike.%${kw}%,ward.ilike.%${kw}%,address_detail.ilike.%${kw}%`
+      );
 
-    if (exact && exact.length > 0) {
-      posts = exact;
-      note = `Tìm thấy ${posts.length} phòng đúng ý bạn:`;
+      if (intent.max) query = query.lte("price", intent.max);
+      if (intent.min) query = query.gte("price", intent.min);
+
+      const { data } = await query;
+      if (data && data.length > 0) {
+        posts = data;
+        note = `Tìm thấy phòng ở "${intent.keyword}" đúng ý bạn:`;
+      }
     }
-    // Tầng 2: Nếu Tầng 1 rỗng -> Thử bỏ từ khóa, chỉ tìm theo Giá (Tự sửa lỗi nếu AI nhận diện sai keyword)
-    else if ((intent.max || intent.min) && !posts.length) {
-      console.log("⚠️ Không thấy theo từ khóa. Tìm rộng theo giá...");
-      const { data: priceOnly } = await supabase.rpc("match_posts_smart", {
-        p_keyword: null, // Bỏ từ khóa
-        p_min_price: intent.min,
-        p_max_price: intent.max,
-        p_limit: 5,
-      });
-      if (priceOnly && priceOnly.length > 0) {
-        posts = priceOnly;
-        note = `Không thấy phòng ở khu vực "${
-          intent.keyword || "đó"
-        }", nhưng có mấy phòng giá hợp lý nè:`;
+
+    // Tầng 2: Tìm Theo Giá (Nếu Tầng 1 rỗng, hoặc Keyword là null)
+    // Đây là bước giúp xử lý câu "tìm trọ dưới 3 triệu giúp" (keyword bị null do là từ rác)
+    if (posts.length === 0 && (intent.max || intent.min)) {
+      console.log("Tìm theo giá (bỏ qua keyword)...");
+      let query = baseQuery();
+      if (intent.max) query = query.lte("price", intent.max);
+      if (intent.min) query = query.gte("price", intent.min);
+
+      const { data } = await query;
+      if (data && data.length > 0) {
+        posts = data;
+        note = intent.keyword
+          ? `Không thấy phòng ở "${intent.keyword}", nhưng có mấy phòng này giá hợp lý nè:`
+          : `Tìm thấy phòng có giá phù hợp nè:`;
       }
     }
 
     // Tầng 3: Fallback (Mới nhất)
     if (posts.length === 0) {
-      const { data: newest } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("status", "APPROVED")
-        .order("created_at", { ascending: false })
-        .limit(3);
-      posts = newest || [];
+      const { data } = await baseQuery().limit(3);
+      posts = data || [];
       note =
         "Huhu chưa tìm thấy phòng nào khớp yêu cầu. Bạn xem tạm phòng mới nhất nha:";
     }
 
-    // === BƯỚC 4: TRẢ LỜI ===
-    // Tạo text danh sách để AI đọc
+    // === BƯỚC 3: TRẢ LỜI ===
     const listInfo = posts
       .map(
         (p, i) =>
           `${i + 1}. ${
-            p.motelName || "Trọ"
+            p.motelName || p.title
           } - ${p.price?.toLocaleString()}đ - ${p.ward}`
       )
       .join("\n");
@@ -217,31 +215,24 @@ Deno.serve(async (req) => {
     const promptReply = `
       Bạn là Gà Bông 🐣.
       User: "${message}"
-      Note hệ thống: "${note}"
-      Danh sách phòng:
+      Note: "${note}"
+      List:
       ${listInfo}
       
-      Yêu cầu:
-      - Trả lời ngắn gọn, thân thiện.
-      - Dựa vào "Note hệ thống" để trả lời.
-      - KHÔNG bịa ra phòng không có trong danh sách.
+      Yêu cầu: Trả lời ngắn gọn, vui vẻ. Dựa vào Note để phản hồi.
     `;
 
     const botReply =
       (await callGeminiText(GEMINI_API_KEY, promptReply)) ||
       "Gà Bông đang lag xíu 🐣";
 
-    // Lưu Log
     await supabase
       .from("chat_messages")
       .insert({ user_id: user.id, content: botReply, is_bot: true });
 
-    return new Response(
-      JSON.stringify({ success: true, reply: botReply, data: posts }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, reply: botReply }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
