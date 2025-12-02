@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     `;
 
     // 3. Gửi sang Google (CÓ LOG ERROR) - ĐÃ SỬA URL VÀ DÙNG BACKTICK (`)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     const aiPayload = {
       contents: [
