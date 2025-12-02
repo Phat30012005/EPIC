@@ -223,6 +223,9 @@ document.addEventListener("DOMContentLoaded", function () {
       document.body.insertAdjacentHTML("beforeend", html);
       if (typeof initializeChatbox === "function") {
         initializeChatbox();
+      } else if (typeof initializeChatbox === "function") {
+        initializeChatbox(); // Fallback cho cách gọi cũ
       }
     });
+    .catch(err => console.error("Lỗi tải Chatbox HTML:", err));
 });

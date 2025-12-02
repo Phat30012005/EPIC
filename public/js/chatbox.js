@@ -4,7 +4,7 @@
    ======================================= */
 
 // Gói toàn bộ logic vào DOMContentLoaded để đảm bảo HTML & Supabase đã tải xong
-document.addEventListener("DOMContentLoaded", async () => {
+window.initializeChatbox = async function() {
   // 1. KIỂM TRA AN TOÀN (QUAN TRỌNG NHẤT)
   // Nếu không tìm thấy div chat-widget, dừng ngay lập tức.
   // Điều này ngăn code chạy trên trang Login/Signup gây lỗi.
