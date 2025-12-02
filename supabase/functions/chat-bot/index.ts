@@ -1,12 +1,12 @@
 // supabase/functions/chat-bot/index.ts
-// VERSION V13 — THE MASTERPIECE (JSON SCHEMA + ROBUST SANITIZER)
+// VERSION V12 — ONE FILE BUILD (PRODUCTION READY)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 //
 // ---------------------------------------------------------
-// 1. CORS & CONFIG
+// 1. CORS CONFIG
 // ---------------------------------------------------------
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,97 +20,64 @@ const corsHeaders = {
 // 2. UTILS
 // ---------------------------------------------------------
 
-// Vệ sinh JSON an toàn (Dự phòng cho trường hợp Schema trả về markdown)
+// Safe JSON cleaner
 function safeJson(txt = "") {
   try {
-    txt = txt.replace(/```[\s\S]*?```/g, "").trim(); // Xóa markdown nếu có
+    txt = txt.replace(/```[\s\S]*?```/g, "").trim();
     const match = txt.match(/\{[\s\S]*\}/);
     if (!match) return null;
-    return JSON.parse(match[0]);
+
+    const cleaned = match[0].replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+
+    return JSON.parse(cleaned);
   } catch {
     return null;
   }
 }
 
-// [CỰC KỲ QUAN TRỌNG] Bộ lọc từ khóa mạnh mẽ từ V11
-// Ngăn chặn AI hiểu nhầm các từ giao tiếp là địa điểm
+// Remove SQL wildcard injection
 function sanitizeKeyword(kw: string | null) {
   if (!kw) return null;
-  const lower = kw.toLowerCase().trim();
-
-  // Danh sách đen các từ không phải địa điểm
-  const blockList = [
-    "trọ",
-    "phòng",
-    "nhà",
-    "căn",
-    "hộ",
-    "chung",
-    "cư",
-    "ở",
-    "tại",
-    "khu",
-    "vực",
-    "quận",
-    "huyện",
-    "thành",
-    "phố",
-    "tìm",
-    "kiếm",
-    "cần",
-    "thuê",
-    "muốn",
-    "giá",
-    "giúp",
-    "với",
-    "mình",
-    "nha",
-    "nhé",
-    "ạ",
-    "ơi",
-    "ad",
-    "admin",
-    "gấp",
-  ];
-
-  // 1. Loại bỏ ký tự đặc biệt SQL
-  let safeKw = lower.replace(/[%_'"();]/g, "");
-
-  // 2. Kiểm tra danh sách đen
-  if (blockList.includes(safeKw)) return null;
-
-  // 3. Kiểm tra độ dài (dưới 2 ký tự là vô nghĩa)
-  if (safeKw.length < 2) return null;
-
-  return safeKw; // Trả về từ khóa sạch (ví dụ: "ninh kiều", "lê bình")
+  return kw.replace(/[%_]/g, "").trim();
 }
 
-// Fetch an toàn với timeout và retry
-async function safeFetch(url, options: any = {}, retries = 1, timeout = 8000) {
+// Fetch with timeout + retry (production-grade)
+async function safeFetch(url, options: any = {}, retries = 2, timeout = 9000) {
   for (let i = 0; i <= retries; i++) {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeout);
-      const res = await fetch(url, { ...options, signal: controller.signal });
+
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
       clearTimeout(timer);
-      if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+
+      if (!res.ok) throw new Error("HTTP " + res.status);
       return await res.json();
     } catch (err) {
       if (i === retries) throw err;
-      await new Promise((r) => setTimeout(r, 500)); // Đợi 0.5s trước khi thử lại
+      await new Promise((r) => setTimeout(r, 300 * (i + 1))); // retry backoff
     }
   }
 }
 
 //
 // ---------------------------------------------------------
-// 3. AI LOGIC (GEMINI)
+// 3. GEMINI WRAPPERS
 // ---------------------------------------------------------
 
+// Native Gemini call with optional JSON schema
 async function callGemini(apiKey: string, prompt: string, schema: any = null) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const body: any = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
 
+  const body: any = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+  };
+
+  // Bật JSON mode nếu có schema
   if (schema) {
     body.generationConfig = {
       responseMimeType: "application/json",
@@ -127,33 +94,57 @@ async function callGemini(apiKey: string, prompt: string, schema: any = null) {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
 }
 
+// Extract Intent reliably (100% JSON guaranteed)
 async function parseIntent(apiKey: string, message: string) {
   const schema = {
     type: "object",
     properties: {
-      max_price: { type: "integer", nullable: true }, // Gemini 1.5 dùng "nullable"
-      keyword: { type: "string", nullable: true },
+      max_price: { type: ["integer", "null"] },
+      keyword: { type: ["string", "null"] },
     },
     required: ["max_price", "keyword"],
   };
 
   const prompt = `
-  Role: AI phân tích tìm kiếm bất động sản Việt Nam.
-  Input: "${message}"
+  Extract info from Vietnamese query:
+  {
+    "max_price": integer in VND (convert all forms: "3tr", "3 triệu"),
+    "keyword": string or null (location name)
+  }
   
-  Nhiệm vụ: Trích xuất JSON chính xác.
-  1. max_price: Đổi về số nguyên VNĐ (ví dụ: "3 triệu" -> 3000000).
-  2. keyword: Chỉ lấy tên địa danh (Phường, Đường, Quận). Bỏ qua các từ như "tìm", "giúp", "ở", "tại".
+  Input: "${message}"
+  Return JSON ONLY.
   `;
 
   const raw = await callGemini(apiKey, prompt, schema);
-  const json = safeJson(raw);
+  return safeJson(raw) || { max_price: null, keyword: null };
+}
 
-  return {
-    max_price: json?.max_price || null,
-    // Áp dụng bộ lọc sanitizeKeyword ngay tại đây để an toàn tuyệt đối
-    keyword: sanitizeKeyword(json?.keyword || null),
-  };
+// Generate final chat reply
+async function generateReply(
+  apiKey: string,
+  userMessage: string,
+  context: string,
+  listText: string,
+  isSuggest: boolean
+) {
+  const prompt = `
+  Bạn là Gà Bông 🐣 — trợ lý tìm phòng trọ.
+  Giọng dễ thương, trả lời tối đa 3 câu.
+
+  User hỏi: "${userMessage}"
+  ${isSuggest ? "⚠ Không tìm đúng → gợi ý phòng mới nhất." : ""}
+
+  ${context}
+  ${listText}
+
+  Không mô tả quy trình. Không nói dài dòng. Trả lời tự nhiên.
+  `;
+
+  return (
+    (await callGemini(apiKey, prompt)) ||
+    "Gà Bông đang hơi lag, bạn hỏi lại nha 🐣"
+  );
 }
 
 //
@@ -162,12 +153,13 @@ async function parseIntent(apiKey: string, message: string) {
 // ---------------------------------------------------------
 
 Deno.serve(async (req) => {
+  // CORS preflight
   if (req.method === "OPTIONS")
     return new Response("ok", { headers: corsHeaders });
 
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")?.trim();
-    if (!GEMINI_API_KEY) throw new Error("Missing API Key");
+    if (!GEMINI_API_KEY) throw new Error("Missing GEMINI_API_KEY");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -177,90 +169,90 @@ Deno.serve(async (req) => {
     // Auth
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
     if (!token) throw new Error("Unauthorized");
+
     const {
       data: { user },
     } = await supabase.auth.getUser(token);
+
     if (!user) throw new Error("Auth failed");
 
     const { message } = await req.json();
 
-    // === BƯỚC 1: HIỂU Ý ===
+    //
+    // STEP 1 — AI INTENT PARSING
+    //
     const intent = await parseIntent(GEMINI_API_KEY, message);
-    console.log("Parsed Intent:", intent); // Debug log
+    intent.keyword = sanitizeKeyword(intent.keyword);
+    console.log("Intent:", intent);
 
-    // === BƯỚC 2: TÌM KIẾM (RPC) ===
-    // Gọi hàm SQL thông minh trong Database
+    //
+    // STEP 2 — DATABASE SEARCH VIA RPC
+    //
     const { data: posts } = await supabase.rpc("match_posts_advanced", {
       p_keyword: intent.keyword,
       p_max_price: intent.max_price,
       p_limit: 5,
     });
 
-    // === BƯỚC 3: XỬ LÝ KẾT QUẢ ===
     let finalPosts = posts || [];
     let context = "";
-    let isFallback = false;
+    let isSuggest = false;
 
+    // No match → fallback
     if (finalPosts.length === 0) {
-      // Fallback: Lấy tin mới nhất
       const { data: newest } = await supabase
         .from("posts")
         .select("*")
-        .eq("status", "APPROVED")
         .order("created_at", { ascending: false })
         .limit(3);
+
       finalPosts = newest || [];
-      isFallback = true;
-      context = `Không tìm thấy phòng khớp yêu cầu (${
-        intent.max_price ? "<" + intent.max_price : ""
-      }, ${intent.keyword || "tất cả"}). Gợi ý phòng mới nhất:`;
+      isSuggest = true;
+      context = `Không tìm thấy phòng khớp yêu cầu. Đây là vài phòng mới nhất để bạn tham khảo:`;
     } else {
-      context = `Tìm thấy ${finalPosts.length} phòng phù hợp:`;
+      context = `Gà Bông tìm được ${finalPosts.length} phòng hợp với yêu cầu nè 🐣:`;
     }
 
+    //
+    // STEP 3 — BUILD ROOM LIST TEXT
+    //
     const listText = finalPosts
       .map(
         (p: any, i: number) =>
-          `${i + 1}. ${
-            p.motelName || p.title
-          } — ${p.price?.toLocaleString()}đ — ${p.ward}`
+          `${i + 1}. ${p.motelName || p.title} — ${
+            p.price?.toLocaleString("vi-VN") || "?"
+          }đ — ${p.ward}`
       )
       .join("\n");
 
-    // === BƯỚC 4: TRẢ LỜI ===
-    const replyPrompt = `
-      Bạn là Gà Bông 🐣.
-      User: "${message}"
-      Context: ${context}
-      Danh sách:
-      ${listText}
-      
-      Yêu cầu:
-      - Giọng vui vẻ, ngắn gọn.
-      - ${
-        isFallback
-          ? "Xin lỗi khéo và mời xem phòng gợi ý."
-          : "Mời khách xem phòng tìm được."
-      }
-      - Không bịa thông tin.
-    `;
+    //
+    // STEP 4 — GENERATE FINAL BOT REPLY
+    //
+    const botReply = await generateReply(
+      GEMINI_API_KEY,
+      message,
+      context,
+      listText,
+      isSuggest
+    );
 
-    const botReply =
-      (await callGemini(GEMINI_API_KEY, replyPrompt)) ||
-      "Gà Bông đang lag xíu, bạn thử lại nha 🐣";
-
-    // Lưu log
+    //
+    // STEP 5 — LOG TO DB
+    //
     await supabase.from("chat_messages").insert({
       user_id: user.id,
       content: botReply,
       is_bot: true,
     });
 
+    //
+    // STEP 6 — RETURN
+    //
     return new Response(JSON.stringify({ success: true, reply: botReply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    console.error("Error:", err);
+    console.error("ChatBot Error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: corsHeaders,
