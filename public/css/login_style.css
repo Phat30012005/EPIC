@@ -181,28 +181,36 @@ input[type="radio"] {
   display: none;
 }
 
+/* --- PHIÊN BẢN CĂN GIỮA TUYỆT ĐỐI (FIX LỆCH MẮT) --- */
+
 .toggle-password {
   position: absolute;
-  right: 12px;
+  right: 10px; /* Căn lề phải */
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%); /* Căn giữa dọc so với ô input */
 
-  width: 35px;
-  height: 35px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 40px; /* Kích thước hộp chứa (hình tròn) */
+  height: 40px; /* Vuông vức để bo tròn đều */
 
-  font-size: 20px;
-  color: #9ca3af;
+  /* Kỹ thuật căn giữa "thần thánh" cho Icon */
+  display: grid;
+  place-items: center; /* Ép mọi thứ bên trong vào chính giữa */
+
+  /* Reset các thuộc tính văn bản gây lệch */
+  line-height: 1 !important;
+  margin: 0;
+  padding: 0;
+
+  font-size: 22px; /* Kích thước con mắt */
+  color: #9ca3af; /* Màu xám */
   cursor: pointer;
+  border-radius: 50%; /* Bo tròn thành hình tròn */
   z-index: 10;
-
-  border-radius: 50%;
   transition: all 0.2s ease;
 }
 
+/* Hiệu ứng khi di chuột */
 .toggle-password:hover {
-  color: #007bff;
-  background-color: rgba(0, 123, 255, 0.1);
+  background-color: rgba(0, 123, 255, 0.1); /* Nền xanh nhạt */
+  color: #007bff; /* Mắt chuyển màu xanh */
 }
