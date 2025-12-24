@@ -1,11 +1,14 @@
 /* =======================================
    --- FILE: public/js/danhSach.js ---
-   (PHIÊN BẢN FIXED: HIỂN THỊ ẢNH + PHÂN TRANG)
+   (PHIÊN BẢN FIXED: FULL URL SUPABASE + SAFE RENDER)
    ======================================= */
 
 let savedPostIds = new Set();
-let currentPage = 1; // Trang hiện tại mặc định
-const ITEMS_PER_PAGE = 12; // Số tin mỗi trang
+let currentPage = 1;
+const ITEMS_PER_PAGE = 12;
+
+// CẤU HÌNH BUCKET (Dựa trên file migration của bạn)
+const STORAGE_BUCKET = "post-images";
 
 /**
  * 1. Tải trạng thái đã lưu (Bookmark)
@@ -21,7 +24,6 @@ async function loadSavedStatus() {
   });
 
   if (!error && data) {
-    // Lấy danh sách ID tin đã lưu
     const list = data.data || data;
     const postIds = list
       .filter((b) => b.post)
@@ -31,89 +33,135 @@ async function loadSavedStatus() {
 }
 
 /**
+ * HÀM HỖ TRỢ: Xử lý đường dẫn ảnh an toàn
+ * Tránh lỗi domino khi dữ liệu đầu vào lộn xộn
+ */
+function getSafeImageUrl(postData) {
+  // 1. Lấy dữ liệu thô từ các trường có thể có
+  let raw = postData.image_urls || postData.images;
+
+  // 2. Nếu là chuỗi JSON (ví dụ "['img1.jpg']") -> Parse ra mảng
+  if (typeof raw === "string") {
+    try {
+      // Kiểm tra xem có phải JSON array không
+      if (raw.trim().startsWith("[")) {
+        raw = JSON.parse(raw);
+      } else {
+        // Nếu là chuỗi thường (tên file), biến nó thành mảng 1 phần tử
+        raw = [raw];
+      }
+    } catch (e) {
+      console.warn("Lỗi parse ảnh:", e);
+      // Giữ nguyên giá trị cũ nếu không parse được
+    }
+  }
+
+  // 3. Lấy phần tử đầu tiên
+  let imgPath = null;
+  if (Array.isArray(raw) && raw.length > 0) {
+    imgPath = raw[0];
+  } else if (typeof raw === "string") {
+    imgPath = raw;
+  }
+
+  // 4. Kiểm tra và trả về URL
+  if (!imgPath) return "assets/logo1.png"; // Ảnh mặc định
+
+  // Nếu đã là link đầy đủ (http/https) hoặc ảnh nội bộ (assets/)
+  if (imgPath.startsWith("http") || imgPath.startsWith("assets/")) {
+    return imgPath;
+  }
+
+  // 5. Nếu chỉ là tên file -> Ghép link Supabase Storage
+  // Dùng hàm getPublicUrl của Supabase Client để đảm bảo đúng domain
+  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(imgPath);
+
+  return data.publicUrl;
+}
+
+/**
  * 2. Render danh sách phòng
  */
 function renderRooms(responseData) {
   const roomList = document.getElementById("roomList");
   roomList.innerHTML = "";
 
-  // Xử lý dữ liệu trả về từ API (để hỗ trợ cả phân trang và không phân trang)
   let rooms = [];
   let pagination = null;
 
   if (responseData && responseData.data) {
-    rooms = responseData.data; // Danh sách tin
-    pagination = responseData.pagination; // Thông tin phân trang { page, total_pages, ... }
+    rooms = responseData.data;
+    pagination = responseData.pagination;
   } else if (Array.isArray(responseData)) {
-    rooms = responseData; // Trường hợp API search cũ trả về mảng trực tiếp
+    rooms = responseData;
   }
 
   if (rooms.length === 0) {
     roomList.innerHTML = `<p class="text-center text-gray-500 mt-4 col-span-3">Không có phòng nào phù hợp.</p>`;
-    renderPagination(null); // Xóa phân trang nếu không có dữ liệu
+    renderPagination(null);
     return;
   }
 
-  // Vẽ từng thẻ phòng
   rooms.forEach((room) => {
     const div = document.createElement("div");
     div.className =
       "bg-white rounded shadow p-3 hover:shadow-lg transition flex flex-col h-full";
 
-    // --- [FIX QUAN TRỌNG] XỬ LÝ HIỂN THỊ ẢNH ---
-    // 1. Kiểm tra cả 2 tên biến có thể có: 'images' (trong DB) hoặc 'image_urls'
-    let rawImages = room.images || room.image_urls;
+    // --- SỬ DỤNG HÀM FIX ẢNH ---
+    const imageSrc = getSafeImageUrl(room);
+    // ---------------------------
 
-    // 2. Nếu dữ liệu là chuỗi JSON (vd: "['link1', 'link2']"), cần Parse ra mảng
-    if (typeof rawImages === "string") {
-      try {
-        rawImages = JSON.parse(rawImages);
-      } catch (e) {
-        console.error("Lỗi parse ảnh:", e);
-        rawImages = [];
-      }
-    }
-
-    // 3. Lấy ảnh đầu tiên nếu có, ngược lại null
-    const originalUrl =
-      Array.isArray(rawImages) && rawImages.length > 0 ? rawImages[0] : null;
-
-    // 4. Tối ưu ảnh qua Utils
-    const imageSrc = Utils.getOptimizedImage(originalUrl, 400);
-    // --- [KẾT THÚC PHẦN FIX] ---
-
-    const priceFormatted = Utils.formatCurrencyShort(room.price);
+    const priceFormatted = Utils.formatCurrencyShort
+      ? Utils.formatCurrencyShort(room.price)
+      : `${room.price} VNĐ`;
     const postId = room.id || room.post_id;
 
-    // Nút Lưu
+    // Xử lý nút lưu
     const isSaved = savedPostIds.has(postId);
     const saveBtnIcon = isSaved
       ? '<i class="fa-solid fa-heart"></i>'
       : '<i class="fa-regular fa-heart"></i>';
     const saveBtnClass = isSaved ? "active" : "";
 
-    // Thông tin người đăng
-    const avatarOriginal = room.profiles?.avatar_url;
-    const avatarSrc = Utils.getOptimizedImage(avatarOriginal, 100);
+    // Xử lý Avatar người đăng
+    let avatarSrc = "assets/logo1.png";
+    if (room.profiles && room.profiles.avatar_url) {
+      avatarSrc = room.profiles.avatar_url;
+      // Nếu avatar chưa có http, ghép link storage (tương tự ảnh phòng)
+      if (!avatarSrc.startsWith("http")) {
+        const { data } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(avatarSrc); // Giả sử bucket avatar là 'avatars'
+        avatarSrc = data.publicUrl;
+      }
+    }
     const profileName = room.profiles?.full_name || "Ẩn danh";
     const profileUrl = `/profile.html?user_id=${room.user_id}`;
 
+    // Render HTML
     div.innerHTML = `
-      <img src="${imageSrc}" alt="${
-      room.motelName || "Phòng trọ"
-    }" class="w-full h-48 object-cover mb-3 rounded">
-      <h5 class="font-bold text-lg mb-1 truncate">${
-        room.motelName || "Chưa có tên"
-      }</h5>
+      <div class="relative w-full h-48 mb-3 overflow-hidden rounded">
+        <img src="${imageSrc}" 
+             alt="${room.motelName || "Phòng trọ"}" 
+             class="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+             onerror="this.src='assets/logo1.png'">
+      </div>
       
-      <p class="text-gray-600 mb-1 text-sm truncate"><i class="fa-solid fa-location-dot mr-1"></i> ${
-        room.ward || room.address_detail || "Chưa cập nhật"
-      }</p>
+      <h5 class="font-bold text-lg mb-1 truncate" title="${
+        room.motelName || ""
+      }">${room.motelName || "Chưa có tên"}</h5>
+      
+      <p class="text-gray-600 mb-1 text-sm truncate">
+        <i class="fa-solid fa-location-dot mr-1"></i> ${
+          room.ward || room.address_detail || "Chưa cập nhật"
+        }
+      </p>
+      
       <p class="text-primary font-semibold mb-2">${priceFormatted}/tháng</p>
       
       <div class="mt-auto pt-2 border-t flex items-center mb-3">
          <a href="${profileUrl}" class="flex items-center text-decoration-none group" target="_blank">
-             <img src="${avatarSrc}" alt="ava" class="rounded-circle border group-hover:border-primary transition" style="width: 28px; height: 28px; object-fit: cover; margin-right: 8px;">
+             <img src="${avatarSrc}" alt="ava" class="rounded-circle border group-hover:border-primary transition" style="width: 28px; height: 28px; object-fit: cover; margin-right: 8px;" onerror="this.src='assets/logo1.png'">
              <span class="text-sm text-gray-500 truncate group-hover:text-primary transition font-medium">${profileName}</span>
          </a>
       </div>
@@ -130,7 +178,6 @@ function renderRooms(responseData) {
 
   addSaveButtonListeners();
 
-  // Vẽ nút phân trang nếu có dữ liệu pagination
   if (pagination) {
     renderPagination(pagination);
   }
@@ -148,7 +195,6 @@ function renderPagination(pagination) {
 
   const { page, total_pages } = pagination;
 
-  // Nút Previous
   const prevDisabled = page === 1 ? "disabled" : "";
   paginationEl.innerHTML += `
     <li class="page-item ${prevDisabled}">
@@ -158,7 +204,6 @@ function renderPagination(pagination) {
     </li>
   `;
 
-  // Các nút số trang
   for (let i = 1; i <= total_pages; i++) {
     const active = i === page ? "active" : "";
     paginationEl.innerHTML += `
@@ -168,7 +213,6 @@ function renderPagination(pagination) {
     `;
   }
 
-  // Nút Next
   const nextDisabled = page === total_pages ? "disabled" : "";
   paginationEl.innerHTML += `
     <li class="page-item ${nextDisabled}">
@@ -179,14 +223,10 @@ function renderPagination(pagination) {
   `;
 }
 
-/**
- * 4. Hàm xử lý khi bấm chuyển trang
- */
 window.changePage = function (newPage) {
   if (newPage < 1) return;
   currentPage = newPage;
-  handleFilter(); // Gọi lại bộ lọc với trang mới
-  // Cuộn lên đầu danh sách cho dễ nhìn
+  handleFilter();
   const titleEl = document.getElementById("default-title");
   if (titleEl) titleEl.scrollIntoView({ behavior: "smooth" });
 };
@@ -239,7 +279,6 @@ function addSaveButtonListeners() {
   });
 }
 
-// 6. Render Skeleton Loading
 function renderSkeletons() {
   const roomList = document.getElementById("roomList");
   if (!roomList) return;
@@ -260,7 +299,6 @@ function renderSkeletons() {
  * 7. Hàm Lọc chính
  */
 async function handleFilter() {
-  console.log(`[danhSach.js] Đang lọc trang ${currentPage}...`);
   renderSkeletons();
 
   const params = new URLSearchParams(window.location.search);
@@ -272,7 +310,7 @@ async function handleFilter() {
   const filterLocal = document.getElementById("local-desktop");
 
   const paramsObject = {
-    page: currentPage, // Gửi trang hiện tại lên server
+    page: currentPage,
     limit: ITEMS_PER_PAGE,
   };
 
@@ -296,7 +334,7 @@ async function handleFilter() {
     console.error("Lỗi lọc:", error);
     const roomList = document.getElementById("roomList");
     if (roomList) {
-      roomList.innerHTML = `<p class="text-center text-red-500">Lỗi: ${error.message}</p>`;
+      roomList.innerHTML = `<p class="text-center text-red-500">Lỗi kết nối: ${error.message}</p>`;
     }
     return;
   }
@@ -310,7 +348,6 @@ async function handleFilter() {
 async function initializePage() {
   await loadSavedStatus();
 
-  // Nếu đang tìm kiếm (search q=...) thì dùng API search riêng
   const params = new URLSearchParams(window.location.search);
   const searchQuery = params.get("q");
 
@@ -334,7 +371,6 @@ async function initializePage() {
   }
 }
 
-// Gán sự kiện change cho bộ lọc -> Reset về trang 1
 const filters = [
   "filterPrice",
   "filterType",
@@ -345,11 +381,10 @@ filters.forEach((id) => {
   const el = document.getElementById(id);
   if (el) {
     el.addEventListener("change", () => {
-      currentPage = 1; // Reset về trang 1 khi đổi bộ lọc
+      currentPage = 1;
       handleFilter();
     });
   }
 });
 
-// Chạy hàm khởi tạo
 initializePage();
