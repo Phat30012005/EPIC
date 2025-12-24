@@ -1,11 +1,34 @@
 /* =======================================
    --- FILE: public/js/oghep-danhsach.js ---
-   (PHIÊN BẢN FINAL - CÓ PHÂN TRANG & FIX LỖI)
+   (PHIÊN BẢN FIXED V2: HIỂN THỊ AVATAR + PHÂN TRANG)
    ======================================= */
 
 let savedRoommatePostIds = new Set();
 let currentPage = 1; // Trang hiện tại
 const ITEMS_PER_PAGE = 12; // Số tin mỗi trang
+
+// CẤU HÌNH BUCKET (Quan trọng để hiển thị ảnh upload)
+const AVATAR_BUCKET = "avatars";
+
+/**
+ * [HELPER] Xử lý Avatar an toàn (Giống trang danh sách chính)
+ */
+function getSafeAvatar(profile) {
+  // 1. Nếu không có profile hoặc không có avatar -> Về logo mặc định
+  if (!profile || !profile.avatar_url) return "assets/logo1.png";
+
+  const rawUrl = profile.avatar_url;
+
+  // 2. Nếu là link tuyệt đối (Google/Facebook/Link ngoài) -> Giữ nguyên
+  if (rawUrl.startsWith("http") || rawUrl.startsWith("https")) {
+    return rawUrl;
+  }
+
+  // 3. Nếu là đường dẫn file trong Storage -> Ghép link Bucket
+  // Dùng hàm getPublicUrl của Supabase để lấy link chuẩn
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(rawUrl);
+  return data.publicUrl;
+}
 
 // 1. Tải trạng thái đã lưu (Bookmark)
 async function loadSavedRoommateStatus() {
@@ -60,14 +83,15 @@ function renderPostings(responseData) {
     const typeBadgeClass = isOffering ? "bg-success" : "bg-info";
     const typeText = isOffering ? "Cần tìm người" : "Cần tìm phòng";
 
-    const priceFormatted = Utils.formatCurrencyShort(post.price);
+    const priceFormatted = Utils.formatCurrencyShort
+      ? Utils.formatCurrencyShort(post.price)
+      : `${post.price} VNĐ`;
 
-    // --- [FIX] Xử lý ảnh & Tên người dùng ---
-    const avatarOriginal = post.profiles?.avatar_url;
-    // Dùng ảnh tối ưu 100px
-    const avatarSrc = Utils.getOptimizedImage(avatarOriginal, 100);
+    // --- [FIX] Xử lý Avatar An Toàn ---
+    // Thay thế logic cũ bằng hàm getSafeAvatar
+    const avatarSrc = getSafeAvatar(post.profiles);
 
-    // [QUAN TRỌNG] Khai báo profileName để tránh lỗi ReferenceError
+    // Tên người dùng
     const profileName = post.profiles?.full_name || "Ẩn danh";
     // ----------------------------------------
 
@@ -83,19 +107,24 @@ function renderPostings(responseData) {
       <div class="mb-2">
         <span class="badge ${typeBadgeClass}">${typeText}</span>
       </div>
-      <h5 class="font-bold text-lg mb-1 truncate">${post.title}</h5>
+      <h5 class="font-bold text-lg mb-1 truncate" title="${post.title}">${
+      post.title
+    }</h5>
       <p class="text-primary font-semibold mb-1">${priceFormatted}/người</p>
-      <p class="text-gray-600 mb-2 text-sm"><i class="fa-solid fa-location-dot"></i> ${
+      <p class="text-gray-600 mb-2 text-sm truncate"><i class="fa-solid fa-location-dot"></i> ${
         post.ward
       }</p>
-      <p class="text-gray-500 text-xs mb-3">Yêu cầu: ${
+      <p class="text-gray-500 text-xs mb-3 truncate">Yêu cầu: ${
         post.gender_preference || "Không"
       }</p>
 
       <div class="mt-auto pt-3 border-t flex items-center">
          <a href="${profileUrl}" class="flex items-center text-decoration-none group" target="_blank">
-             <img src="${avatarSrc}" alt="ava" class="rounded-circle border group-hover:border-primary transition" style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;">
-             <span class="text-sm text-gray-500 truncate group-hover:text-primary transition font-medium">${profileName}</span>
+             <img src="${avatarSrc}" alt="ava" 
+                  class="rounded-circle border group-hover:border-primary transition" 
+                  style="width: 30px; height: 30px; object-fit: cover; margin-right: 8px;"
+                  onerror="this.src='assets/logo1.png'">
+             <span class="text-sm text-gray-500 truncate group-hover:text-primary transition font-medium" style="max-width: 140px;">${profileName}</span>
          </a>
       </div>
       <div class="flex items-center mt-3 justify-content-between">
@@ -167,9 +196,11 @@ window.changePage = function (newPage) {
   if (newPage < 1) return;
   currentPage = newPage;
   handleFilter();
-  document
-    .getElementById("default-title")
-    .scrollIntoView({ behavior: "smooth" });
+  // Scroll lên đầu danh sách để người dùng dễ thấy
+  const titleEl =
+    document.getElementById("default-title") ||
+    document.getElementById("roomList");
+  if (titleEl) titleEl.scrollIntoView({ behavior: "smooth" });
 };
 
 // 5. Gán sự kiện nút Lưu
@@ -191,26 +222,31 @@ function addRoommateSaveButtonListeners() {
       button.disabled = true;
       const isActive = button.classList.contains("btn-danger");
 
-      if (isActive) {
-        await callEdgeFunction("remove-roommate-bookmark", {
-          method: "DELETE",
-          params: { posting_id: postId },
-        });
-        button.classList.remove("btn-danger");
-        button.classList.add("btn-outline-danger");
-        button.innerHTML = '<i class="fa-regular fa-heart"></i>';
-        savedRoommatePostIds.delete(postId);
-      } else {
-        await callEdgeFunction("add-roommate-bookmark", {
-          method: "POST",
-          body: { posting_id: postId },
-        });
-        button.classList.remove("btn-outline-danger");
-        button.classList.add("btn-danger");
-        button.innerHTML = '<i class="fa-solid fa-heart"></i>';
-        savedRoommatePostIds.add(postId);
+      try {
+        if (isActive) {
+          await callEdgeFunction("remove-roommate-bookmark", {
+            method: "DELETE",
+            params: { posting_id: postId },
+          });
+          button.classList.remove("btn-danger");
+          button.classList.add("btn-outline-danger");
+          button.innerHTML = '<i class="fa-regular fa-heart"></i>';
+          savedRoommatePostIds.delete(postId);
+        } else {
+          await callEdgeFunction("add-roommate-bookmark", {
+            method: "POST",
+            body: { posting_id: postId },
+          });
+          button.classList.remove("btn-outline-danger");
+          button.classList.add("btn-danger");
+          button.innerHTML = '<i class="fa-solid fa-heart"></i>';
+          savedRoommatePostIds.add(postId);
+        }
+      } catch (error) {
+        alert("Lỗi thao tác: " + error.message);
+      } finally {
+        button.disabled = false;
       }
-      button.disabled = false;
     });
   });
 }
@@ -219,6 +255,9 @@ function addRoommateSaveButtonListeners() {
 async function handleFilter() {
   console.log(`[oghep] Đang lọc trang ${currentPage}...`);
   const roomList = document.getElementById("roomList");
+
+  // Render loading skeleton (tùy chọn, để UX tốt hơn)
+  // roomList.innerHTML = '<p class="text-center w-full col-span-3">Đang tải...</p>';
 
   const filterPrice = document.getElementById("filterPrice")?.value;
   const filterLocal = document.getElementById("local-desktop")?.value;
@@ -242,7 +281,7 @@ async function handleFilter() {
 
   if (error) {
     console.error("Lỗi lọc:", error);
-    roomList.innerHTML = `<p class="text-center text-red-500">Lỗi kết nối: ${error.message}</p>`;
+    roomList.innerHTML = `<p class="text-center text-red-500 col-span-3">Lỗi kết nối: ${error.message}</p>`;
     return;
   }
 
