@@ -117,5 +117,29 @@ const Utils = {
     return url;
   },
 };
+/* --- THÊM VÀO CUỐI FILE public/js/utils.js --- */
 
+/**
+ 
+Hàm bật tắt hiển thị mật khẩu
+Sử dụng icon của Boxicons (bx-show / bx-hide)*/
+function togglePasswordVisibility(inputId, iconElement) {
+  const input = document.getElementById(inputId);
+
+  if (!input) return;
+
+  if (input.type === "password") {
+    // 1. Chuyển sang hiện chữ
+    input.type = "text";
+    // 2. Đổi icon thành con mắt mở (bx-show)
+    iconElement.classList.remove("bx-hide");
+    iconElement.classList.add("bx-show");
+  } else {
+    // 1. Chuyển về ẩn mật khẩu
+    input.type = "password";
+    // 2. Đổi icon thành con mắt đóng/gạch chéo (bx-hide)
+    iconElement.classList.remove("bx-show");
+    iconElement.classList.add("bx-hide");
+  }
+}
 console.log("✅ Utils loaded with Constants");
