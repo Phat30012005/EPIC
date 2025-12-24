@@ -99,7 +99,7 @@ export const BOT_SCRIPT: Record<string, BotStep> = {
   contact_admin: {
     id: "contact_admin",
     message:
-      "Nếu gặp lỗi nghiêm trọng, hãy gửi email trực tiếp cho đội kỹ thuật qua: support@chicky.stu 📧",
+      "Nếu gặp lỗi nghiêm trọng, hãy gửi email trực tiếp cho đội kỹ thuật qua: chickiesstudio@gmail.com 📧",
     options: [{ label: "Quay lại menu chính", next_step: "start" }],
   },
   end_conversation: {
