@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
-    if (authError  !user) throw new Error("Unauthorized");
+    if (authError || !user) throw new Error("Unauthorized");
 
     const { step_id } = await req.json();
     // Mặc định là 'start' nếu không có step_id
