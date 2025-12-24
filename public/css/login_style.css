@@ -207,6 +207,7 @@ input[type="radio"] {
   border-radius: 50%; /* Bo tròn thành hình tròn */
   z-index: 10;
   transition: all 0.2s ease;
+  padding-top: 2px;
 }
 
 /* Hiệu ứng khi di chuột */
