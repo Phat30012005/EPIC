@@ -323,33 +323,21 @@
 
 
 .option-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;               / Khoảng cách nhỏ lại xíu cho gọn /
-    justify-content: center; / QUAN TRỌNG: Căn giữa toàn bộ nút /
+    display: grid;
+    grid-template-columns: 1fr 1fr; / Chia làm 2 cột đều nhau /
+    gap: 8px;
     padding-top: 5px;
 }
 
 .option-btn {
-    / ...các thuộc tính cũ giữ nguyên... /
-    background-color: #f0f2f5;
-    border: none;
-    color: #050505;
-    padding: 8px 16px;      / Tăng padding ngang cho nút dài ra xíu /
-    border-radius: 20px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    / ...giữ nguyên màu sắc... /
+    width: 100%;           / Nút chiếm hết ô lưới /
+    text-align: center;
+    justify-content: center;
 
-    / Animation giữ nguyên /
+    / Animation giữ nguyên */
     opacity: 0;
     animation: popIn 0.3s ease-out forwards;
-
-    / THÊM: Để nút tự co giãn lấp đầy khoảng trống (nhìn sẽ đều hơn) /
-    flex: 1 0 auto; 
-    max-width: 100%;        / Không cho nút tràn khung /
-    text-align: center;     / Chữ căn giữa */
 }
 
 .option-btn:hover {
