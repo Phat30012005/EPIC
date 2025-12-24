@@ -105,22 +105,26 @@ window.initializeChatbox = async function () {
     }
   }
 
-  // === HELPER: RENDER BUTTONS ===
+ // === HELPER: RENDER BUTTONS (GIAO DIỆN MỚI) ===
   function renderOptions(options) {
     ui.optionContainer.innerHTML = ""; // Clear cũ
 
-    options.forEach((opt) => {
+    options.forEach((opt, index) => { // Thêm biến index để tính độ trễ
       const btn = document.createElement("button");
       btn.className = "option-btn";
       btn.textContent = opt.label;
 
-      // Khi bấm nút: Gọi handleStep với ID tiếp theo
+      // THÊM: Chỉnh độ trễ animation (Stagger Effect)
+      // Nút thứ 2 sẽ hiện chậm hơn nút 1 một xíu...
+      btn.style.animationDelay = ${index * 0.1}s; 
+
+      // Khi bấm nút
       btn.onclick = () => handleStep(opt.next_step, opt.label);
 
       ui.optionContainer.appendChild(btn);
     });
 
-    // Scroll xuống để thấy nút mới
+    // Scroll xuống
     setTimeout(scrollToBottom, 100);
   }
 
