@@ -65,20 +65,19 @@ function renderRooms(responseData) {
     let rawImages = room.images || room.image_urls;
 
     // 2. Nếu dữ liệu là chuỗi JSON (vd: "['link1', 'link2']"), cần Parse ra mảng
-    if (typeof rawImages === 'string') {
-        try {
-            rawImages = JSON.parse(rawImages);
-        } catch (e) {
-            console.error("Lỗi parse ảnh:", e);
-            rawImages = [];
-        }
+    if (typeof rawImages === "string") {
+      try {
+        rawImages = JSON.parse(rawImages);
+      } catch (e) {
+        console.error("Lỗi parse ảnh:", e);
+        rawImages = [];
+      }
     }
 
     // 3. Lấy ảnh đầu tiên nếu có, ngược lại null
-    const originalUrl = (Array.isArray(rawImages) && rawImages.length > 0) 
-        ? rawImages[0] 
-        : null;
-        
+    const originalUrl =
+      Array.isArray(rawImages) && rawImages.length > 0 ? rawImages[0] : null;
+
     // 4. Tối ưu ảnh qua Utils
     const imageSrc = Utils.getOptimizedImage(originalUrl, 400);
     // --- [KẾT THÚC PHẦN FIX] ---
@@ -270,3 +269,87 @@ async function handleFilter() {
   const filterPrice = document.getElementById("filterPrice");
   const filterType = document.getElementById("filterType");
   const filterSize = document.getElementById("roomsize-desktop");
+  const filterLocal = document.getElementById("local-desktop");
+
+  const paramsObject = {
+    page: currentPage, // Gửi trang hiện tại lên server
+    limit: ITEMS_PER_PAGE,
+  };
+
+  if (filterType && filterType.value) {
+    paramsObject.type = filterType.value;
+  } else if (urlRoomType) {
+    paramsObject.type = urlRoomType;
+    if (filterType) filterType.value = urlRoomType;
+  }
+
+  if (filterPrice?.value) paramsObject.price = filterPrice.value;
+  if (filterSize?.value) paramsObject.size = filterSize.value;
+  if (filterLocal?.value) paramsObject.ward = filterLocal.value;
+
+  const { data, error } = await callEdgeFunction("posts-api", {
+    method: "GET",
+    params: paramsObject,
+  });
+
+  if (error) {
+    console.error("Lỗi lọc:", error);
+    const roomList = document.getElementById("roomList");
+    if (roomList) {
+      roomList.innerHTML = `<p class="text-center text-red-500">Lỗi: ${error.message}</p>`;
+    }
+    return;
+  }
+
+  renderRooms(data);
+}
+
+/**
+ * 8. Khởi chạy
+ */
+async function initializePage() {
+  await loadSavedStatus();
+
+  // Nếu đang tìm kiếm (search q=...) thì dùng API search riêng
+  const params = new URLSearchParams(window.location.search);
+  const searchQuery = params.get("q");
+
+  if (searchQuery) {
+    const desktopFilters = document.getElementById("desktopFilters");
+    const searchTitle = document.getElementById("search-results-title");
+
+    if (desktopFilters) desktopFilters.style.display = "none";
+    if (searchTitle) {
+      searchTitle.textContent = `Kết quả tìm kiếm: "${searchQuery}"`;
+      searchTitle.style.display = "block";
+    }
+
+    const { data } = await callEdgeFunction("search-posts", {
+      method: "GET",
+      params: { q: searchQuery },
+    });
+    renderRooms(data);
+  } else {
+    handleFilter();
+  }
+}
+
+// Gán sự kiện change cho bộ lọc -> Reset về trang 1
+const filters = [
+  "filterPrice",
+  "filterType",
+  "roomsize-desktop",
+  "local-desktop",
+];
+filters.forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("change", () => {
+      currentPage = 1; // Reset về trang 1 khi đổi bộ lọc
+      handleFilter();
+    });
+  }
+});
+
+// Chạy hàm khởi tạo
+initializePage();
