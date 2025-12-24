@@ -1,20 +1,23 @@
 <div id="chat-widget">
-    <button id="chat-toggle" class="chat-toggle-btn">
-        💬
-    </button>
+  <button id="chat-toggle" class="chat-toggle-btn">💬</button>
 
-    <div id="chat-box" class="chat-box hidden">
-        <div class="chat-header">
-            <h4>Hỗ trợ CHICKY.STU</h4>
-            <button id="chat-close" class="close-btn">×</button>
-        </div>
-
-        <div class="chat-body" id="chat-body">
-        </div>
-
-        <div class="chat-footer">
-            <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off" />
-            <button id="send-btn">Gửi</button>
-        </div>
+  <div id="chat-box" class="chat-box hidden">
+    <div class="chat-header">
+      <h4>Hỗ trợ CHICKY.STU 🐣</h4>
+      <button id="chat-close" class="close-btn">×</button>
     </div>
+
+    <div class="chat-body" id="chat-body"></div>
+
+    <div class="chat-footer" id="action-container">
+      <div id="option-buttons" class="option-grid"></div>
+      <div
+        id="loading-indicator"
+        class="hidden"
+        style="font-size: 12px; color: #888; text-align: center"
+      >
+        Gà Bông đang soạn tin... 🐣
+      </div>
+    </div>
+  </div>
 </div>
