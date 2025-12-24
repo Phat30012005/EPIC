@@ -1,14 +1,15 @@
 /* =======================================
    --- FILE: public/js/danhSach.js ---
-   (PHIÊN BẢN FIXED: FULL URL SUPABASE + SAFE RENDER)
+   (PHIÊN BẢN FIXED V2: POST IMAGES + AVATARS)
    ======================================= */
 
 let savedPostIds = new Set();
 let currentPage = 1;
 const ITEMS_PER_PAGE = 12;
 
-// CẤU HÌNH BUCKET (Dựa trên file migration của bạn)
-const STORAGE_BUCKET = "post-images";
+// CẤU HÌNH BUCKET
+const POST_BUCKET = "post-images";
+const AVATAR_BUCKET = "avatars"; // <-- Đã thêm bucket avatars
 
 /**
  * 1. Tải trạng thái đã lưu (Bookmark)
@@ -33,49 +34,51 @@ async function loadSavedStatus() {
 }
 
 /**
- * HÀM HỖ TRỢ: Xử lý đường dẫn ảnh an toàn
- * Tránh lỗi domino khi dữ liệu đầu vào lộn xộn
+ * [HELPER] Xử lý đường dẫn ảnh bài đăng an toàn
  */
 function getSafeImageUrl(postData) {
-  // 1. Lấy dữ liệu thô từ các trường có thể có
   let raw = postData.image_urls || postData.images;
-
-  // 2. Nếu là chuỗi JSON (ví dụ "['img1.jpg']") -> Parse ra mảng
   if (typeof raw === "string") {
     try {
-      // Kiểm tra xem có phải JSON array không
-      if (raw.trim().startsWith("[")) {
-        raw = JSON.parse(raw);
-      } else {
-        // Nếu là chuỗi thường (tên file), biến nó thành mảng 1 phần tử
-        raw = [raw];
-      }
+      if (raw.trim().startsWith("[")) raw = JSON.parse(raw);
+      else raw = [raw];
     } catch (e) {
-      console.warn("Lỗi parse ảnh:", e);
-      // Giữ nguyên giá trị cũ nếu không parse được
+      console.warn("Lỗi parse ảnh post:", e);
     }
   }
 
-  // 3. Lấy phần tử đầu tiên
-  let imgPath = null;
-  if (Array.isArray(raw) && raw.length > 0) {
-    imgPath = raw[0];
-  } else if (typeof raw === "string") {
-    imgPath = raw;
-  }
+  let imgPath =
+    Array.isArray(raw) && raw.length > 0
+      ? raw[0]
+      : typeof raw === "string"
+      ? raw
+      : null;
 
-  // 4. Kiểm tra và trả về URL
-  if (!imgPath) return "assets/logo1.png"; // Ảnh mặc định
-
-  // Nếu đã là link đầy đủ (http/https) hoặc ảnh nội bộ (assets/)
-  if (imgPath.startsWith("http") || imgPath.startsWith("assets/")) {
+  if (!imgPath) return "assets/logo1.png";
+  if (imgPath.startsWith("http") || imgPath.startsWith("assets/"))
     return imgPath;
+
+  const { data } = supabase.storage.from(POST_BUCKET).getPublicUrl(imgPath);
+  return data.publicUrl;
+}
+
+/**
+ * [HELPER] Xử lý Avatar an toàn (Mới thêm)
+ */
+function getSafeAvatar(profile) {
+  // 1. Nếu không có profile hoặc không có avatar -> Về logo mặc định
+  if (!profile || !profile.avatar_url) return "assets/logo1.png";
+
+  const rawUrl = profile.avatar_url;
+
+  // 2. Nếu là link tuyệt đối (Google/Facebook/Link ngoài) -> Giữ nguyên
+  if (rawUrl.startsWith("http") || rawUrl.startsWith("https")) {
+    return rawUrl;
   }
 
-  // 5. Nếu chỉ là tên file -> Ghép link Supabase Storage
-  // Dùng hàm getPublicUrl của Supabase Client để đảm bảo đúng domain
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(imgPath);
-
+  // 3. Nếu là đường dẫn file trong Storage -> Ghép link Bucket
+  // Lưu ý: Loại bỏ các ký tự thừa nếu có (vd: folder/)
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(rawUrl);
   return data.publicUrl;
 }
 
@@ -107,38 +110,23 @@ function renderRooms(responseData) {
     div.className =
       "bg-white rounded shadow p-3 hover:shadow-lg transition flex flex-col h-full";
 
-    // --- SỬ DỤNG HÀM FIX ẢNH ---
+    // --- XỬ LÝ HÌNH ẢNH & AVATAR ---
     const imageSrc = getSafeImageUrl(room);
-    // ---------------------------
+    const avatarSrc = getSafeAvatar(room.profiles); // <-- Gọi hàm xử lý avatar
+    // --------------------------------
 
     const priceFormatted = Utils.formatCurrencyShort
       ? Utils.formatCurrencyShort(room.price)
       : `${room.price} VNĐ`;
     const postId = room.id || room.post_id;
-
-    // Xử lý nút lưu
     const isSaved = savedPostIds.has(postId);
     const saveBtnIcon = isSaved
       ? '<i class="fa-solid fa-heart"></i>'
       : '<i class="fa-regular fa-heart"></i>';
     const saveBtnClass = isSaved ? "active" : "";
-
-    // Xử lý Avatar người đăng
-    let avatarSrc = "assets/logo1.png";
-    if (room.profiles && room.profiles.avatar_url) {
-      avatarSrc = room.profiles.avatar_url;
-      // Nếu avatar chưa có http, ghép link storage (tương tự ảnh phòng)
-      if (!avatarSrc.startsWith("http")) {
-        const { data } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(avatarSrc); // Giả sử bucket avatar là 'avatars'
-        avatarSrc = data.publicUrl;
-      }
-    }
     const profileName = room.profiles?.full_name || "Ẩn danh";
     const profileUrl = `/profile.html?user_id=${room.user_id}`;
 
-    // Render HTML
     div.innerHTML = `
       <div class="relative w-full h-48 mb-3 overflow-hidden rounded">
         <img src="${imageSrc}" 
@@ -161,8 +149,14 @@ function renderRooms(responseData) {
       
       <div class="mt-auto pt-2 border-t flex items-center mb-3">
          <a href="${profileUrl}" class="flex items-center text-decoration-none group" target="_blank">
-             <img src="${avatarSrc}" alt="ava" class="rounded-circle border group-hover:border-primary transition" style="width: 28px; height: 28px; object-fit: cover; margin-right: 8px;" onerror="this.src='assets/logo1.png'">
-             <span class="text-sm text-gray-500 truncate group-hover:text-primary transition font-medium">${profileName}</span>
+             <img src="${avatarSrc}" 
+                  alt="${profileName}" 
+                  class="rounded-circle border group-hover:border-primary transition" 
+                  style="width: 28px; height: 28px; object-fit: cover; margin-right: 8px;" 
+                  onerror="this.src='assets/logo1.png'">
+             <span class="text-sm text-gray-500 truncate group-hover:text-primary transition font-medium" style="max-width: 150px;">
+                ${profileName}
+             </span>
          </a>
       </div>
 
@@ -300,23 +294,17 @@ function renderSkeletons() {
  */
 async function handleFilter() {
   renderSkeletons();
-
   const params = new URLSearchParams(window.location.search);
   const urlRoomType = params.get("type");
-
   const filterPrice = document.getElementById("filterPrice");
   const filterType = document.getElementById("filterType");
   const filterSize = document.getElementById("roomsize-desktop");
   const filterLocal = document.getElementById("local-desktop");
 
-  const paramsObject = {
-    page: currentPage,
-    limit: ITEMS_PER_PAGE,
-  };
+  const paramsObject = { page: currentPage, limit: ITEMS_PER_PAGE };
 
-  if (filterType && filterType.value) {
-    paramsObject.type = filterType.value;
-  } else if (urlRoomType) {
+  if (filterType && filterType.value) paramsObject.type = filterType.value;
+  else if (urlRoomType) {
     paramsObject.type = urlRoomType;
     if (filterType) filterType.value = urlRoomType;
   }
@@ -333,34 +321,26 @@ async function handleFilter() {
   if (error) {
     console.error("Lỗi lọc:", error);
     const roomList = document.getElementById("roomList");
-    if (roomList) {
+    if (roomList)
       roomList.innerHTML = `<p class="text-center text-red-500">Lỗi kết nối: ${error.message}</p>`;
-    }
     return;
   }
-
   renderRooms(data);
 }
 
-/**
- * 8. Khởi chạy
- */
 async function initializePage() {
   await loadSavedStatus();
-
   const params = new URLSearchParams(window.location.search);
   const searchQuery = params.get("q");
 
   if (searchQuery) {
     const desktopFilters = document.getElementById("desktopFilters");
     const searchTitle = document.getElementById("search-results-title");
-
     if (desktopFilters) desktopFilters.style.display = "none";
     if (searchTitle) {
       searchTitle.textContent = `Kết quả tìm kiếm: "${searchQuery}"`;
       searchTitle.style.display = "block";
     }
-
     const { data } = await callEdgeFunction("search-posts", {
       method: "GET",
       params: { q: searchQuery },
