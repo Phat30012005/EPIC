@@ -61,11 +61,24 @@ function renderRooms(responseData) {
       "bg-white rounded shadow p-3 hover:shadow-lg transition flex flex-col h-full";
 
     // Tối ưu ảnh
+    // --- BẮT ĐẦU SỬA: Xử lý ảnh an toàn (Fix lỗi ảnh không hiện) ---
+    let rawImages = room.image_urls || room.images; // Hỗ trợ cả 2 tên biến nếu API thay đổi
+
+    // Nếu dữ liệu là chuỗi JSON (vd: "['url1', 'url2']"), cần Parse ra thành mảng
+    if (typeof rawImages === "string") {
+      try {
+        rawImages = JSON.parse(rawImages);
+      } catch (e) {
+        rawImages = [];
+      }
+    }
+
+    // Lấy ảnh đầu tiên nếu có, ngược lại để null
     const originalUrl =
-      Array.isArray(room.image_urls) && room.image_urls.length > 0
-        ? room.image_urls[0]
-        : null;
+      Array.isArray(rawImages) && rawImages.length > 0 ? rawImages[0] : null;
+
     const imageSrc = Utils.getOptimizedImage(originalUrl, 400);
+    // --- KẾT THÚC SỬA ---
 
     const priceFormatted = Utils.formatCurrencyShort(room.price);
     const postId = room.id || room.post_id;
